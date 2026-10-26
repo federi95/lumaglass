@@ -166,7 +166,7 @@ a 1080p compositor framebuffer and output mode. The connector advertised `3840x2
 stacked 1080p buffers rather than a 4K framebuffer.
 
 The startup script uses Weston-style arguments and a `weston.ini` with `backend=drm-backend.so`
-and `override-output-from-env=true`. Its product environment also generates the EGLFS JSON.
+and `override-output-from-env=true`. Its device environment also generates the EGLFS JSON.
 Inspect the actual startup path and DRM state; the JSON alone does not establish which output
 configuration is active.
 

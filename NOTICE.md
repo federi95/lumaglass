@@ -7,7 +7,7 @@ from Luma. The original **Copyright (c) 2026 Luma contributors** and complete MI
 permission and warranty notice are preserved verbatim in `LICENSE` and
 `assets/licenses/luma.txt`. Lumaglass modifications are distributed under MIT.
 
-This fork changes the product identity, package ID, source layout, documentation,
+This fork changes the project identity, package ID, source layout, documentation,
 local development setup and dependency pins. The original release history is
 retained in `CHANGELOG.md`; inherited entries describe Luma releases. A reference
 to an upstream hardware result does not establish Lumaglass hardware compatibility.
@@ -27,7 +27,7 @@ screensaver, web dashboard or MQTT implementations. Planned functionality is
 identified as such. Any future copied or adapted implementation must record the
 upstream revision, affected files, changes and applicable notices here and next
 to the derived implementation. Glasshouse's web dashboard and MQTT bridge are
-outside Lumaglass's product scope.
+outside Lumaglass's project scope.
 
 `tv/home-mounts.cjs` is an original Lumaglass ownership observer. Its known
 Glasshouse Home startup paths are informed by `server/50-tvweb.sh` at that

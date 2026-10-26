@@ -1,12 +1,12 @@
 # Lumaglass
 
-A native Home replacement and TV-management project for rooted LG webOS TVs.
+A free and open-source Home replacement and TV-management project for rooted LG webOS TVs.
 Lumaglass is an independent fork of [Luma](https://github.com/ecklf/lg-luma),
 with planned management features inspired by
 [Glasshouse](https://github.com/rorygallagher2024/glasshouse).
 
 The interface runs directly on the TV in Rust, SDL2 and OpenGL ES 2, with remote
-and Magic Remote pointer controls. The product scope excludes a web dashboard
+and Magic Remote pointer controls. The project scope excludes a web dashboard
 and an MQTT bridge.
 
 ## Current status

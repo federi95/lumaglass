@@ -1,7 +1,7 @@
 # Lumaglass documentation
 
 Lumaglass is a native TV application derived from Luma. The guides below describe
-the current implementation; the product excludes a web dashboard and MQTT bridge.
+the current implementation; the project excludes a web dashboard and MQTT bridge.
 
 | Document                              | Purpose                                                          |
 | ------------------------------------- | ---------------------------------------------------------------- |
@@ -9,7 +9,7 @@ the current implementation; the product excludes a web dashboard and MQTT bridge
 | [Development](development.md)         | Toolchain, command reference, checks and preview tooling         |
 | [Controls](controls.md)               | Remote, pointer, keyboard and recent-app navigation              |
 | [App management](app-management.md)   | Local hiding, confirmed uninstallation and verification rules    |
-| [Architecture](architecture.md)       | Native modules, platform workers, storage and product boundaries |
+| [Architecture](architecture.md)       | Native modules, platform workers, storage and project boundaries |
 | [TV integration](tv-integration.md)   | Installation, Home takeover, diagnostics and recovery            |
 | [Compatibility](compatibility.md)     | Clearly attributed upstream reports and fork verification status |
 | [Rendering](rendering.md)             | Fonts, vectors, artwork, partial redraw and profiling            |

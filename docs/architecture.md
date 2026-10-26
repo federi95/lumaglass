@@ -33,7 +33,7 @@ is deferred until a second executable actually needs shared code.
 Input/rendering and GPU uploads stay on SDL. TV calls, HTTP and icon decoding
 stay on their workers. Host SDL and the soft-float ARM SDL-webOS runtime remain
 isolated. The `.lvec` magic `LUMAVEC1` is intentionally retained as a format
-identifier, independently of product branding.
+identifier, independently of project branding.
 
 The installed application is `org.lumaglass.app`, executable `lumaglass`.
 Preferences, Home markers, boot hooks and diagnostics use Lumaglass-specific
