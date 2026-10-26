@@ -94,6 +94,29 @@ the previous snapshot with a notice. Consent flags are not evidence of service
 activity or effective data collection. The UI uses neutral labels, including
 the opposite meaning of enabled Limit ad tracking versus granted consents.
 
+## Font parsing and geometry
+
+The renderer uses [Skrifa 0.49](https://docs.rs/skrifa/0.49.0/skrifa/)
+and its `read-fonts` model instead of `owned_ttf_parser`/`ttf-parser`.
+Each loaded font owns its bytes and one unhinted scaler. Outlines are requested
+per glyph in font units, converted to em-space geometry with the existing Y-axis
+flip, then tessellated with the existing nonzero fill rule and subpixel tolerance.
+Glyph geometry, font weights and CJK/Hangul fallback remain demand-loaded and
+cached by the renderer; no whole-font outline scan runs at startup.
+
+The adapter validates units per em, glyph count, horizontal metrics and the
+presence of supported outlines before accepting a generated font asset. It uses
+the font's horizontal line metrics and advance widths, preserving the first
+matching horizontal legacy `kern` subtable rule. Cross-stream/vertical kerning
+and state-machine kerning are ignored. This migration does not introduce GPOS
+shaping, hinting or different antialiasing; the existing MSAA/Analytic choice
+continues to apply. Autohint shaping is disabled in Skrifa's Cargo features.
+
+Desktop/ARM compilation and package verification cannot establish visual parity.
+Text baselines, spacing, curves and CJK/Hangul fallback still need a visual
+comparison in both rendering modes and on the target TV. Rendering smoke tests
+have not been run for this migration.
+
 ## Persistent privileged operations
 
 App removals use their own bounded worker, separate from inventory, observations

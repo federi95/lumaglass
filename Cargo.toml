@@ -21,10 +21,10 @@ gl = "0.14"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 libc = { version = "0.2", optional = true }
 lumaglass-vector-geometry = { path = "crates/vector-geometry" }
-owned_ttf_parser = "0.25"
 sdl2 = { version = "0.38", features = ["use-pkgconfig"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+skrifa = { version = "0.49", default-features = false, features = ["std"] }
 time = { version = "0.3", features = ["local-offset", "formatting", "parsing"] }
 ureq = { version = "3.4", default-features = false, features = ["rustls"] }
 
@@ -37,5 +37,8 @@ codegen-units = 1
 [profile.dev.package.lyon_tessellation]
 opt-level = 3
 
-[profile.dev.package.ttf-parser]
+[profile.dev.package.skrifa]
+opt-level = 3
+
+[profile.dev.package.read-fonts]
 opt-level = 3
