@@ -50,6 +50,8 @@ pub enum Target {
     Setting(usize),
     SystemRefresh,
     SystemField(usize),
+    PrivacyRefresh,
+    PrivacyField(usize),
     GreetingName,
     GreetingNameClear,
     AppNamesHome,
@@ -115,6 +117,7 @@ pub enum Overlay {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum Subpage {
+    Privacy,
     SystemInfo,
     AppNames,
     Greeting,
@@ -147,6 +150,9 @@ pub enum Direction {
 #[derive(Debug, PartialEq)]
 pub enum Effect {
     Save,
+    Privacy {
+        generation: u64,
+    },
     SystemInfo {
         generation: u64,
     },
@@ -201,6 +207,7 @@ pub struct State {
     pub input_name: String,
     pub recents: crate::recents::Recents,
     pub system: crate::features::system::Information,
+    pub privacy: crate::features::privacy::Privacy,
     pub webos: bool,
 }
 
@@ -236,6 +243,7 @@ impl State {
             input_name: String::new(),
             recents: crate::recents::Recents::default(),
             system: crate::features::system::Information::default(),
+            privacy: crate::features::privacy::Privacy::default(),
             webos: false,
         }
     }
@@ -661,6 +669,7 @@ impl State {
             Some(Subpage::Language) => Target::Setting(4),
             Some(Subpage::TextRendering) => Target::Setting(7),
             Some(Subpage::SystemInfo) => Target::Setting(8),
+            Some(Subpage::Privacy) => Target::Setting(9),
             None => Target::Sidebar(self.section),
         };
         self.scroll = 0.;
@@ -670,14 +679,32 @@ impl State {
     pub fn direction(&mut self, direction: Direction, controls: &[Control]) -> Vec<Effect> {
         self.pointer = false;
         self.dirty = true;
-        if self.subpage == Some(Subpage::SystemInfo) && self.overlay.is_none() {
+        let privacy_page = self.subpage == Some(Subpage::Privacy);
+        if (self.subpage == Some(Subpage::SystemInfo) || privacy_page) && self.overlay.is_none() {
+            let refresh = if privacy_page {
+                Target::PrivacyRefresh
+            } else {
+                Target::SystemRefresh
+            };
+            let field = |index| {
+                if privacy_page {
+                    Target::PrivacyField(index)
+                } else {
+                    Target::SystemField(index)
+                }
+            };
+            let fields = if privacy_page {
+                crate::features::privacy::FIELDS.len()
+            } else {
+                7
+            };
             if self.focus == Target::Nav(2) && matches!(direction, Direction::Down) {
-                self.focus(Target::SystemRefresh, controls);
+                self.focus(refresh, controls);
                 return vec![];
             }
             let index = match self.focus {
-                Target::SystemRefresh => Some(0),
-                Target::SystemField(index) => Some(index + 1),
+                Target::SystemRefresh | Target::PrivacyRefresh => Some(0),
+                Target::SystemField(index) | Target::PrivacyField(index) => Some(index + 1),
                 _ => None,
             };
             if let Some(index) = index {
@@ -686,15 +713,13 @@ impl State {
                     Direction::Up if index == 0 => self.focus(Target::Nav(2), controls),
                     Direction::Up => self.focus(
                         if index == 1 {
-                            Target::SystemRefresh
+                            refresh
                         } else {
-                            Target::SystemField(index - 2)
+                            field(index - 2)
                         },
                         controls,
                     ),
-                    Direction::Down if index < 7 => {
-                        self.focus(Target::SystemField(index), controls)
-                    }
+                    Direction::Down if index < fields => self.focus(field(index), controls),
                     _ => {}
                 }
                 return vec![];
@@ -888,7 +913,7 @@ impl State {
             }
             if matches!(
                 self.focus,
-                Target::Setting(0 | 1 | 4 | 6 | 7 | 8)
+                Target::Setting(0 | 1 | 4 | 6 | 7 | 8 | 9)
                     | Target::InputMode(_)
                     | Target::WeatherLocation
                     | Target::WeatherTemperature
@@ -1500,8 +1525,28 @@ impl State {
                     .map(|generation| vec![Effect::SystemInfo { generation }])
                     .unwrap_or_default();
             }
+            Target::PrivacyRefresh => {
+                return self
+                    .privacy
+                    .request()
+                    .map(|generation| vec![Effect::Privacy { generation }])
+                    .unwrap_or_default();
+            }
             Target::Setting(index) => {
                 match index {
+                    9 => {
+                        self.subpage = Some(Subpage::Privacy);
+                        self.focus = Target::PrivacyRefresh;
+                        self.scroll = 0.;
+                        if !self.preferences.reduced_motion {
+                            self.panel_started = Some(Instant::now());
+                        }
+                        return self
+                            .privacy
+                            .request()
+                            .map(|generation| vec![Effect::Privacy { generation }])
+                            .unwrap_or_default();
+                    }
                     8 => {
                         self.subpage = Some(Subpage::SystemInfo);
                         self.focus = Target::SystemRefresh;
@@ -1594,7 +1639,7 @@ impl State {
             }
             Target::Choice(index) => {
                 match self.subpage.clone() {
-                    Some(Subpage::SystemInfo) => return vec![],
+                    Some(Subpage::SystemInfo | Subpage::Privacy) => return vec![],
                     Some(Subpage::ClockFormat) => self.preferences.hour_24 = index == 1,
                     Some(Subpage::TimeFormat) => self.preferences.show_seconds = index == 1,
                     Some(Subpage::Input(id)) => {

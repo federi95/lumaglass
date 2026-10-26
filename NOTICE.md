@@ -33,6 +33,14 @@ outside Lumaglass's product scope.
 Glasshouse Home startup paths are informed by `server/50-tvweb.sh` at that
 revision; other projects' startup files are only observed, never modified.
 
+The original Lumaglass adapters in `tv/read-privacy.cjs` and
+`src/features/privacy/` use fixed setting names and consent-file keys informed
+by Glasshouse's `server/lib/privacy.js` at that revision. They implement bounded
+read-only observations; Glasshouse's settings mutations, consent-planning and
+blocker implementations are not copied.
+The native Privacy page reports firmware records, not an assurance that a
+tracking service is running or stopped.
+
 ## Artwork, fonts, data and runtime libraries
 
 The MIT license for the application does not replace the licenses of its assets

@@ -244,6 +244,7 @@ fn effects(
     for effect in effects {
         match effect {
             Effect::SystemInfo { generation } => platform.send(Request::SystemInfo { generation }),
+            Effect::Privacy { generation } => platform.send(Request::Privacy { generation }),
             Effect::Save => {
                 preferences.save(&state.preferences);
             }
@@ -878,6 +879,9 @@ fn run() -> Result<(), String> {
         state.dirty |= assets.artwork.poll();
         while let Ok(response) = platform.receiver.try_recv() {
             match response {
+                Response::Privacy { generation, result } => {
+                    state.dirty |= state.privacy.accept(generation, result)
+                }
                 Response::SystemInfo { generation, result } => {
                     state.dirty |= state.system.accept(generation, result)
                 }

@@ -1765,6 +1765,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 Some(Subpage::Language) => language.t("language"),
                 Some(Subpage::TextRendering) => language.t("textRendering"),
                 Some(Subpage::SystemInfo) => language.t("tvInformation"),
+                Some(Subpage::Privacy) => language.t("privacy"),
                 None => "",
             };
             let parent_width = assets.width(label, text(20.8, 550, -0.02)) + 2.;
@@ -1830,6 +1831,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 | Subpage::AppNames
                 | Subpage::Clock
                 | Subpage::SystemInfo
+                | Subpage::Privacy
         ) {
             match subpage {
                 Subpage::WeatherLocation => location_settings(out, state, assets),
@@ -1837,6 +1839,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 Subpage::AppNames => app_name_settings(out, state, assets),
                 Subpage::Clock => clock_settings(out, state, assets),
                 Subpage::SystemInfo => system_information(out, state, assets),
+                Subpage::Privacy => privacy_information(out, state, assets),
                 _ => unreachable!(),
             }
             if let Some(opened) = state.panel_started {
@@ -1895,6 +1898,9 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             | Subpage::AppNames
             | Subpage::Clock
             | Subpage::SystemInfo => {
+                unreachable!()
+            }
+            Subpage::Privacy => {
                 unreachable!()
             }
             Subpage::Language => Language::ALL
@@ -2049,6 +2055,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                     true,
                 ),
                 (8, language.t("tvInformation"), "tv", None, true),
+                (9, language.t("privacy"), "settings", None, true),
                 (5, language.t("quitApp"), "power", None, false),
             ]
             .into_iter()
@@ -2137,6 +2144,59 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 },
             );
         }
+    }
+}
+
+fn privacy_information(out: &mut Scene, state: &State, assets: &Assets) {
+    use crate::features::privacy::{FIELDS, Observation};
+    let language = state.preferences.language;
+    row(
+        out,
+        state,
+        assets,
+        Row {
+            target: Target::PrivacyRefresh,
+            rect: Rect::new(640., 164.8 - state.scroll, 1120., 102.7),
+            title: language.t("infoRefresh"),
+            icon: Some("refresh"),
+            value: state.privacy.loading.then(|| language.t("infoReading")),
+            description: Some(language.t(if state.privacy.failed {
+                "infoReadFailed"
+            } else if !state.webos {
+                "infoPreview"
+            } else {
+                "privacyReadOnly"
+            })),
+            selected: false,
+            chevron: false,
+        },
+    );
+    for (index, (_, title, consent)) in FIELDS.iter().enumerate() {
+        let value = if !state.webos {
+            "infoNotApplicable"
+        } else {
+            state
+                .privacy
+                .report
+                .as_ref()
+                .map_or(Observation::Unknown, |report| report.values[index])
+                .label(*consent)
+        };
+        row(
+            out,
+            state,
+            assets,
+            Row {
+                target: Target::PrivacyField(index),
+                rect: Rect::new(640., 282. - state.scroll + index as f32 * 94., 1120., 82.),
+                title: language.t(title),
+                icon: None,
+                value: None,
+                description: Some(language.t(value)),
+                selected: false,
+                chevron: false,
+            },
+        );
     }
 }
 

@@ -1,4 +1,4 @@
-//! Blocking platform work runs on one worker, never in the SDL/UI thread.
+//! Blocking platform work runs on dedicated workers, never in the SDL/UI thread.
 //! TV calls originate from this native executable's LS2 connection, not a CLI
 //! process trying to impersonate its application identity.
 use crate::{
@@ -137,6 +137,9 @@ pub fn redirect_to_home() -> Result<bool, String> {
 
 pub enum Request {
     Refresh,
+    Privacy {
+        generation: u64,
+    },
     SystemInfo {
         generation: u64,
     },
@@ -149,6 +152,10 @@ pub enum Request {
 }
 pub enum Response {
     Inventory(Result<(Inventory, Option<String>), String>),
+    Privacy {
+        generation: u64,
+        result: Result<crate::features::privacy::Report, String>,
+    },
     SystemInfo {
         generation: u64,
         result: Result<crate::features::system::Report, String>,
@@ -161,9 +168,14 @@ pub enum Response {
     },
 }
 
+enum ObservationRequest {
+    System(u64),
+    Privacy(u64),
+}
+
 pub struct Platform {
     sender: mpsc::Sender<Request>,
-    information: mpsc::SyncSender<u64>,
+    information: mpsc::SyncSender<ObservationRequest>,
     notifications: mpsc::Sender<Response>,
     pub receiver: mpsc::Receiver<Response>,
     pub webos: bool,
@@ -177,18 +189,28 @@ impl Platform {
         // Information queries never wait in front of interactive app launches.
         let notifications = responses.clone();
         let information_responses = responses.clone();
-        let (information, jobs) = mpsc::sync_channel(1);
+        let (information, jobs) = mpsc::sync_channel(2);
         thread::spawn(move || {
-            for generation in jobs {
-                let result = if webos {
-                    system_information()
-                } else {
-                    Ok(crate::features::system::Report::default())
+            for job in jobs {
+                let response = match job {
+                    ObservationRequest::System(generation) => Response::SystemInfo {
+                        generation,
+                        result: if webos {
+                            system_information()
+                        } else {
+                            Ok(crate::features::system::Report::default())
+                        },
+                    },
+                    ObservationRequest::Privacy(generation) => Response::Privacy {
+                        generation,
+                        result: if webos {
+                            privacy_information()
+                        } else {
+                            Ok(crate::features::privacy::Report::default())
+                        },
+                    },
                 };
-                if information_responses
-                    .send(Response::SystemInfo { generation, result })
-                    .is_err()
-                {
+                if information_responses.send(response).is_err() {
                     break;
                 }
             }
@@ -202,6 +224,10 @@ impl Platform {
             };
             while let Ok(request) = requests.recv() {
                 let response = match request {
+                    Request::Privacy { generation } => Response::Privacy {
+                        generation,
+                        result: Err("Privacy request used the wrong worker".into()),
+                    },
                     Request::SystemInfo { generation } => Response::SystemInfo {
                         generation,
                         result: Err("Information request used the wrong worker".into()),
@@ -284,16 +310,31 @@ impl Platform {
     }
 
     pub fn send(&self, request: Request) {
-        if let Request::SystemInfo { generation } = request {
-            if let Err(error) = self.information.try_send(generation) {
-                let _ = self.notifications.send(Response::SystemInfo {
-                    generation,
-                    result: Err(format!("Information worker unavailable: {error}")),
-                });
+        let job = match request {
+            Request::SystemInfo { generation } => ObservationRequest::System(generation),
+            Request::Privacy { generation } => ObservationRequest::Privacy(generation),
+            request => {
+                let _ = self.sender.send(request);
+                return;
             }
-            return;
+        };
+        if let Err(error) = self.information.try_send(job) {
+            let job = match error {
+                mpsc::TrySendError::Full(job) | mpsc::TrySendError::Disconnected(job) => job,
+            };
+            let error = "Observation worker unavailable".to_owned();
+            let response = match job {
+                ObservationRequest::System(generation) => Response::SystemInfo {
+                    generation,
+                    result: Err(error),
+                },
+                ObservationRequest::Privacy(generation) => Response::Privacy {
+                    generation,
+                    result: Err(error),
+                },
+            };
+            let _ = self.notifications.send(response);
         }
-        let _ = self.sender.send(request);
     }
 
     pub fn sync_splash(&self, background: &str) {
@@ -320,6 +361,14 @@ fn system_information() -> Result<crate::features::system::Report, String> {
         .map(|directory| crate::features::system::Installation::from_path(&directory))
         .unwrap_or_default();
     crate::features::system::Report::from_reply(&reply, installation)
+}
+
+fn privacy_information() -> Result<crate::features::privacy::Report, String> {
+    let reply = fixed_observation_helper(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tv/read-privacy.cjs"
+    )))?;
+    crate::features::privacy::Report::from_reply(&reply)
 }
 
 /// Callers supply only bundled fixed read-only scripts, never UI or saved input.

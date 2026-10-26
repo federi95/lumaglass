@@ -10,6 +10,7 @@ src/app/                    application model, state and SDL runtime
 src/ui/                     native scene composition and translations
 src/render/                 GLES renderer, shaders, vector/font geometry and damage
 src/features/apps/          artwork, branding, recent apps and preview inventory
+src/features/privacy/       fixed privacy observations and transient request state
 src/features/weather/       forecast scheduling, HTTP worker and cache
 src/features/system/        typed read-only TV observations and request state
 src/platform/               inventory/actions, SDL input and installation lookup
@@ -72,6 +73,25 @@ This is detection of known integrations, not a scan of arbitrary boot scripts.
 Foreign, stacked or mixed-method mounts prevent mutations. The observer is
 embedded alongside the native information helper and packaged/copied with the
 standalone recovery scripts; it does not depend on the renderer remaining open.
+
+## Privacy observations
+
+System → Privacy reads only on entry or manual Refresh. Its typed jobs share a
+bounded observation worker with TV information, independent of app launches and
+SDL. Two fixed `getSystemSettings` queries read `option/livePlus` and `general/lmt`
+with 1.5-second process budgets and 64 KiB replies. A bounded 256 KiB read of
+`/var/luna/preferences/eula` extracts only seven allowlisted JSON boolean fields.
+Unrecognised shapes/types remain unknown. The general read API is documented by
+[LG](https://webostv.developer.lge.com/develop/references/settings-service);
+these particular keys and consent storage are firmware-specific observations
+informed by Glasshouse, not a public cross-firmware API guarantee.
+
+No advertising ID is requested. No ACR/admanager endpoints are queried, no
+settings/consent writes occur and consent contents are not logged or stored in
+preferences. Generation IDs discard late results and a failed refresh retains
+the previous snapshot with a notice. Consent flags are not evidence of service
+activity or effective data collection. The UI uses neutral labels, including
+the opposite meaning of enabled Limit ad tracking versus granted consents.
 
 ## Persistent privileged operations
 

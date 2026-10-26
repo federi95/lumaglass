@@ -17,7 +17,9 @@ Lumaglass identity, modular layout, local development setup and license notices.
 Settings → System → TV information adds read-only device information and Home
 replacement observations. Preference writes run on a worker with durable atomic
 replacement; the clock refreshes its timezone offset and SDK archives are SHA-256 checked.
-Privacy controls, uninstall/debloating, ad/telemetry blocking and custom
+Settings → System → Privacy reads Live Plus, limit-ad-tracking and selected
+consent records without changing them. Unknown and denied values stay explicit.
+Privacy changes, uninstall/debloating, ad/telemetry blocking and custom
 screensavers are **planned**, not implemented yet.
 See the [architecture](docs/architecture.md) for the current implementation.
 
