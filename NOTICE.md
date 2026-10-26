@@ -41,6 +41,13 @@ blocker implementations are not copied.
 The native Privacy page reports firmware records, not an assurance that a
 tracking service is running or stopped.
 
+`src/features/apps/management.rs` and `tv/manage-app.cjs` implement an original
+Lumaglass removal workflow. Glasshouse's `server/lib/apps.js` at the same
+revision informed the LS2 endpoint names and protected application identities.
+Lumaglass uses explicit removable/non-system metadata, a pinned installation
+target, one preselected request and subsequent read-only inventory verification.
+The complete Glasshouse MIT notice remains distributed with the application.
+
 ## Artwork, fonts, data and runtime libraries
 
 The MIT license for the application does not replace the licenses of its assets

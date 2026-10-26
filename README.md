@@ -19,7 +19,10 @@ replacement observations. Preference writes run on a worker with durable atomic
 replacement; the clock refreshes its timezone offset and SDK archives are SHA-256 checked.
 Settings → System → Privacy reads Live Plus, limit-ad-tracking and selected
 consent records without changing them. Unknown and denied values stay explicit.
-Privacy changes, uninstall/debloating, ad/telemetry blocking and custom
+App options add a confirmed uninstall path for explicitly removable non-system
+apps, with protected identities and inventory verification. Hide in Lumaglass
+remains a separate local preference. TV behavior still needs hardware verification.
+Privacy changes, system-app debloating, ad/telemetry blocking and custom
 screensavers are **planned**, not implemented yet.
 See the [architecture](docs/architecture.md) for the current implementation.
 

@@ -8,6 +8,7 @@ the current implementation; the product excludes a web dashboard and MQTT bridge
 | [Getting started](getting-started.md) | Local macOS setup, preview and ARM package                       |
 | [Development](development.md)         | Toolchain, command reference, checks and preview tooling         |
 | [Controls](controls.md)               | Remote, pointer, keyboard and recent-app navigation              |
+| [App management](app-management.md)   | Local hiding, confirmed uninstallation and verification rules    |
 | [Architecture](architecture.md)       | Native modules, platform workers, storage and product boundaries |
 | [TV integration](tv-integration.md)   | Installation, Home takeover, diagnostics and recovery            |
 | [Compatibility](compatibility.md)     | Clearly attributed upstream reports and fork verification status |

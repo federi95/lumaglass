@@ -2231,5 +2231,192 @@
     "ru": "Настроены — проверьте владельца",
     "pl": "Skonfigurowana — sprawdź właściciela",
     "fr": "Configurée : vérifier son propriétaire"
+  },
+  "cancel": {
+    "en": "Cancel",
+    "de": "Abbrechen",
+    "zh": "取消",
+    "es": "Cancelar",
+    "pt": "Cancelar",
+    "it": "Annulla",
+    "ru": "Отмена",
+    "pl": "Anuluj",
+    "fr": "Annuler"
+  },
+  "uninstallApp": {
+    "en": "Uninstall app",
+    "de": "App deinstallieren",
+    "zh": "卸载应用",
+    "es": "Desinstalar app",
+    "pt": "Desinstalar app",
+    "it": "Disinstalla app",
+    "ru": "Удалить приложение",
+    "pl": "Odinstaluj aplikację",
+    "fr": "Désinstaller l’application"
+  },
+  "uninstallStatus": {
+    "en": "Uninstall status",
+    "de": "Deinstallationsstatus",
+    "zh": "卸载状态",
+    "es": "Estado de desinstalación",
+    "pt": "Estado da desinstalação",
+    "it": "Stato disinstallazione",
+    "ru": "Статус удаления",
+    "pl": "Stan odinstalowania",
+    "fr": "État de la désinstallation"
+  },
+  "uninstallCheck": {
+    "en": "Check status",
+    "de": "Status prüfen",
+    "zh": "检查状态",
+    "es": "Verificar estado",
+    "pt": "Verificar estado",
+    "it": "Verifica stato",
+    "ru": "Проверить статус",
+    "pl": "Sprawdź stan",
+    "fr": "Vérifier l’état"
+  },
+  "uninstallConfirmText": {
+    "en": "Uninstall this app from the TV?",
+    "de": "Diese App vom Fernseher deinstallieren?",
+    "zh": "要从电视卸载此应用吗？",
+    "es": "¿Desinstalar esta app de la TV?",
+    "pt": "Desinstalar este app da TV?",
+    "it": "Disinstallare questa app dalla TV?",
+    "ru": "Удалить это приложение с телевизора?",
+    "pl": "Odinstalować tę aplikację z telewizora?",
+    "fr": "Désinstaller cette application du téléviseur ?"
+  },
+  "uninstallConfirmNote": {
+    "en": "Uninstalling is separate from hiding an app in Lumaglass.",
+    "de": "Deinstallieren ist eine andere Aktion als das Ausblenden in Lumaglass.",
+    "zh": "卸载与在 Lumaglass 中隐藏应用是不同的操作。",
+    "es": "Desinstalar es distinto de ocultar una app en Lumaglass.",
+    "pt": "Desinstalar é diferente de ocultar um app no Lumaglass.",
+    "it": "Disinstallare è diverso da nascondere un’app in Lumaglass.",
+    "ru": "Удаление отличается от скрытия приложения в Lumaglass.",
+    "pl": "Odinstalowanie to inna czynność niż ukrycie w Lumaglass.",
+    "fr": "Désinstaller est différent de masquer une application dans Lumaglass."
+  },
+  "uninstallSending": {
+    "en": "Sending the uninstall request…",
+    "de": "Deinstallationsanfrage wird gesendet…",
+    "zh": "正在发送卸载请求…",
+    "es": "Enviando solicitud de desinstalación…",
+    "pt": "Enviando solicitação de desinstalação…",
+    "it": "Invio della richiesta di disinstallazione…",
+    "ru": "Отправка запроса на удаление…",
+    "pl": "Wysyłanie żądania odinstalowania…",
+    "fr": "Envoi de la demande de désinstallation…"
+  },
+  "uninstallVerifying": {
+    "en": "Checking whether the app has left the installed inventory…",
+    "de": "Es wird geprüft, ob die App aus der installierten Liste verschwunden ist…",
+    "zh": "正在检查应用是否已从安装列表中移除…",
+    "es": "Comprobando si la app desapareció del inventario instalado…",
+    "pt": "Verificando se o app saiu da lista de instalados…",
+    "it": "Verifica della scomparsa dell’app dall’inventario installato…",
+    "ru": "Проверка отсутствия приложения в списке установленных…",
+    "pl": "Sprawdzanie, czy aplikacja zniknęła z listy zainstalowanych…",
+    "fr": "Vérification de la disparition de l’application de la liste installée…"
+  },
+  "uninstallUncertain": {
+    "en": "Removal is unconfirmed. Check status; the uninstall request will not be resent.",
+    "de": "Entfernung unbestätigt. Status prüfen; die Anfrage wird nicht erneut gesendet.",
+    "zh": "尚未确认移除。请检查状态；不会重新发送卸载请求。",
+    "es": "Eliminación sin confirmar. Verifica el estado; no se reenviará la solicitud.",
+    "pt": "Remoção não confirmada. Verifique o estado; a solicitação não será reenviada.",
+    "it": "Rimozione non confermata. Verifica lo stato; la richiesta non verrà reinviata.",
+    "ru": "Удаление не подтверждено. Проверьте статус; запрос не будет отправлен повторно.",
+    "pl": "Usunięcie niepotwierdzone. Sprawdź stan; żądanie nie zostanie wysłane ponownie.",
+    "fr": "Suppression non confirmée. Vérifiez l’état ; la demande ne sera pas renvoyée."
+  },
+  "uninstallDone": {
+    "en": "Removal confirmed by the TV inventory.",
+    "de": "Entfernung durch die TV-App-Liste bestätigt.",
+    "zh": "电视安装列表已确认移除。",
+    "es": "El inventario de la TV confirma la eliminación.",
+    "pt": "O inventário da TV confirmou a remoção.",
+    "it": "Rimozione confermata dall’inventario della TV.",
+    "ru": "Удаление подтверждено списком приложений ТВ.",
+    "pl": "Usunięcie potwierdzone przez listę aplikacji TV.",
+    "fr": "Suppression confirmée par la liste des applications du téléviseur."
+  },
+  "uninstallRefused": {
+    "en": "Uninstall refused or app metadata changed. Refresh the installed inventory.",
+    "de": "Deinstallation abgelehnt oder App-Daten geändert. Installierte Apps aktualisieren.",
+    "zh": "卸载被拒绝或应用元数据已更改。请刷新安装列表。",
+    "es": "Desinstalación rechazada o datos cambiados. Actualiza el inventario.",
+    "pt": "Desinstalação recusada ou dados alterados. Atualize o inventário.",
+    "it": "Disinstallazione rifiutata o metadati cambiati. Aggiorna l’inventario.",
+    "ru": "Удаление отклонено или данные изменились. Обновите список приложений.",
+    "pl": "Odmowa lub zmiana danych aplikacji. Odśwież listę zainstalowanych.",
+    "fr": "Désinstallation refusée ou données modifiées. Actualisez la liste installée."
+  },
+  "uninstallCloseNote": {
+    "en": "Closing this window does not cancel a request already sent.",
+    "de": "Das Schließen dieses Fensters bricht eine gesendete Anfrage nicht ab.",
+    "zh": "关闭此窗口不会取消已发送的请求。",
+    "es": "Cerrar esta ventana no cancela una solicitud ya enviada.",
+    "pt": "Fechar esta janela não cancela uma solicitação já enviada.",
+    "it": "Chiudere questa finestra non annulla una richiesta già inviata.",
+    "ru": "Закрытие окна не отменяет уже отправленный запрос.",
+    "pl": "Zamknięcie okna nie anuluje wysłanego żądania.",
+    "fr": "Fermer cette fenêtre n’annule pas une demande déjà envoyée."
+  },
+  "uninstallPreview": {
+    "en": "Desktop simulation: no app on the TV is changed.",
+    "de": "Desktop-Simulation: Keine TV-App wird geändert.",
+    "zh": "桌面模拟：不会更改电视上的任何应用。",
+    "es": "Simulación de escritorio: no modifica apps de la TV.",
+    "pt": "Simulação desktop: nenhum app da TV é alterado.",
+    "it": "Simulazione desktop: nessuna app sulla TV viene modificata.",
+    "ru": "Симуляция на компьютере: приложения ТВ не изменяются.",
+    "pl": "Symulacja na komputerze: aplikacje TV nie są zmieniane.",
+    "fr": "Simulation bureau : aucune application du téléviseur n’est modifiée."
+  },
+  "uninstallPreviewDone": {
+    "en": "Removed from the desktop simulation only.",
+    "de": "Nur aus der Desktop-Simulation entfernt.",
+    "zh": "仅从桌面模拟中移除。",
+    "es": "Eliminada solo de la simulación de escritorio.",
+    "pt": "Removido apenas da simulação desktop.",
+    "it": "Rimossa solo dalla simulazione desktop.",
+    "ru": "Удалено только из симуляции на компьютере.",
+    "pl": "Usunięto tylko z symulacji na komputerze.",
+    "fr": "Supprimée uniquement de la simulation bureau."
+  },
+  "uninstallBusy": {
+    "en": "Wait for the current removal to be verified.",
+    "de": "Bestätigung der laufenden Entfernung abwarten.",
+    "zh": "请等待当前移除操作完成验证。",
+    "es": "Espera la verificación de la eliminación actual.",
+    "pt": "Aguarde a verificação da remoção atual.",
+    "it": "Attendi la verifica della rimozione in corso.",
+    "ru": "Дождитесь проверки текущего удаления.",
+    "pl": "Poczekaj na weryfikację bieżącego usuwania.",
+    "fr": "Attendez la vérification de la suppression en cours."
+  },
+  "hideInLumaglass": {
+    "en": "Hide in Lumaglass",
+    "de": "In Lumaglass ausblenden",
+    "zh": "在 Lumaglass 中隐藏",
+    "es": "Ocultar en Lumaglass",
+    "pt": "Ocultar no Lumaglass",
+    "it": "Nascondi in Lumaglass",
+    "ru": "Скрыть в Lumaglass",
+    "pl": "Ukryj w Lumaglass",
+    "fr": "Masquer dans Lumaglass"
+  },
+  "showInLumaglass": {
+    "en": "Show in Lumaglass",
+    "de": "In Lumaglass anzeigen",
+    "zh": "在 Lumaglass 中显示",
+    "es": "Mostrar en Lumaglass",
+    "pt": "Mostrar no Lumaglass",
+    "it": "Mostra in Lumaglass",
+    "ru": "Показать в Lumaglass",
+    "pl": "Pokaż w Lumaglass",
+    "fr": "Afficher dans Lumaglass"
   }
 }

@@ -37,6 +37,7 @@ pub struct App {
     pub category: String,
     #[serde(skip)]
     pub icon: Option<crate::app_artwork::Source>,
+    pub removal: Option<crate::features::apps::management::RemovalTarget>,
 }
 
 impl App {
@@ -62,6 +63,7 @@ impl App {
             brand: brand.into(),
             category: category.into(),
             icon: None,
+            removal: None,
         }
     }
 }
@@ -294,6 +296,16 @@ pub fn demo_inventory() -> Inventory {
         if !inventory.apps.iter().any(|app| app.brand == brand.key) {
             inventory.apps.push(App::new(brand.ids[0], brand.title));
         }
+    }
+    // Exactly one labeled desktop simulation target. Never used for TV inventory.
+    if let Some(app) = inventory
+        .apps
+        .iter_mut()
+        .find(|app| app.id == "org.xbmc.kodi")
+    {
+        app.removal = Some(crate::features::apps::management::RemovalTarget::preview(
+            &app.id,
+        ));
     }
     inventory
 }

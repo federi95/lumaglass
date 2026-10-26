@@ -10,6 +10,7 @@ src/app/                    application model, state and SDL runtime
 src/ui/                     native scene composition and translations
 src/render/                 GLES renderer, shaders, vector/font geometry and damage
 src/features/apps/          artwork, branding, recent apps and preview inventory
+                            and typed, verified app-removal state
 src/features/privacy/       fixed privacy observations and transient request state
 src/features/weather/       forecast scheduling, HTTP worker and cache
 src/features/system/        typed read-only TV observations and request state
@@ -94,6 +95,15 @@ activity or effective data collection. The UI uses neutral labels, including
 the opposite meaning of enabled Limit ad tracking versus granted consents.
 
 ## Persistent privileged operations
+
+App removals use their own bounded worker, separate from inventory, observations
+and interactive launches. The UI captures an immutable removal target in the
+options/confirmation flow. The fixed elevated adapter revalidates metadata and
+sends exactly one request; subsequent jobs only verify inventory. Completion
+invalidates earlier inventory generations and filters stale recent entries,
+then persists local preference cleanup and invalidates artwork results. Desktop
+removal uses an isolated in-memory inventory with one explicit Kodi simulation.
+See [app-management.md](app-management.md) for the policy and completion rules.
 
 The current platform adapter uses the native LS2 caller and Homebrew Channel's
 elevated fixed helpers. Future privacy, blocker and screensaver integrations

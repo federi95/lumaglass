@@ -175,7 +175,7 @@ try {
 
   const germanDialog = await scenario('de-dialog', 'apps,down,menu');
   contains(germanDialog, 'removeFavorite', 'de');
-  contains(germanDialog, 'hideApp', 'de');
+  contains(germanDialog, 'hideInLumaglass', 'de');
   const saved = JSON.parse(await fs.readFile(preferences, 'utf8'));
   await fs.writeFile(preferences, JSON.stringify({ ...saved, language: 'zh' }));
   const chineseDialog = await scenario('zh-dialog', 'apps,down,menu');
@@ -229,7 +229,7 @@ try {
   assert.equal(JSON.parse(await fs.readFile(preferences, 'utf8')).language, 'pt');
 
   const portugueseDialog = await scenario('pt-dialog', 'apps,down,menu');
-  for (const key of ['removeFavorite', 'hideApp', 'categoryStreaming'])
+  for (const key of ['removeFavorite', 'hideInLumaglass', 'categoryStreaming'])
     contains(portugueseDialog, key, 'pt');
   const portugueseKeyboard = await scenario('pt-keyboard', 'apps,type:Netflix');
   for (const key of ['findApp', 'space', 'delete', 'clear', 'done'])

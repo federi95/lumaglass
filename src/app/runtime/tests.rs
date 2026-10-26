@@ -9,6 +9,39 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 mod recent_tests;
 
+#[test]
+fn uninstall_confirmation_defaults_to_cancel_and_cannot_send_twice() {
+    use crate::features::apps::management::Command;
+    let mut state = ready();
+    state.open(1);
+    state.focus = Target::App("org.xbmc.kodi".into());
+    let preferences = serde_json::to_value(&state.preferences).unwrap();
+    state.options();
+    state.focus = Target::Option(2);
+    assert!(state.activate().is_empty());
+    assert_eq!(state.focus, Target::RemovalCancel);
+    assert!(state.activate().is_empty());
+    assert!(matches!(state.overlay, Some(Overlay::Options { .. })));
+    assert_eq!(
+        serde_json::to_value(&state.preferences).unwrap(),
+        preferences
+    );
+    state.focus = Target::Option(2);
+    state.activate();
+    state.focus = Target::RemovalConfirm;
+    assert!(matches!(
+        state.activate().as_slice(),
+        [Effect::Manage {
+            command: Command::Remove(_),
+            ..
+        }]
+    ));
+    state.focus = Target::RemovalConfirm;
+    assert!(state.activate().is_empty());
+    assert!(state.back().is_empty());
+    assert!(state.management.active());
+}
+
 fn ready() -> State {
     let mut state = State::new(Preferences::default());
     state.set_inventory(demo_inventory(), None);
@@ -755,6 +788,8 @@ fn system_category_owns_refresh_and_quit_and_restores_sidebar_focus() {
     assert_eq!(state.focus, Target::Setting(7));
     state.direction(Direction::Down, &controls(&state));
     assert_eq!(state.focus, Target::Setting(8));
+    state.direction(Direction::Down, &controls(&state));
+    assert_eq!(state.focus, Target::Setting(9));
     state.direction(Direction::Down, &controls(&state));
     assert_eq!(state.focus, Target::Setting(5));
     assert_eq!(state.activate(), vec![Effect::Quit]);

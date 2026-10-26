@@ -375,12 +375,28 @@ pub fn scene_with_pill(
     out.draw.push(Draw::Clip(None));
     header(&mut out, state, assets, now, pill_x, pill_width);
     footer(&mut out, state, assets);
-    if let Some(overlay @ (Overlay::Options { .. } | Overlay::Keyboard)) = &state.overlay {
+    if let Some(
+        overlay @ (Overlay::Options { .. }
+        | Overlay::Keyboard
+        | Overlay::RemovalConfirm { .. }
+        | Overlay::RemovalStatus { .. }),
+    ) = &state.overlay
+    {
         out.controls.clear();
         let start = out.draw.len();
         out.shape(Rect::new(0., 0., 1920., 1080.), 0., c(0x080b12, 0.70));
         match overlay {
-            Overlay::Options { id, .. } => options(&mut out, state, assets, id),
+            Overlay::Options { id, removal, .. } => {
+                options(&mut out, state, assets, id, removal.as_ref())
+            }
+            Overlay::RemovalConfirm { target, title, .. } => {
+                removal_dialog(&mut out, state, &target.id, title, true)
+            }
+            Overlay::RemovalStatus { .. } => {
+                if let Some(target) = &state.management.target {
+                    removal_dialog(&mut out, state, &target.id, &state.management.title, false);
+                }
+            }
             Overlay::Keyboard => keyboard(&mut out, state, assets),
             Overlay::SystemKeyboard | Overlay::Recents { .. } => {}
         }
@@ -2685,7 +2701,13 @@ fn empty(out: &mut Scene, state: &State, assets: &Assets, content: EmptyState<'_
     }
 }
 
-fn options(out: &mut Scene, state: &State, assets: &Assets, id: &str) {
+fn options(
+    out: &mut Scene,
+    state: &State,
+    assets: &Assets,
+    id: &str,
+    removal: Option<&crate::features::apps::management::RemovalTarget>,
+) {
     let language = state.preferences.language;
     let app = state.inventory.apps.iter().find(|app| app.id == id);
     let title = app.map_or(id, |app| app.title.as_str());
@@ -2693,7 +2715,13 @@ fn options(out: &mut Scene, state: &State, assets: &Assets, id: &str) {
         .lines(title, text(37.6, 500, -0.055).leading(1.1), 432.)
         .saturating_sub(1) as f32
         * 41.4;
-    let panel = Rect::new(680., 362.9 - extra / 2., 560., 354.2 + extra);
+    let added = if removal.is_some() { 76.8 } else { 0. };
+    let panel = Rect::new(
+        680.,
+        362.9 - extra / 2. - added / 2.,
+        560.,
+        354.2 + extra + added,
+    );
     out.modal = Some(panel);
     out.shadow(panel, 27.2, 120., 25., 0.47);
     out.draw.push(Draw::RoundedGradient(
@@ -2731,17 +2759,36 @@ fn options(out: &mut Scene, state: &State, assets: &Assets, id: &str) {
         .iter()
         .any(|item| item == id);
     let hidden = state.preferences.hidden.iter().any(|item| item == id);
-    for (index, label) in [
+    let mut labels = vec![
         if favorite {
             language.t("removeFavorite")
         } else {
             language.t("addFavorite")
         },
-        language.t(if hidden { "showApp" } else { "hideApp" }),
-    ]
-    .into_iter()
-    .enumerate()
-    {
+        language.t(if hidden {
+            "showInLumaglass"
+        } else {
+            "hideInLumaglass"
+        }),
+    ];
+    if removal.is_some() {
+        labels.push(
+            language.t(
+                if state.management.active()
+                    && state
+                        .management
+                        .target
+                        .as_ref()
+                        .is_some_and(|target| target.id == id)
+                {
+                    "uninstallStatus"
+                } else {
+                    "uninstallApp"
+                },
+            ),
+        );
+    }
+    for (index, label) in labels.into_iter().enumerate() {
         let rect = Rect::new(
             717.8,
             panel.y + 137.9 + extra + index as f32 * 76.8,
@@ -2763,6 +2810,8 @@ fn options(out: &mut Scene, state: &State, assets: &Assets, id: &str) {
             assets,
             if index == 0 {
                 if favorite { "heart-filled" } else { "heart" }
+            } else if index == 2 {
+                "close"
             } else if hidden {
                 "eye"
             } else {
@@ -2803,6 +2852,93 @@ fn options(out: &mut Scene, state: &State, assets: &Assets, id: &str) {
         c(0xe0e0e0, 0.35),
         false,
     );
+}
+
+fn removal_dialog(out: &mut Scene, state: &State, id: &str, title: &str, confirmation: bool) {
+    use crate::features::apps::management::Phase;
+    let language = state.preferences.language;
+    let panel = Rect::new(600., 235., 720., 610.);
+    out.modal = Some(panel);
+    out.shadow(panel, 27.2, 120., 25., 0.47);
+    out.draw.push(Draw::RoundedGradient(
+        panel,
+        27.2,
+        c(0x34383b, 0.96),
+        c(0x24282d, 0.988),
+    ));
+    out.border(panel, 27.2, 1., c(0xffffff, 0.12));
+    out.text(
+        title,
+        Rect::new(638., 270., 644., 150.),
+        text(28., 550, -0.02).leading(1.3),
+        WHITE,
+        false,
+    );
+    out.text(
+        id,
+        Rect::new(638., 430., 644., 56.),
+        text(16.8, 400, 0.).leading(1.5),
+        c(0xf5f5f5, 0.6),
+        false,
+    );
+    out.text(
+        language.t(if confirmation {
+            "uninstallConfirmText"
+        } else if !state.webos && state.management.phase == Phase::Removed {
+            "uninstallPreviewDone"
+        } else {
+            state.management.status_key()
+        }),
+        Rect::new(638., 507., 644., 104.),
+        text(20.8, 500, 0.).leading(1.4),
+        WHITE,
+        false,
+    );
+    out.text(
+        language.t(if !state.webos {
+            "uninstallPreview"
+        } else if confirmation || !state.management.active() {
+            "uninstallConfirmNote"
+        } else {
+            "uninstallCloseNote"
+        }),
+        Rect::new(638., 625., 644., 84.),
+        text(16.8, 400, 0.).leading(1.5),
+        c(0xf5f5f5, 0.6),
+        false,
+    );
+    let check_enabled = !state.management.busy
+        && matches!(state.management.phase, Phase::Verifying | Phase::NeedsCheck);
+    let buttons = if confirmation {
+        [
+            (Target::RemovalCancel, "cancel", true),
+            (Target::RemovalConfirm, "uninstallApp", true),
+        ]
+    } else {
+        [
+            (Target::CloseDialog, "close", true),
+            (Target::RemovalCheck, "uninstallCheck", check_enabled),
+        ]
+    };
+    for (index, (target, label, enabled)) in buttons.into_iter().enumerate() {
+        let rect = Rect::new(638. + index as f32 * 338., 735., 306., 60.);
+        let focused = state.focus == target;
+        out.shape(rect, 12., c(0xffffff, if focused { 0.12 } else { 0.025 }));
+        out.border(
+            rect,
+            12.,
+            if focused { 2. } else { 1. },
+            c(0xffffff, if focused { 0.9 } else { 0.1 }),
+        );
+        out.text(
+            language.t(label),
+            Rect::new(rect.x + 14., rect.y + 19., rect.w - 28., 26.),
+            text(18.4, 500, 0.),
+            c(0xffffff, if enabled { 1. } else { 0.35 }),
+            true,
+        );
+        out.control(target, rect, false);
+    }
 }
 
 fn keyboard(out: &mut Scene, state: &State, assets: &Assets) {

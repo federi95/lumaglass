@@ -1,12 +1,19 @@
 //! Blocking platform work runs on dedicated workers, never in the SDL/UI thread.
 //! TV calls originate from this native executable's LS2 connection, not a CLI
 //! process trying to impersonate its application identity.
+use crate::features::apps::management::{
+    Command as ManagementCommand, Outcome as ManagementOutcome,
+};
 use crate::{
     app_artwork,
     model::{App, Input, Inventory, demo_inventory, valid_app_id},
 };
 use serde_json::{Value, json};
-use std::{collections::HashSet, sync::mpsc, thread};
+use std::{
+    collections::HashSet,
+    sync::{Arc, Mutex, mpsc},
+    thread,
+};
 
 pub(crate) mod clock;
 mod install;
@@ -136,7 +143,13 @@ pub fn redirect_to_home() -> Result<bool, String> {
 }
 
 pub enum Request {
-    Refresh,
+    Refresh {
+        generation: u64,
+    },
+    Manage {
+        generation: u64,
+        command: ManagementCommand,
+    },
     Privacy {
         generation: u64,
     },
@@ -151,7 +164,15 @@ pub enum Request {
     },
 }
 pub enum Response {
-    Inventory(Result<(Inventory, Option<String>), String>),
+    Inventory {
+        generation: u64,
+        result: Result<(Inventory, Option<String>), String>,
+    },
+    Managed {
+        generation: u64,
+        command: ManagementCommand,
+        result: Result<ManagementOutcome, String>,
+    },
     Privacy {
         generation: u64,
         result: Result<crate::features::privacy::Report, String>,
@@ -176,6 +197,7 @@ enum ObservationRequest {
 pub struct Platform {
     sender: mpsc::Sender<Request>,
     information: mpsc::SyncSender<ObservationRequest>,
+    management: mpsc::SyncSender<(u64, ManagementCommand)>,
     notifications: mpsc::Sender<Response>,
     pub receiver: mpsc::Receiver<Response>,
     pub webos: bool,
@@ -186,6 +208,46 @@ impl Platform {
     pub fn new(webos: bool, splash_enabled: bool) -> Self {
         let (sender, requests) = mpsc::channel();
         let (responses, receiver) = mpsc::channel();
+        let desktop_inventory = Arc::new(Mutex::new(if webos {
+            Inventory::default()
+        } else {
+            demo_inventory()
+        }));
+        let desktop_actions = desktop_inventory.clone();
+        let management_responses = responses.clone();
+        let (management, actions) = mpsc::sync_channel::<(u64, ManagementCommand)>(1);
+        thread::spawn(move || {
+            for (generation, command) in actions {
+                let result = if webos {
+                    manage_app(&command)
+                } else {
+                    let mut inventory = desktop_actions.lock().unwrap();
+                    let target = command.target();
+                    if target.route != crate::features::apps::management::Route::Preview {
+                        Ok(ManagementOutcome::Refused)
+                    } else {
+                        if matches!(command, ManagementCommand::Remove(_)) {
+                            inventory.apps.retain(|app| app.id != target.id);
+                        }
+                        Ok(if inventory.apps.iter().any(|app| app.id == target.id) {
+                            ManagementOutcome::Present
+                        } else {
+                            ManagementOutcome::Removed
+                        })
+                    }
+                };
+                if management_responses
+                    .send(Response::Managed {
+                        generation,
+                        command,
+                        result,
+                    })
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        });
         // Information queries never wait in front of interactive app launches.
         let notifications = responses.clone();
         let information_responses = responses.clone();
@@ -224,6 +286,14 @@ impl Platform {
             };
             while let Ok(request) = requests.recv() {
                 let response = match request {
+                    Request::Manage {
+                        generation,
+                        command,
+                    } => Response::Managed {
+                        generation,
+                        command,
+                        result: Err("Management request used the wrong worker".into()),
+                    },
                     Request::Privacy { generation } => Response::Privacy {
                         generation,
                         result: Err("Privacy request used the wrong worker".into()),
@@ -261,11 +331,14 @@ impl Platform {
                             result,
                         }
                     }
-                    Request::Refresh => Response::Inventory(if webos {
-                        inventory()
-                    } else {
-                        Ok((demo_inventory(), None))
-                    }),
+                    Request::Refresh { generation } => Response::Inventory {
+                        generation,
+                        result: if webos {
+                            inventory()
+                        } else {
+                            Ok((desktop_inventory.lock().unwrap().clone(), None))
+                        },
+                    },
                     Request::Launch(id) => Response::Launched(if webos {
                         if crate::scroll_preview::is_placeholder(&id) {
                             Err("Scroll preview cards cannot be launched".into())
@@ -302,6 +375,7 @@ impl Platform {
         Self {
             sender,
             information,
+            management,
             notifications,
             receiver,
             webos,
@@ -310,6 +384,23 @@ impl Platform {
     }
 
     pub fn send(&self, request: Request) {
+        if let Request::Manage {
+            generation,
+            command,
+        } = request
+        {
+            if let Err(error) = self.management.try_send((generation, command)) {
+                let (generation, command) = match error {
+                    mpsc::TrySendError::Full(job) | mpsc::TrySendError::Disconnected(job) => job,
+                };
+                let _ = self.notifications.send(Response::Managed {
+                    generation,
+                    command,
+                    result: Err("Management worker unavailable".into()),
+                });
+            }
+            return;
+        }
         let job = match request {
             Request::SystemInfo { generation } => ObservationRequest::System(generation),
             Request::Privacy { generation } => ObservationRequest::Privacy(generation),
@@ -369,6 +460,36 @@ fn privacy_information() -> Result<crate::features::privacy::Report, String> {
         "/tv/read-privacy.cjs"
     )))?;
     crate::features::privacy::Report::from_reply(&reply)
+}
+
+fn manage_app(command: &ManagementCommand) -> Result<ManagementOutcome, String> {
+    let quote = |text: &str| format!("'{}'", text.replace('\'', "'\\''"));
+    let target = command.target();
+    if crate::features::apps::management::protected(&target.id)
+        || !valid_app_id(&target.id)
+        || crate::scroll_preview::is_placeholder(&target.id)
+    {
+        return Ok(ManagementOutcome::Refused);
+    }
+    let mut payload = serde_json::to_value(command).map_err(|e| e.to_string())?;
+    // Refuse stale intents queued by the elevated service after caller timeout.
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| "System clock unavailable")?
+        .as_millis();
+    payload["expiresAt"] = json!(
+        u64::try_from(now)
+            .map_err(|_| "System clock out of range")?
+            .saturating_add(8000)
+    );
+    let payload = serde_json::to_string(&payload).map_err(|e| e.to_string())?;
+    let script = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tv/manage-app.cjs"));
+    let shell = format!("/usr/bin/node -e {} {}", quote(script), quote(&payload));
+    let envelope = call(
+        "luna://org.webosbrew.hbchannel.service/exec",
+        json!({"command": shell}),
+    )?;
+    ManagementOutcome::from_reply(&command_reply(&envelope)?, &target.id)
 }
 
 /// Callers supply only bundled fixed read-only scripts, never UI or saved input.
@@ -666,6 +787,7 @@ pub fn normalize_apps(raw: &Value) -> Result<Vec<App>, String> {
         }
         let mut app = App::new(id, &title(entry.get("title").and_then(Value::as_str), id));
         app.icon = Some(app_artwork::Source::new(id, entry));
+        app.removal = crate::features::apps::management::RemovalTarget::from_metadata(id, entry);
         apps.push(app);
     }
     apps.sort_by_key(|a| a.title.to_lowercase());

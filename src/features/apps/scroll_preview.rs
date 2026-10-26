@@ -24,6 +24,7 @@ pub fn append(inventory: &mut Inventory, count: usize, language: Language) {
         }
         let mut app = templates[index % templates.len()].clone();
         app.id = id;
+        app.removal = None;
         app.title = format!(
             "{} {:03} · {}",
             language.t("scrollTestApp"),

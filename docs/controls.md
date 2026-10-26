@@ -2,6 +2,12 @@
 
 ## Controls and navigation
 
+App options distinguish **Hide in Lumaglass** from **Uninstall app**. Eligible
+removal targets get a separate name/ID confirmation with Cancel selected first.
+Pending removals can be inspected through **Uninstall status**; **Check status**
+only reads the inventory. See [app management](app-management.md) for metadata
+requirements, desktop simulation and the meaning of an unconfirmed result.
+
 ### Documentation screenshots
 
 `pnpm screenshots` generates `media/home.png`, `media/apps.png`, `media/settings.png` and

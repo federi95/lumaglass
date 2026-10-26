@@ -243,6 +243,13 @@ fn effects(
 ) -> bool {
     for effect in effects {
         match effect {
+            Effect::Manage {
+                generation,
+                command,
+            } => platform.send(Request::Manage {
+                generation,
+                command,
+            }),
             Effect::SystemInfo { generation } => platform.send(Request::SystemInfo { generation }),
             Effect::Privacy { generation } => platform.send(Request::Privacy { generation }),
             Effect::Save => {
@@ -253,7 +260,10 @@ fn effects(
                 if !state.loading {
                     state.loading = true;
                     state.dirty = true;
-                    platform.send(Request::Refresh);
+                    state.inventory_generation = state.inventory_generation.wrapping_add(1);
+                    platform.send(Request::Refresh {
+                        generation: state.inventory_generation,
+                    });
                 }
             }
             Effect::Launch(id) => {
@@ -849,6 +859,19 @@ fn run() -> Result<(), String> {
         options.time.unwrap_or_else(OffsetDateTime::now_utc),
     );
     while running {
+        let phase = state.management.phase;
+        if let Some((generation, command)) = state.management.poll() {
+            platform.send(Request::Manage {
+                generation,
+                command,
+            });
+        }
+        state.dirty |= phase != state.management.phase;
+        if phase != state.management.phase
+            && state.management.phase == crate::features::apps::management::Phase::NeedsCheck
+        {
+            state.notify(state.preferences.language.t("uninstallUncertain"));
+        }
         if let Some(clock) = &mut clock {
             state.dirty |= clock.tick();
         }
@@ -885,7 +908,41 @@ fn run() -> Result<(), String> {
                 Response::SystemInfo { generation, result } => {
                     state.dirty |= state.system.accept(generation, result)
                 }
-                Response::Inventory(Ok((mut inventory, warning))) => {
+                Response::Managed {
+                    generation,
+                    command,
+                    result,
+                } => {
+                    let previous = state.management.phase;
+                    let confirmed = state.management.accept(generation, &command, result);
+                    state.dirty = true;
+                    if previous != state.management.phase
+                        && state.management.phase
+                            == crate::features::apps::management::Phase::Refused
+                    {
+                        state.notify(state.preferences.language.t("uninstallRefused"));
+                    }
+                    if confirmed {
+                        let id = command.target().id.clone();
+                        assets.artwork.invalidate(&id);
+                        inventory_retry = None;
+                        let pending = state.complete_removal(&id);
+                        running &= effects(
+                            pending,
+                            &mut state,
+                            &platform,
+                            &preferences_writer,
+                            &weather_service,
+                        );
+                    }
+                }
+                Response::Inventory {
+                    generation,
+                    result: Ok((mut inventory, warning)),
+                } => {
+                    if generation != state.inventory_generation {
+                        continue;
+                    }
                     prewarm = vec![state::Page::Settings, state::Page::Apps];
                     if std::mem::take(&mut state.reload_artwork) {
                         assets.artwork.reset();
@@ -916,7 +973,13 @@ fn run() -> Result<(), String> {
                     }
                     initial_focus = false;
                 }
-                Response::Inventory(Err(error)) => {
+                Response::Inventory {
+                    generation,
+                    result: Err(error),
+                } => {
+                    if generation != state.inventory_generation {
+                        continue;
+                    }
                     if let Some(delay) = state.inventory_failed(error) {
                         eprintln!(
                             "Lumaglass TV inventory: retry {} in {} s",
@@ -947,6 +1010,12 @@ fn run() -> Result<(), String> {
                     command,
                     result,
                 } => {
+                    let result = result.map(|entries| {
+                        entries.map(|mut entries| {
+                            entries.retain(|entry| !state.removed_apps.contains(&entry.app.id));
+                            entries
+                        })
+                    });
                     let preview = !webos
                         && state.recents_open()
                         && generation == state.recents.generation
@@ -1350,7 +1419,9 @@ fn run() -> Result<(), String> {
         // state.loading stays set meanwhile, so focus/relaunch refreshes do not add requests.
         if inventory_retry.is_some_and(|at| Instant::now() >= at) {
             inventory_retry = None;
-            platform.send(Request::Refresh);
+            platform.send(Request::Refresh {
+                generation: state.inventory_generation,
+            });
         }
         weather_tick(&mut state, &weather_service, visible);
         // SDL-webOS disables text input when its own panel is dismissed, even

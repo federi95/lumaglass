@@ -1,3 +1,4 @@
+use crate::features::apps::management::{self, Command as ManagementCommand, RemovalTarget, Route};
 use crate::i18n::Language;
 use crate::model::{
     App, BACKGROUNDS, CATEGORIES, INPUT_NAME_LIMIT, InputMode, Inventory, Preferences,
@@ -67,6 +68,9 @@ pub enum Target {
     Retry,
     DismissNotice,
     Option(usize),
+    RemovalCancel,
+    RemovalConfirm,
+    RemovalCheck,
     Key(usize),
     WeatherConfigure,
     WeatherToggle,
@@ -109,8 +113,22 @@ pub struct Control {
 
 #[derive(Clone, Debug)]
 pub enum Overlay {
-    Options { id: String, restore: Target },
-    Recents { restore: Target },
+    Options {
+        id: String,
+        restore: Target,
+        removal: Option<RemovalTarget>,
+    },
+    RemovalConfirm {
+        target: RemovalTarget,
+        title: String,
+        restore: Target,
+    },
+    RemovalStatus {
+        restore: Target,
+    },
+    Recents {
+        restore: Target,
+    },
     Keyboard,
     SystemKeyboard,
 }
@@ -150,6 +168,10 @@ pub enum Direction {
 #[derive(Debug, PartialEq)]
 pub enum Effect {
     Save,
+    Manage {
+        generation: u64,
+        command: ManagementCommand,
+    },
     Privacy {
         generation: u64,
     },
@@ -208,6 +230,9 @@ pub struct State {
     pub recents: crate::recents::Recents,
     pub system: crate::features::system::Information,
     pub privacy: crate::features::privacy::Privacy,
+    pub management: management::Management,
+    pub inventory_generation: u64,
+    pub removed_apps: std::collections::HashSet<String>,
     pub webos: bool,
 }
 
@@ -244,6 +269,9 @@ impl State {
             recents: crate::recents::Recents::default(),
             system: crate::features::system::Information::default(),
             privacy: crate::features::privacy::Privacy::default(),
+            management: management::Management::default(),
+            inventory_generation: 0,
+            removed_apps: std::collections::HashSet::new(),
             webos: false,
         }
     }
@@ -463,6 +491,8 @@ impl State {
     }
 
     pub fn set_inventory(&mut self, next: Inventory, warning: Option<String>) {
+        self.removed_apps
+            .retain(|id| !next.apps.iter().any(|app| &app.id == id));
         self.inventory.apps = next.apps;
         if let Some(warning) = warning {
             self.notify(warning);
@@ -476,10 +506,34 @@ impl State {
         self.reconcile_focus();
     }
 
-    /// A failed inventory load. Right after a cold boot, or when the TV is short of memory, the
-    /// Homebrew service that reads the inventory can take longer than one request allows. While
-    /// no apps are shown yet, the screen keeps loading and the caller retries after the returned
-    /// delay; the error and its Retry button only appear once those retries are used up.
+    /// Called only after a valid complete inventory proved the selected app absent.
+    pub fn complete_removal(&mut self, id: &str) -> Vec<Effect> {
+        self.inventory.apps.retain(|app| app.id != id);
+        if let Some(favorites) = &mut self.preferences.favorites {
+            favorites.retain(|item| item != id);
+        }
+        self.preferences.hidden.retain(|item| item != id);
+        self.recents.entries.retain(|entry| entry.app.id != id);
+        self.recents
+            .dismissals
+            .retain(|entry| entry.entry.app.id != id);
+        self.removed_apps.insert(id.into());
+        // Invalidate any inventory request that started before verified removal.
+        self.inventory_generation = self.inventory_generation.wrapping_add(1);
+        self.loading = false;
+        if self.filter == 5 && self.hidden_count() == 0 {
+            self.filter = 0;
+        }
+        self.reconcile_focus();
+        self.notify(self.preferences.language.t(if self.webos {
+            "uninstallDone"
+        } else {
+            "uninstallPreviewDone"
+        }));
+        vec![Effect::Save, Effect::Refresh]
+    }
+
+    /// Retry startup inventory reads without substituting demo data on the TV.
     pub fn inventory_failed(&mut self, error: String) -> Option<Duration> {
         self.dirty = true;
         if self.inventory.apps.is_empty() && self.inventory_failures < INVENTORY_RETRIES {
@@ -1161,9 +1215,22 @@ impl State {
             return;
         }
         if let Target::App(id) = &self.focus {
+            let removal = self
+                .inventory
+                .apps
+                .iter()
+                .find(|app| &app.id == id)
+                .and_then(|app| app.removal.clone())
+                .filter(|target| {
+                    target.id == *id
+                        && !management::protected(id)
+                        && !crate::scroll_preview::is_placeholder(id)
+                        && ((target.route == Route::Preview) != self.webos)
+                });
             self.overlay = Some(Overlay::Options {
                 id: id.clone(),
                 restore: self.focus.clone(),
+                removal,
             });
             self.focus = Target::Option(0);
             if !self.preferences.reduced_motion {
@@ -1402,6 +1469,47 @@ impl State {
         }
         self.dirty = true;
         match self.focus.clone() {
+            Target::RemovalCancel => return self.back(),
+            Target::RemovalCheck => {
+                return self
+                    .management
+                    .check()
+                    .map(|(generation, command)| {
+                        vec![Effect::Manage {
+                            generation,
+                            command,
+                        }]
+                    })
+                    .unwrap_or_default();
+            }
+            Target::RemovalConfirm => {
+                let Some(Overlay::RemovalConfirm {
+                    target,
+                    title,
+                    restore,
+                }) = self.overlay.clone()
+                else {
+                    return vec![];
+                };
+                let unchanged = self
+                    .inventory
+                    .apps
+                    .iter()
+                    .any(|app| app.id == target.id && app.removal.as_ref() == Some(&target));
+                if unchanged
+                    && let Some((generation, command)) = self.management.begin(target, title)
+                {
+                    self.overlay = Some(Overlay::RemovalStatus { restore });
+                    self.focus = Target::CloseDialog;
+                    self.panel_started = None;
+                    return vec![Effect::Manage {
+                        generation,
+                        command,
+                    }];
+                }
+                self.notify(self.preferences.language.t("uninstallRefused"));
+                return vec![];
+            }
             Target::Nav(index) => self.open(index),
             Target::Browse => self.open(1),
             Target::Retry => return vec![Effect::Reload],
@@ -1681,9 +1789,53 @@ impl State {
                 return vec![Effect::Save];
             }
             Target::Option(index) => {
-                let Some(Overlay::Options { id, restore }) = self.overlay.take() else {
+                let Some(Overlay::Options {
+                    id,
+                    restore,
+                    removal,
+                }) = self.overlay.take()
+                else {
                     return vec![];
                 };
+                if index == 2 {
+                    if let Some(target) = removal {
+                        if self.management.active() {
+                            if self
+                                .management
+                                .target
+                                .as_ref()
+                                .is_some_and(|running| running.id == id)
+                            {
+                                self.overlay = Some(Overlay::RemovalStatus { restore });
+                                self.focus = Target::CloseDialog;
+                            } else {
+                                self.overlay = Some(Overlay::Options {
+                                    id,
+                                    restore,
+                                    removal: Some(target),
+                                });
+                                self.notify(self.preferences.language.t("uninstallBusy"));
+                            }
+                        } else {
+                            let title = self
+                                .inventory
+                                .apps
+                                .iter()
+                                .find(|app| app.id == id)
+                                .map_or_else(|| id.clone(), |app| app.title.clone());
+                            self.overlay = Some(Overlay::RemovalConfirm {
+                                target,
+                                title,
+                                restore,
+                            });
+                            self.focus = Target::RemovalCancel;
+                        }
+                    } else {
+                        self.focus = restore;
+                    }
+                    self.panel_started = None;
+                    return vec![];
+                }
                 self.panel_started = None;
                 let old_ids: Vec<_> = self.apps().iter().map(|a| a.id.clone()).collect();
                 let old_index = old_ids.iter().position(|item| item == &id).unwrap_or(0);
@@ -1779,6 +1931,18 @@ impl State {
         }
         if let Some(overlay) = self.overlay.take() {
             self.panel_started = None;
+            if let Overlay::RemovalConfirm {
+                target, restore, ..
+            } = overlay
+            {
+                self.overlay = Some(Overlay::Options {
+                    id: target.id.clone(),
+                    restore,
+                    removal: Some(target),
+                });
+                self.focus = Target::Option(2);
+                return vec![];
+            }
             if matches!(overlay, Overlay::Recents { .. }) {
                 self.recents.closing_focus = Some(self.focus.clone());
                 self.recents.updated = Instant::now();
@@ -1788,7 +1952,10 @@ impl State {
                     self.recents.closing_focus = None;
                 }
             }
-            if let Overlay::Options { restore, .. } | Overlay::Recents { restore } = overlay {
+            if let Overlay::Options { restore, .. }
+            | Overlay::Recents { restore }
+            | Overlay::RemovalStatus { restore } = overlay
+            {
                 self.focus = restore;
                 self.recents.pending = None;
                 self.reconcile_focus();

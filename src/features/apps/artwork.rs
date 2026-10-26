@@ -622,6 +622,15 @@ impl Service {
         }
     }
 
+    pub fn invalidate(&self, id: &str) {
+        self.cache
+            .borrow_mut()
+            .entries
+            .retain(|source, _| source.id != id);
+        self.prefetch.borrow_mut().retain(|source| source.id != id);
+        // Late worker results have no matching cache entry and are ignored by poll.
+    }
+
     /// After an automatic inventory refresh: icons that were unavailable are
     /// tried again. Decoded and pending icons stay, because a `Source` names
     /// the app's version and icon paths, so an updated app has a new one.
