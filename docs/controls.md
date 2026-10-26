@@ -2,6 +2,11 @@
 
 ## Controls and navigation
 
+**Settings → General → Home personalization** configures greeting mode/size,
+date format and weekday, section visibility/order and startup focus. Use OK to
+toggle/cycle values, or open an arrow-marked editor. See
+[Home personalization](home-personalization.md) for defaults and fallback rules.
+
 **Settings → General → Two-row Home favorites** switches between the default
 single row and an optional two-row layout immediately. Favorite order is kept
 left to right across the first row, then the second. With at least two favorites,

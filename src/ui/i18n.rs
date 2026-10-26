@@ -358,6 +358,39 @@ impl Language {
             .to_uppercase(),
         }
     }
+    pub fn home_date(self, now: OffsetDateTime, compact: bool, show_weekday: bool) -> String {
+        let full = self.date(now);
+        if !compact && show_weekday {
+            return full;
+        }
+        // Reuse the bundled language's month names, weekday and punctuation.
+        // These are our fixed templates above, not an external locale string.
+        let (weekday, date) = match self {
+            Self::Zh => full.rsplit_once("星期").map(|(date, day)| (day, date)),
+            Self::It | Self::Fr => full.split_once(' '),
+            _ => full.split_once(", "),
+        }
+        .unwrap_or(("", full.as_str()));
+        let date = if compact {
+            match self {
+                Self::En | Self::Zh => format!("{:02}/{:02}", now.month() as u8, now.day()),
+                Self::De => format!("{:02}.{:02}", now.day(), now.month() as u8),
+                _ => format!("{:02}/{:02}", now.day(), now.month() as u8),
+            }
+        } else {
+            date.to_owned()
+        };
+        if !show_weekday || weekday.is_empty() {
+            date
+        } else {
+            match self {
+                Self::Zh => format!("{date}星期{weekday}"),
+                Self::It | Self::Fr => format!("{weekday} {date}"),
+                _ => format!("{weekday}, {date}"),
+            }
+        }
+    }
+
     pub fn clock(self, now: OffsetDateTime, hour24: bool, seconds: bool) -> String {
         let base = self.clock_base(now, hour24);
         if !seconds {

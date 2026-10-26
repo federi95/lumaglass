@@ -98,6 +98,8 @@ pub struct Preferences {
     pub background: String,
     pub show_home_names: bool,
     pub two_row_home_favorites: bool,
+    #[serde(deserialize_with = "crate::features::home::deserialize")]
+    pub home: crate::features::home::Preferences,
     pub show_app_names: bool,
     pub hour_24: bool,
     pub reduced_motion: bool,
@@ -128,6 +130,7 @@ impl Default for Preferences {
             background: "dunes".into(),
             show_home_names: false,
             two_row_home_favorites: false,
+            home: crate::features::home::Preferences::default(),
             show_app_names: true,
             hour_24: false,
             reduced_motion: false,
@@ -203,6 +206,7 @@ impl Preferences {
     }
 
     pub fn sanitize(&mut self) {
+        self.home.sanitize();
         if !BACKGROUNDS.iter().any(|(id, _)| *id == self.background) {
             self.background = "dunes".into();
         }

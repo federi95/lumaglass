@@ -10,6 +10,151 @@ use std::{collections::BTreeMap, path::PathBuf};
 mod recent_tests;
 
 #[test]
+fn home_preferences_fall_back_independently_without_losing_unrelated_choices() {
+    use crate::features::home::{GreetingMode, GreetingSize, StartupFocus};
+    let preferences: Preferences = serde_json::from_value(json!({
+        "favorites": ["netflix"], "greeting_name": "Ana",
+        "home": {"show_date":false, "show_inputs":"invalid", "greeting_size":"invalid",
+            "greeting_mode":"static", "custom_greeting":"\n  Welcome home\t ",
+            "startup_focus":{"kind":"app","id":"../bad"}}
+    }))
+    .unwrap();
+    assert_eq!(preferences.favorites, Some(vec!["netflix".into()]));
+    assert!(!preferences.home.show_date);
+    assert!(preferences.home.show_inputs);
+    assert_eq!(preferences.home.greeting_size, GreetingSize::Large);
+    assert_eq!(preferences.home.greeting_mode, GreetingMode::Static);
+    assert_eq!(preferences.home.custom_greeting, "Welcome home");
+    assert_eq!(preferences.home.startup_focus, StartupFocus::Auto);
+    let legacy: Preferences =
+        serde_json::from_value(json!({"home":false,"greeting_name":"Ana"})).unwrap();
+    assert_eq!(legacy.greeting_name, "Ana");
+    assert!(legacy.home.show_date && legacy.home.show_greeting && legacy.home.show_inputs);
+}
+
+#[test]
+fn static_greeting_editor_preserves_timed_name_and_returns_to_home_settings() {
+    use crate::features::home::{GreetingMode, Setting};
+    let mut state = ready();
+    state.preferences.greeting_name = "Ana".into();
+    state.open(2);
+    state.focus = Target::Setting(11);
+    state.activate();
+    state.focus = Target::HomeOption(Setting::GreetingMode);
+    assert_eq!(state.activate(), vec![Effect::Save]);
+    assert_eq!(state.preferences.home.greeting_mode, GreetingMode::Static);
+    state.focus = Target::HomeOption(Setting::GreetingText);
+    state.activate();
+    state.activate();
+    state.text("Welcome home");
+    assert_eq!(state.finish_text_input(), vec![Effect::Save]);
+    assert_eq!(state.preferences.home.custom_greeting, "Welcome home");
+    assert_eq!(state.preferences.greeting_name, "Ana");
+    assert_eq!(
+        state
+            .preferences
+            .home
+            .greeting(state.preferences.language, 0, "Ana"),
+        "Welcome home"
+    );
+    state.back();
+    assert_eq!(state.subpage, Some(crate::state::Subpage::Home));
+    assert_eq!(state.focus, Target::HomeOption(Setting::GreetingText));
+}
+
+#[test]
+fn startup_focus_uses_only_visible_home_cards_and_never_launches_the_selection() {
+    use crate::features::home::{Setting, StartupFocus};
+    let mut state = ready();
+    let id = state.preferences.favorites(&state.inventory.apps)[1].clone();
+    state.preferences.home.startup_focus = StartupFocus::App(id.clone());
+    assert_eq!(state.startup_focus(), Target::App(id.clone()));
+    state.preferences.hidden.push(id.clone());
+    assert_ne!(state.startup_focus(), Target::App(id.clone()));
+    assert_eq!(
+        state.preferences.home.startup_focus,
+        StartupFocus::App(id.clone())
+    );
+    state.preferences.hidden.clear();
+    let input = state.inventory.inputs[0].id.clone();
+    state
+        .preferences
+        .input_modes
+        .insert(input.clone(), InputMode::On);
+    state.preferences.home.startup_focus = StartupFocus::Input(input.clone());
+    assert_eq!(state.startup_focus(), Target::Input(input.clone()));
+    state.preferences.home.show_inputs = false;
+    assert!(
+        !state
+            .startup_choices()
+            .iter()
+            .any(|(choice, _)| choice == &StartupFocus::Input(input.clone()))
+    );
+    assert_ne!(state.startup_focus(), Target::Input(input));
+    state.open(2);
+    state.focus = Target::Setting(11);
+    state.activate();
+    state.focus = Target::HomeOption(Setting::StartupFocus);
+    state.activate();
+    state.focus = Target::StartupFocus(StartupFocus::App(id));
+    assert_eq!(state.activate(), vec![Effect::Save]);
+    assert_eq!(state.subpage, Some(crate::state::Subpage::Home));
+}
+
+#[test]
+fn reordered_home_sections_keep_pointer_and_remote_routes_in_the_displayed_order() {
+    let mut state = ready();
+    state.preferences.two_row_home_favorites = true;
+    state.preferences.home.inputs_first = true;
+    for input in &state.inventory.inputs {
+        state
+            .preferences
+            .input_modes
+            .insert(input.id.clone(), InputMode::On);
+    }
+    assert!(matches!(state.startup_focus(), Target::Input(_)));
+    let id = state.apps()[0].id.clone();
+    state.focus = Target::App(id.clone());
+    let controls = controls(&state);
+    let app = controls
+        .iter()
+        .find(|c| c.target == Target::App(id.clone()))
+        .unwrap();
+    let input = controls
+        .iter()
+        .find(|c| matches!(c.target, Target::Input(_)))
+        .unwrap();
+    assert!(input.rect.y + input.rect.h < app.rect.y);
+    assert_eq!(
+        state.hit_test(&controls, input.rect.x + 30., input.rect.y + 30.),
+        Some(input.target.clone())
+    );
+    state.direction(Direction::Up, &controls);
+    assert!(matches!(state.focus, Target::Input(_)));
+    state.preferences.home.show_inputs = false;
+    state.reconcile_focus();
+    assert!(!matches!(state.focus, Target::Input(_)));
+    assert!(
+        !scene(&state)
+            .controls
+            .iter()
+            .any(|control| matches!(control.target, Target::Input(_)))
+    );
+}
+
+#[test]
+fn home_date_options_keep_localized_months_and_weekdays_separate() {
+    use crate::i18n::Language;
+    let now = time::OffsetDateTime::UNIX_EPOCH;
+    assert_eq!(Language::En.home_date(now, false, false), "JANUARY 1");
+    assert_eq!(Language::It.home_date(now, false, false), "1 GENNAIO");
+    assert_eq!(Language::Fr.home_date(now, false, false), "1ER JANVIER");
+    assert_eq!(Language::Zh.home_date(now, false, false), "1月1日");
+    assert_eq!(Language::De.home_date(now, true, false), "01.01");
+    assert_eq!(Language::En.home_date(now, true, true), "THURSDAY, 01/01");
+}
+
+#[test]
 fn two_row_home_toggle_persists_and_preserves_favorite_order() {
     let legacy: Preferences = serde_json::from_value(json!({})).unwrap();
     assert!(!legacy.two_row_home_favorites);

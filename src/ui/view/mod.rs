@@ -840,37 +840,91 @@ fn brand_mark(out: &mut Scene, assets: &Assets, app: &App, rect: Rect, language:
 
 fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
     let language = state.preferences.language;
-    let s = state.scroll;
+    let home = &state.preferences.home;
     let summary = state
         .preferences
         .show_weather
         .then(|| weather_summary_layout(state, assets));
-    let shift = summary
-        .as_ref()
-        .map_or(0., |summary| (summary.height + 18.4) / 2.);
-    let date = language.date(now);
-    out.text(
-        date,
-        Rect::new(84., 227.2 - shift - s, 1200., 17.),
-        text(14.4, 600, 0.12),
-        c(0xf5f5f5, 0.72),
-        false,
-    );
-    let greeting = language.greeting(now.hour(), &state.preferences.greeting_name);
-    let greeting_style = assets.fit_line(&greeting, text(90.4, 500, -0.065).leading(1.05), 1496.);
-    out.text(
-        &greeting,
-        Rect::new(84., 265. - shift - s, 1500., 95.),
-        greeting_style,
-        WHITE,
-        false,
-    );
-    if let Some(summary) = summary {
-        weather_summary(out, state, assets, summary, 265. - shift + 94.92 + 18.4 - s);
+    let greeting_height = home.greeting_size.pixels() * 1.05;
+    let mut height = if home.show_date { 17. } else { 0. };
+    if home.show_greeting {
+        height += greeting_height;
     }
+    if home.show_date && home.show_greeting {
+        height += 20.8;
+    }
+    if let Some(summary) = &summary {
+        if height > 0. {
+            height += 18.4;
+        }
+        height += summary.height;
+    }
+    let mut y = 293.56 - height / 2. - state.scroll;
+    let mut drawn = false;
+    let order = if home.greeting_first {
+        [true, false]
+    } else {
+        [false, true]
+    };
+    for greeting in order {
+        if (greeting && !home.show_greeting) || (!greeting && !home.show_date) {
+            continue;
+        }
+        if drawn {
+            y += 20.8;
+        }
+        if greeting {
+            let value = home.greeting(language, now.hour(), &state.preferences.greeting_name);
+            let style = assets.fit_line(
+                &value,
+                text(home.greeting_size.pixels(), 500, -0.065).leading(1.05),
+                1496.,
+            );
+            out.text(
+                value,
+                Rect::new(84., y, 1500., greeting_height.ceil()),
+                style,
+                WHITE,
+                false,
+            );
+            y += greeting_height;
+        } else {
+            out.text(
+                language.home_date(now, home.compact_date, home.show_weekday),
+                Rect::new(84., y, 1200., 17.),
+                text(14.4, 600, 0.12),
+                c(0xf5f5f5, 0.72),
+                false,
+            );
+            y += 17.;
+        }
+        drawn = true;
+    }
+    if let Some(summary) = summary {
+        if drawn {
+            y += 18.4;
+        }
+        weather_summary(out, state, assets, summary, y);
+    }
+    let mut top = 478.5;
+    if home.inputs_first {
+        let height = home_inputs(out, state, assets, top);
+        if height > 0. {
+            top += height + 44.9;
+        }
+    }
+    let height = home_favorites(out, state, assets, top);
+    if !home.inputs_first {
+        home_inputs(out, state, assets, top + height + 44.9);
+    }
+}
+
+fn home_favorites(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> f32 {
+    let language = state.preferences.language;
+    let s = state.scroll;
     out.text(
         language.t("favorites"),
-        Rect::new(84., 478.5 - s, 1000., 31.),
+        Rect::new(84., top - s, 1000., 31.),
         text(23.2, 550, -0.035).leading(1.3),
         WHITE,
         false,
@@ -878,7 +932,7 @@ fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
     if state.moving.is_some() {
         out.text(
             language.t("moveApps"),
-            Rect::new(1686., 485. - s, 150., 24.),
+            Rect::new(1686., top + 6.5 - s, 150., 24.),
             text(14.4, 400, 0.),
             c(0xdedede, 1.),
             true,
@@ -893,7 +947,7 @@ fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
             out.shape(
                 Rect::new(
                     84. + index as f32 * GRID_PITCH,
-                    544.8 - s,
+                    top + 66.3 - s,
                     270.,
                     FACE_HEIGHT,
                 ),
@@ -908,7 +962,7 @@ fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
             state,
             assets,
             EmptyState {
-                rect: Rect::new(84., 533.6 - s, 1752., 258.7),
+                rect: Rect::new(84., top + 55.1 - s, 1752., 258.7),
                 icon: if error { "alert" } else { "heart" },
                 title: if error {
                     language.t("aLittleHelp")
@@ -965,7 +1019,7 @@ fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
             app,
             Rect::new(
                 84. + column as f32 * HOME_TILE_PITCH - state.home_scroll,
-                544.8 + row as f32 * row_pitch - s,
+                top + 66.3 + row as f32 * row_pitch - s,
                 HOME_TILE_WIDTH,
                 FACE_HEIGHT,
             ),
@@ -975,26 +1029,32 @@ fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
     }
     out.draw.push(Draw::EdgeFadeX(None));
     out.draw.push(Draw::Clip(Some(state.content_viewport())));
-    let input_y = 544.8 + grid_height + 41.6 - s;
+    66.3 + grid_height
+}
+
+fn home_inputs(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> f32 {
+    let language = state.preferences.language;
+    let s = state.scroll;
     let inputs: Vec<_> = state
         .inventory
         .inputs
         .iter()
-        .filter(|input| state.preferences.input_visible(input))
+        .filter(|input| state.home_input_visible(input))
         .collect();
-    if !inputs.is_empty() {
-        out.text(
-            language.t("inputsHeading"),
-            Rect::new(84., input_y + 3.3, 1000., 31.),
-            text(23.2, 550, -0.035).leading(1.3),
-            WHITE,
-            false,
-        );
+    if inputs.is_empty() {
+        return 0.;
     }
+    out.text(
+        language.t("inputsHeading"),
+        Rect::new(84., top - s, 1000., 31.),
+        text(23.2, 550, -0.035).leading(1.3),
+        WHITE,
+        false,
+    );
     for (index, input) in inputs.iter().enumerate() {
         let rect = Rect::new(
             84. + (index % 3) as f32 * 591.45,
-            input_y + 58.4 + (index / 3) as f32 * 126.4,
+            top + 55.1 - s + (index / 3) as f32 * 126.4,
             569.1,
             104.,
         );
@@ -1066,6 +1126,7 @@ fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
         }
         out.control(Target::Input(input.id.clone()), rect, true);
     }
+    55.1 + inputs.len().div_ceil(3).saturating_sub(1) as f32 * 126.4 + 104.
 }
 
 struct WeatherSummary {
@@ -1786,6 +1847,8 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             let sub = match &state.subpage {
                 Some(Subpage::AppNames) => language.t("appNames"),
                 Some(Subpage::Greeting) => language.t("greeting"),
+                Some(Subpage::Home) => language.t("homeLabel"),
+                Some(Subpage::StartupFocus) => language.t("homeStartupFocus"),
                 Some(Subpage::Clock) => language.t("clock"),
                 Some(Subpage::ClockFormat | Subpage::TimeFormat) => clock_path.as_deref().unwrap(),
                 Some(Subpage::Input(id)) => state
@@ -1820,7 +1883,9 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             );
             let sub_width = rect.w - 24.2 - parent_width - 28. - 24.2;
             let mut sub_style = text(20.8, 550, -0.02);
-            if clock_path.is_some() {
+            if clock_path.is_some()
+                || matches!(state.subpage, Some(Subpage::Home | Subpage::StartupFocus))
+            {
                 sub_style.size *= (sub_width / assets.width(sub, sub_style)).min(1.);
             }
             out.text(
@@ -1863,6 +1928,8 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
         if matches!(
             subpage,
             Subpage::WeatherLocation
+                | Subpage::Home
+                | Subpage::StartupFocus
                 | Subpage::Greeting
                 | Subpage::AppNames
                 | Subpage::Clock
@@ -1872,6 +1939,8 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             match subpage {
                 Subpage::WeatherLocation => location_settings(out, state, assets),
                 Subpage::Greeting => greeting_settings(out, state, assets),
+                Subpage::Home => home_settings(out, state, assets),
+                Subpage::StartupFocus => startup_focus_settings(out, state, assets),
                 Subpage::AppNames => app_name_settings(out, state, assets),
                 Subpage::Clock => clock_settings(out, state, assets),
                 Subpage::SystemInfo => system_information(out, state, assets),
@@ -1930,6 +1999,8 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 ),
             ],
             Subpage::WeatherLocation
+            | Subpage::Home
+            | Subpage::StartupFocus
             | Subpage::Greeting
             | Subpage::AppNames
             | Subpage::Clock
@@ -2001,11 +2072,17 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                     6,
                     "greeting",
                     "type",
-                    Some(if state.preferences.greeting_name.trim().is_empty() {
-                        language.t("stateOff")
-                    } else {
-                        state.preferences.greeting_name.as_str()
-                    }),
+                    Some(
+                        if state.preferences.home.greeting_mode
+                            == crate::features::home::GreetingMode::Static
+                        {
+                            language.t("homeStatic")
+                        } else if state.greeting_text().trim().is_empty() {
+                            language.t("stateOff")
+                        } else {
+                            state.greeting_text()
+                        },
+                    ),
                     true,
                 ),
                 (
@@ -2019,6 +2096,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                     })),
                     false,
                 ),
+                (11, "homePersonalization", "settings", None, true),
             ]
             .into_iter()
             .enumerate()
@@ -2349,14 +2427,117 @@ fn system_information(out: &mut Scene, state: &State, assets: &Assets) {
     }
 }
 
+fn home_settings(out: &mut Scene, state: &State, assets: &Assets) {
+    use crate::features::home::{GreetingMode, Setting};
+    let language = state.preferences.language;
+    let home = &state.preferences.home;
+    for (index, option) in Setting::ALL.into_iter().enumerate() {
+        let enabled = |flag| language.t(if flag { "stateOn" } else { "stateOff" });
+        let value = match option {
+            Setting::ShowGreeting => enabled(home.show_greeting),
+            Setting::GreetingMode => language.t(if home.greeting_mode == GreetingMode::Timed {
+                "homeTimed"
+            } else {
+                "homeStatic"
+            }),
+            Setting::GreetingSize => language.t(home.greeting_size.key()),
+            Setting::ShowDate => enabled(home.show_date),
+            Setting::DateFormat => language.t(if home.compact_date {
+                "homeCompact"
+            } else {
+                "homeExtended"
+            }),
+            Setting::ShowWeekday => enabled(home.show_weekday),
+            Setting::ShowInputs => enabled(home.show_inputs),
+            Setting::GreetingFirst => enabled(home.greeting_first),
+            Setting::InputsFirst => enabled(home.inputs_first),
+            Setting::GreetingText | Setting::StartupFocus => "",
+        };
+        row(
+            out,
+            state,
+            assets,
+            Row {
+                target: Target::HomeOption(option),
+                rect: Rect::new(640., 164.8 + index as f32 * 84. - state.scroll, 1120., 72.),
+                title: language.t(option.key()),
+                icon: None,
+                value: (!value.is_empty()).then_some(value),
+                description: None,
+                selected: false,
+                chevron: matches!(option, Setting::GreetingText | Setting::StartupFocus),
+            },
+        );
+    }
+}
+
+fn startup_focus_settings(out: &mut Scene, state: &State, assets: &Assets) {
+    let choices = state.startup_choices();
+    let selected = if choices
+        .iter()
+        .any(|(choice, _)| choice == &state.preferences.home.startup_focus)
+    {
+        state.preferences.home.startup_focus.clone()
+    } else {
+        crate::features::home::StartupFocus::Auto
+    };
+    let mut y = 164.8 - state.scroll;
+    for (choice, title) in choices {
+        let description = match &choice {
+            crate::features::home::StartupFocus::Auto => {
+                state.preferences.language.t("homeStartupHint")
+            }
+            crate::features::home::StartupFocus::App(id)
+            | crate::features::home::StartupFocus::Input(id) => id,
+        };
+        let title_lines = assets.lines(&title, text(20.8, 550, -0.02), 1031.8);
+        let description_lines = assets.lines(description, text(15.2, 400, 0.), 1020.);
+        let height = 90.7
+            + title_lines.saturating_sub(1) as f32 * 29.12
+            + description_lines.saturating_sub(1) as f32 * 22.8;
+        row(
+            out,
+            state,
+            assets,
+            Row {
+                target: Target::StartupFocus(choice.clone()),
+                rect: Rect::new(640., y, 1120., height),
+                title: &title,
+                icon: None,
+                value: None,
+                description: Some(description),
+                selected: selected == choice,
+                chevron: false,
+            },
+        );
+        y += height + 12.;
+    }
+}
+
 fn greeting_settings(out: &mut Scene, state: &State, assets: &Assets) {
     let language = state.preferences.language;
+    let height =
+        if state.preferences.home.greeting_mode == crate::features::home::GreetingMode::Static {
+            113.5
+        } else {
+            90.7
+        };
     let description = if state.text_input_active() && state.keyboard_field == TextField::Name {
         format!("{}|", state.greeting_name_draft)
-    } else if state.preferences.greeting_name.is_empty() {
-        language.t("stateOff").into()
+    } else if state.greeting_text().is_empty() {
+        language
+            .t(
+                if state.preferences.home.greeting_mode
+                    == crate::features::home::GreetingMode::Static
+                {
+                    "homeStaticHint"
+                } else {
+                    "stateOff"
+                },
+            )
+            .into()
     } else {
-        state.preferences.greeting_name.clone()
+        state.greeting_text().to_owned()
     };
     row(
         out,
@@ -2364,8 +2545,16 @@ fn greeting_settings(out: &mut Scene, state: &State, assets: &Assets) {
         assets,
         Row {
             target: Target::GreetingName,
-            rect: Rect::new(640., 164.8 - state.scroll, 1120., 90.7),
-            title: language.t("name"),
+            rect: Rect::new(640., 164.8 - state.scroll, 1120., height),
+            title: language.t(
+                if state.preferences.home.greeting_mode
+                    == crate::features::home::GreetingMode::Static
+                {
+                    "homeStaticGreeting"
+                } else {
+                    "name"
+                },
+            ),
             icon: Some("type"),
             value: None,
             description: Some(&description),
@@ -2380,8 +2569,16 @@ fn greeting_settings(out: &mut Scene, state: &State, assets: &Assets) {
         assets,
         Row {
             target: Target::GreetingNameClear,
-            rect: Rect::new(640., 267.5 - state.scroll, 1120., 72.),
-            title: language.t("clearName"),
+            rect: Rect::new(640., 164.8 + height + 12. - state.scroll, 1120., 72.),
+            title: language.t(
+                if state.preferences.home.greeting_mode
+                    == crate::features::home::GreetingMode::Static
+                {
+                    "homeClearGreeting"
+                } else {
+                    "clearName"
+                },
+            ),
             icon: Some("refresh"),
             value: None,
             description: None,
@@ -3001,7 +3198,15 @@ fn keyboard(out: &mut Scene, state: &State, assets: &Assets) {
     out.text(
         match state.keyboard_field {
             TextField::Location => language.t("cityPostcode"),
-            TextField::Name => language.t("greetingName"),
+            TextField::Name => language.t(
+                if state.preferences.home.greeting_mode
+                    == crate::features::home::GreetingMode::Static
+                {
+                    "homeStaticGreeting"
+                } else {
+                    "greetingName"
+                },
+            ),
             TextField::InputName => language.t("inputName"),
             TextField::Apps => language.t("findApp"),
         },

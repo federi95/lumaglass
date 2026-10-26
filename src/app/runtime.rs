@@ -969,7 +969,7 @@ fn run() -> Result<(), String> {
                         && state.focus == Target::Nav(0)
                         && state.page == state::Page::Home
                     {
-                        state.focus = state.first_content();
+                        state.focus = state.startup_focus();
                     }
                     initial_focus = false;
                 }

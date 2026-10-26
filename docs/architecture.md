@@ -12,6 +12,7 @@ src/render/                 GLES renderer, shaders, vector/font geometry and dam
 src/features/apps/          artwork, branding, recent apps and preview inventory
                             and typed, verified app-removal state
 src/features/privacy/       fixed privacy observations and transient request state
+src/features/home/          local Home customization and validated preferences
 src/features/weather/       forecast scheduling, HTTP worker and cache
 src/features/system/        typed read-only TV observations and request state
 src/platform/               inventory/actions, SDL input and installation lookup
@@ -95,6 +96,13 @@ activity or effective data collection. The UI uses neutral labels, including
 the opposite meaning of enabled Limit ad tracking versus granted consents.
 
 ## Home layout
+
+`src/features/home/` owns typed local Home preferences with independent defaults
+for malformed fields. Header composition follows greeting/date visibility and
+order; favorites and inputs are laid out as separate measured sections. Remote
+routes follow the displayed positions. Startup-focus targets carry their typed
+identity through the selector and are checked against current visible Home cards;
+the initial inventory can focus one without emitting a launch effect.
 
 Home favorites share row/column rules in `src/features/apps/home_layout.rs` for
 scene composition, scroll bounds, remote focus and reordering. The optional
