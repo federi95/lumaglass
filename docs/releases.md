@@ -2,6 +2,12 @@
 
 > The fork retains the 2.9.0 source version until the Changesets version PR creates its first release. Entries inherited from Luma are historical. Release artifacts use `org.lumaglass.app`, independently of Luma's package ID.
 
+The first stable Lumaglass release targets **3.0.0** when the planned product
+scope is ready. The pending major Changeset already expresses the new identity
+and installation boundary. Keep the generated Version Packages PR unmerged
+until release readiness; ordinary feature work does not bump source versions
+manually. Any intermediate prerelease needs its own explicit release decision.
+
 ## Releases
 
 Add a changeset to feature/fix PRs that should be included in the next app release:
