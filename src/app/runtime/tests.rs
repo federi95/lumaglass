@@ -10,6 +10,39 @@ use std::{collections::BTreeMap, path::PathBuf};
 mod recent_tests;
 
 #[test]
+fn accent_palette_recolors_native_selection_surfaces_and_keeps_dark_labels() {
+    use crate::{
+        features::appearance::{Accent, Density},
+        renderer::Draw,
+    };
+    let mut state = ready();
+    let neutral = scene(&state);
+    state.preferences.appearance.accent = Accent::Blue;
+    let blue = scene(&state);
+    let surface = |scene: &view::Scene| {
+        scene
+            .draw
+            .iter()
+            .find_map(|draw| match draw {
+                Draw::RoundedGradient(rect, _, top, bottom)
+                    if (rect.y - 52.3).abs() < 0.01 && (rect.h - 49.).abs() < 0.01 =>
+                {
+                    Some((*top, *bottom))
+                }
+                _ => None,
+            })
+            .unwrap()
+    };
+    assert_ne!(surface(&neutral), surface(&blue));
+    assert!(blue.draw.iter().any(|draw| matches!(draw, Draw::Text(value, _, _, color, _) if value == "Home" && color[0] < 0.3 && color[1] < 0.3 && color[2] < 0.3)));
+    let loaded: Preferences =
+        serde_json::from_value(json!({"appearance":{"accent":"unknown","density":"compact"}}))
+            .unwrap();
+    assert_eq!(loaded.appearance.accent, Accent::Neutral);
+    assert_eq!(loaded.appearance.density, Density::Compact);
+}
+
+#[test]
 fn card_density_keeps_app_navigation_and_home_scroll_in_sync_with_drawn_cards() {
     use crate::features::appearance::Density;
     for density in [Density::Compact, Density::Standard, Density::Comfortable] {

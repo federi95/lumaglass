@@ -1694,6 +1694,10 @@ impl State {
                             self.preferences.appearance.density.next();
                         self.home_scroll = 0.;
                     }
+                    AppearanceOption::Accent => {
+                        self.preferences.appearance.accent =
+                            self.preferences.appearance.accent.next();
+                    }
                 }
                 return vec![Effect::Save];
             }

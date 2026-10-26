@@ -56,11 +56,57 @@ impl Density {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Accent {
+    #[default]
+    Neutral,
+    Blue,
+    Teal,
+    Violet,
+    Amber,
+    Rose,
+}
+impl Accent {
+    pub fn rgb(self) -> u32 {
+        match self {
+            Self::Neutral => 0xf0f0f0,
+            Self::Blue => 0x9fc5ff,
+            Self::Teal => 0x8cdcd3,
+            Self::Violet => 0xc9b6ff,
+            Self::Amber => 0xf3cf83,
+            Self::Rose => 0xf2afc7,
+        }
+    }
+    pub fn key(self) -> &'static str {
+        match self {
+            Self::Neutral => "accentNeutral",
+            Self::Blue => "accentBlue",
+            Self::Teal => "accentTeal",
+            Self::Violet => "accentViolet",
+            Self::Amber => "accentAmber",
+            Self::Rose => "accentRose",
+        }
+    }
+    pub fn next(self) -> Self {
+        match self {
+            Self::Neutral => Self::Blue,
+            Self::Blue => Self::Teal,
+            Self::Teal => Self::Violet,
+            Self::Violet => Self::Amber,
+            Self::Amber => Self::Rose,
+            Self::Rose => Self::Neutral,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Preferences {
     #[serde(deserialize_with = "fallback")]
     pub density: Density,
+    #[serde(deserialize_with = "fallback")]
+    pub accent: Accent,
 }
 fn fallback<'de, D: Deserializer<'de>, T: serde::de::DeserializeOwned + Default>(
     deserializer: D,
@@ -74,12 +120,14 @@ pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Prefere
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub enum Setting {
     Density,
+    Accent,
 }
 impl Setting {
-    pub const ALL: [Self; 1] = [Self::Density];
+    pub const ALL: [Self; 2] = [Self::Density, Self::Accent];
     pub fn key(self) -> &'static str {
         match self {
             Self::Density => "appearanceDensity",
+            Self::Accent => "appearanceAccent",
         }
     }
 }

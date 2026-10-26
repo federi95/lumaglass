@@ -20,3 +20,11 @@ the background gallery keep their own layouts.
 
 Existing preference files use Standard density. Unknown values fall back to
 Standard without discarding unrelated preferences.
+
+## Accent color
+
+Cycle Neutral, Blue, Teal, Violet, Amber and Rose. Neutral is the original default.
+The palette uses light selection surfaces with dark labels. Accent colors apply
+to navigation and settings selections, focus outlines and selected indicators;
+the app artwork keeps its original colors. This controls color only: outline
+thickness, animation speed and other focus styling are not additional settings.

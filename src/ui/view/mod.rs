@@ -137,13 +137,15 @@ pub struct Scene {
     pub draw: Vec<Draw>,
     pub controls: Vec<Control>,
     pub modal: Option<Rect>,
+    accent: crate::features::appearance::Accent,
 }
 impl Scene {
-    fn new() -> Self {
+    fn new(accent: crate::features::appearance::Accent) -> Self {
         Self {
             draw: Vec::new(),
             controls: Vec::new(),
             modal: None,
+            accent,
         }
     }
     fn shape(&mut self, rect: Rect, radius: f32, fill: Color) {
@@ -183,8 +185,35 @@ impl Scene {
         });
     }
     fn ring(&mut self, rect: Rect, radius: f32) {
-        self.border(rect.inset(-6.9), radius + 6.9, 3.7, c(0xffffff, 0.10));
-        self.border(rect.inset(-3.2), radius + 3.2, 3.2, c(0xf0f0f0, 1.));
+        self.border(
+            rect.inset(-6.9),
+            radius + 6.9,
+            3.7,
+            self.accent_color(c(0xffffff, 0.10)),
+        );
+        self.border(
+            rect.inset(-3.2),
+            radius + 3.2,
+            3.2,
+            self.accent_color(c(0xf0f0f0, 1.)),
+        );
+    }
+    fn accent_color(&self, neutral: Color) -> Color {
+        if self.accent == crate::features::appearance::Accent::Neutral {
+            neutral
+        } else {
+            c(self.accent.rgb(), neutral[3])
+        }
+    }
+    fn selection_surface(&mut self, rect: Rect, radius: f32) {
+        let top = self.accent_color(c(0xfafafa, 1.));
+        let bottom = if self.accent == crate::features::appearance::Accent::Neutral {
+            c(0xe5e5e5, 1.)
+        } else {
+            [top[0] * 0.92, top[1] * 0.92, top[2] * 0.92, 1.]
+        };
+        self.draw
+            .push(Draw::RoundedGradient(rect, radius, top, bottom));
     }
     fn shadow(&mut self, rect: Rect, radius: f32, blur: f32, y: f32, alpha: f32) {
         self.draw.push(Draw::Shadow(
@@ -197,12 +226,7 @@ impl Scene {
     fn pill(&mut self, rect: Rect, focused: bool, selected: bool) {
         self.shadow(rect, rect.h / 2., 18., 4., 0.06);
         if focused {
-            self.draw.push(Draw::RoundedGradient(
-                rect,
-                rect.h / 2.,
-                c(0xfafafa, 1.),
-                c(0xe5e5e5, 1.),
-            ));
+            self.selection_surface(rect, rect.h / 2.);
         } else {
             self.shape(
                 rect,
@@ -293,7 +317,7 @@ pub fn scene_with_pill(
     pill_width: f32,
     now: OffsetDateTime,
 ) -> Scene {
-    let mut out = Scene::new();
+    let mut out = Scene::new(state.preferences.appearance.accent);
     if let Some((previous, start)) = &state.previous_background {
         out.image(
             assets.path(format!("wallpapers/{previous}.jpg")),
@@ -378,7 +402,7 @@ pub fn scene_with_pill(
             true,
         );
         if state.focus == Target::Retry {
-            out.border(retry, 6.4, 2., WHITE);
+            out.border(retry, 6.4, 2., out.accent_color(WHITE));
         }
         out.control(Target::Retry, retry, false);
     }
@@ -478,16 +502,16 @@ fn header(
     out.shape(nav, 48., c(0x171c20, 0.72));
     out.border(nav, 48., 1., c(0xffffff, 0.07));
     let pill = Rect::new(pill_x, 52.3, pill_width, 49.);
-    out.draw.push(Draw::RoundedGradient(
-        pill,
-        32.,
-        c(0xfafafa, 1.),
-        c(0xe5e5e5, 1.),
-    ));
+    out.selection_surface(pill, 32.);
     if matches!(state.focus, Target::Nav(_)) && !state.pointer {
         // Follow the pill's animated position and width instead of jumping to
         // the destination tab's control rectangle.
-        out.border(pill.inset(-5.), 37., 2., c(0xf0f0f0, 0.95));
+        out.border(
+            pill.inset(-5.),
+            37.,
+            2.,
+            out.accent_color(c(0xf0f0f0, 0.95)),
+        );
     }
     for (index, key) in ["home", "apps", "settings"].into_iter().enumerate() {
         let rect = layout.items[index];
@@ -1275,7 +1299,12 @@ fn weather_summary(
             && !state.pointer
             && let Some(label) = label_focus
         {
-            out.border(label.inset(-5.), 8.6, 2., c(0xf0f0f0, 0.95));
+            out.border(
+                label.inset(-5.),
+                8.6,
+                2.,
+                out.accent_color(c(0xf0f0f0, 0.95)),
+            );
         }
         out.control(Target::WeatherConfigure, rect, true);
     }
@@ -1323,7 +1352,7 @@ fn library(out: &mut Scene, state: &State, assets: &Assets) {
         out.shape(rect, 16., c(0x23282c, 0.5));
         out.icon(assets, "close", rect.inset(8.), c(0xeeeeee, 0.73));
         if state.focus == Target::ClearFilter {
-            out.border(rect.inset(-2.), 18., 2., WHITE);
+            out.border(rect.inset(-2.), 18., 2., out.accent_color(WHITE));
         }
         out.control(Target::ClearFilter, rect, true);
     }
@@ -1375,7 +1404,7 @@ fn library(out: &mut Scene, state: &State, assets: &Assets) {
         out.shape(clear, 13.2, c(0xffffff, 0.055));
         out.icon(assets, "close", clear.inset(5.2), WHITE);
         if state.focus == Target::ClearSearch {
-            out.border(clear.inset(-2.), 15.2, 2., WHITE);
+            out.border(clear.inset(-2.), 15.2, 2., out.accent_color(WHITE));
         }
         out.control(Target::ClearSearch, clear, true);
     }
@@ -1447,11 +1476,16 @@ fn library(out: &mut Scene, state: &State, assets: &Assets) {
 
 fn filter(out: &mut Scene, state: &State, target: Target, rect: Rect, label: &str, selected: bool) {
     if selected {
-        out.shape(rect, 32., c(0xffffff, 0.11));
-        out.border(rect, 32., 1., c(0xffffff, 0.07));
+        out.shape(rect, 32., out.accent_color(c(0xffffff, 0.11)));
+        out.border(rect, 32., 1., out.accent_color(c(0xffffff, 0.07)));
     }
     if state.focus == target && !state.pointer {
-        out.border(rect.inset(-7.), 39., 2., c(0xf0f0f0, 0.95));
+        out.border(
+            rect.inset(-7.),
+            39.,
+            2.,
+            out.accent_color(c(0xf0f0f0, 0.95)),
+        );
     }
     out.text(
         label,
@@ -1481,12 +1515,7 @@ fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
     let bright = focused;
     let radius = if row.description.is_some() { 20. } else { 48. };
     if bright {
-        out.draw.push(Draw::RoundedGradient(
-            row.rect,
-            radius,
-            c(0xfafafa, 1.),
-            c(0xe5e5e5, 1.),
-        ));
+        out.selection_surface(row.rect, radius);
     } else {
         out.shape(row.rect, radius, c(0x171c20, 0.72));
         out.border(row.rect, radius, 1., c(0xffffff, 0.07));
@@ -1504,6 +1533,8 @@ fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
             Rect::new(x, row.rect.y + (row.rect.h - 23.2) / 2., 23.2, 23.2),
             if bright {
                 c(0x444444, 1.)
+            } else if row.selected {
+                out.accent_color(c(0xe4e4e4, 0.61))
             } else {
                 c(0xe4e4e4, 0.61)
             },
@@ -1577,6 +1608,8 @@ fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
             ),
             if bright {
                 c(0x444444, 1.)
+            } else if row.selected {
+                out.accent_color(c(0xe4e4e4, 0.61))
             } else {
                 c(0xe4e4e4, 0.61)
             },
@@ -1699,7 +1732,12 @@ fn location_settings(out: &mut Scene, state: &State, assets: &Assets) {
         out.border(clear, 20., 1., c(0xffffff, 0.07));
         out.icon(assets, "close", clear.inset(12.), WHITE);
         if state.focus == Target::WeatherClear {
-            out.border(clear.inset(-2.), 22., 2., c(0xf0f0f0, 0.95));
+            out.border(
+                clear.inset(-2.),
+                22.,
+                2.,
+                out.accent_color(c(0xf0f0f0, 0.95)),
+            );
         }
         out.control(Target::WeatherClear, clear, true);
         y += 96.2;
@@ -1756,7 +1794,12 @@ fn location_settings(out: &mut Scene, state: &State, assets: &Assets) {
         WHITE,
     );
     if state.focus == Target::WeatherSearch {
-        out.border(search.inset(-7.), 39., 2., c(0xf0f0f0, 0.95));
+        out.border(
+            search.inset(-7.),
+            39.,
+            2.,
+            out.accent_color(c(0xf0f0f0, 0.95)),
+        );
     }
     out.control(Target::WeatherSearch, search, true);
     y += 84.;
@@ -1831,7 +1874,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
         let color = if focused {
             c(0x2c2c2c, 1.)
         } else if state.section == index {
-            WHITE
+            out.accent_color(WHITE)
         } else {
             c(0xeeeeee, 0.73)
         };
@@ -2145,10 +2188,15 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 );
                 out.border(rect, 16., 1., c(0xffffff, 0.086));
                 if state.preferences.background == *id {
-                    out.border(rect.inset(-2.), 18., 2., c(0xdedede, 1.));
-                    out.border(rect.inset(-7.), 23., 3., c(0xdedede, 0.10));
+                    out.border(rect.inset(-2.), 18., 2., out.accent_color(c(0xdedede, 1.)));
+                    out.border(
+                        rect.inset(-7.),
+                        23.,
+                        3.,
+                        out.accent_color(c(0xdedede, 0.10)),
+                    );
                     let check = Rect::new(rect.x + rect.w - 28., rect.y + rect.h - 28., 21.6, 21.6);
-                    out.shape(check, 10.8, c(0xf3f3f3, 1.));
+                    out.shape(check, 10.8, out.accent_color(c(0xf3f3f3, 1.)));
                     out.icon(assets, "check", check.inset(3.6), c(0x333333, 1.));
                 }
                 if state.focus == Target::Background(index) {
@@ -2443,6 +2491,7 @@ fn appearance_settings(out: &mut Scene, state: &State, assets: &Assets) {
     for (index, option) in Setting::ALL.into_iter().enumerate() {
         let value = match option {
             Setting::Density => language.t(state.preferences.appearance.density.key()),
+            Setting::Accent => language.t(state.preferences.appearance.accent.key()),
         };
         row(
             out,
@@ -2959,7 +3008,7 @@ fn empty(out: &mut Scene, state: &State, assets: &Assets, content: EmptyState<'_
         let button = Rect::new(center - width / 2., top + 144.8, width, 46.8);
         out.shape(button, 11.2, c(0xededed, 1.));
         if state.focus == target {
-            out.border(button.inset(-7.), 18.2, 2., WHITE);
+            out.border(button.inset(-7.), 18.2, 2., out.accent_color(WHITE));
         }
         out.text(
             label,
@@ -3027,7 +3076,7 @@ fn options(
     out.border(close, 16.8, 1., c(0xffffff, 0.07));
     out.icon(assets, "close", close.inset(7.6), WHITE);
     if state.focus == Target::CloseDialog {
-        out.border(close.inset(1.), 15.8, 2., WHITE);
+        out.border(close.inset(1.), 15.8, 2., out.accent_color(WHITE));
     }
     out.control(Target::CloseDialog, close, false);
     let favorite = state
@@ -3078,10 +3127,11 @@ fn options(
             rect,
             12.,
             if focused { 2. } else { 1. },
-            c(
-                if focused { 0xf0f0f0 } else { 0xffffff },
-                if focused { 0.95 } else { 0.05 },
-            ),
+            if focused {
+                out.accent_color(c(0xf0f0f0, 0.95))
+            } else {
+                c(0xffffff, 0.05)
+            },
         );
         out.icon(
             assets,
@@ -3205,7 +3255,11 @@ fn removal_dialog(out: &mut Scene, state: &State, id: &str, title: &str, confirm
             rect,
             12.,
             if focused { 2. } else { 1. },
-            c(0xffffff, if focused { 0.9 } else { 0.1 }),
+            if focused {
+                out.accent_color(c(0xffffff, 0.9))
+            } else {
+                c(0xffffff, 0.1)
+            },
         );
         out.text(
             language.t(label),
@@ -3254,7 +3308,7 @@ fn keyboard(out: &mut Scene, state: &State, assets: &Assets) {
     out.icon(assets, "close", close.inset(7.6), WHITE);
     out.control(Target::CloseDialog, close, false);
     if state.focus == Target::CloseDialog {
-        out.border(close, 16.8, 2., WHITE);
+        out.border(close, 16.8, 2., out.accent_color(WHITE));
     }
     out.shape(Rect::new(389., 390., 1142., 56.), 28., c(0x171c20, 0.72));
     out.icon(

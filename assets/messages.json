@@ -2748,5 +2748,82 @@
     "ru": "Просторная",
     "pl": "Duża",
     "fr": "Confortable"
+  },
+  "appearanceAccent": {
+    "en": "Accent color",
+    "de": "Akzentfarbe",
+    "zh": "强调色",
+    "es": "Color de acento",
+    "pt": "Cor de destaque",
+    "it": "Colore d’accento",
+    "ru": "Акцентный цвет",
+    "pl": "Kolor akcentu",
+    "fr": "Couleur d’accent"
+  },
+  "accentNeutral": {
+    "en": "Neutral",
+    "de": "Neutral",
+    "zh": "中性",
+    "es": "Neutro",
+    "pt": "Neutro",
+    "it": "Neutro",
+    "ru": "Нейтральный",
+    "pl": "Neutralny",
+    "fr": "Neutre"
+  },
+  "accentBlue": {
+    "en": "Blue",
+    "de": "Blau",
+    "zh": "蓝色",
+    "es": "Azul",
+    "pt": "Azul",
+    "it": "Blu",
+    "ru": "Голубой",
+    "pl": "Niebieski",
+    "fr": "Bleu"
+  },
+  "accentTeal": {
+    "en": "Teal",
+    "de": "Türkis",
+    "zh": "青色",
+    "es": "Turquesa",
+    "pt": "Turquesa",
+    "it": "Verde acqua",
+    "ru": "Бирюзовый",
+    "pl": "Turkusowy",
+    "fr": "Turquoise"
+  },
+  "accentViolet": {
+    "en": "Violet",
+    "de": "Violett",
+    "zh": "紫色",
+    "es": "Violeta",
+    "pt": "Violeta",
+    "it": "Viola",
+    "ru": "Фиолетовый",
+    "pl": "Fioletowy",
+    "fr": "Violet"
+  },
+  "accentAmber": {
+    "en": "Amber",
+    "de": "Bernstein",
+    "zh": "琥珀色",
+    "es": "Ámbar",
+    "pt": "Âmbar",
+    "it": "Ambra",
+    "ru": "Янтарный",
+    "pl": "Bursztynowy",
+    "fr": "Ambre"
+  },
+  "accentRose": {
+    "en": "Rose",
+    "de": "Rosa",
+    "zh": "粉色",
+    "es": "Rosa",
+    "pt": "Rosa",
+    "it": "Rosa",
+    "ru": "Розовый",
+    "pl": "Różowy",
+    "fr": "Rose"
   }
 }
