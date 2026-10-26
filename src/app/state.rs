@@ -480,7 +480,7 @@ impl State {
         let content = if count == 0 {
             0.
         } else {
-            (count - 1) as f32 * HOME_TILE_PITCH + HOME_TILE_WIDTH
+            (self.home_layout(count).columns - 1) as f32 * HOME_TILE_PITCH + HOME_TILE_WIDTH
         };
         let max = (content - (HOME_STRIP_RIGHT - HOME_STRIP_LEFT)).max(0.);
         let next = (self.home_scroll + delta).clamp(0., max);
@@ -488,6 +488,13 @@ impl State {
             self.home_scroll = next;
             self.dirty = true;
         }
+    }
+
+    pub fn home_layout(&self, count: usize) -> crate::features::apps::home_layout::Layout {
+        crate::features::apps::home_layout::Layout::new(
+            count,
+            self.preferences.two_row_home_favorites,
+        )
     }
 
     pub fn set_inventory(&mut self, next: Inventory, warning: Option<String>) {
@@ -798,12 +805,13 @@ impl State {
                 })
                 .collect();
             if let Some(index) = slots.iter().position(|slot| ids[*slot] == id) {
-                let next = match direction {
-                    Direction::Left => index.saturating_sub(1),
-                    Direction::Right => (index + 1).min(slots.len() - 1),
-                    _ => index,
+                let (dx, dy) = match direction {
+                    Direction::Left => (-1, 0),
+                    Direction::Right => (1, 0),
+                    Direction::Up => (0, -1),
+                    Direction::Down => (0, 1),
                 };
-                if next != index {
+                if let Some(next) = self.home_layout(slots.len()).neighbor(index, dx, dy) {
                     ids.swap(slots[index], slots[next]);
                     self.preferences.favorites = Some(ids);
                     self.dirty = true;
@@ -818,18 +826,31 @@ impl State {
             {
                 let apps = self.apps();
                 if let Some(index) = apps.iter().position(|app| &app.id == id) {
+                    let layout = self.home_layout(apps.len());
                     match direction {
                         Direction::Left | Direction::Right => {
-                            let next = if matches!(direction, Direction::Left) {
-                                index.saturating_sub(1)
+                            let dx = if matches!(direction, Direction::Left) {
+                                -1
                             } else {
-                                (index + 1).min(apps.len() - 1)
+                                1
                             };
-                            let id = apps[next].id.clone();
-                            self.focus(Target::App(id), controls);
+                            if let Some(next) = layout.neighbor(index, dx, 0) {
+                                let id = apps[next].id.clone();
+                                self.focus(Target::App(id), controls);
+                            }
                         }
-                        Direction::Up => self.focus(Target::Nav(0), controls),
+                        Direction::Up => {
+                            let target = layout
+                                .neighbor(index, 0, -1)
+                                .map_or(Target::Nav(0), |next| Target::App(apps[next].id.clone()));
+                            self.focus(target, controls);
+                        }
                         Direction::Down => {
+                            if let Some(next) = layout.neighbor(index, 0, 1) {
+                                let id = apps[next].id.clone();
+                                self.focus(Target::App(id), controls);
+                                return vec![];
+                            }
                             let x = controls
                                 .iter()
                                 .find(|control| control.target == self.focus)
@@ -1687,6 +1708,11 @@ impl State {
                         return vec![];
                     }
                     2 => self.preferences.reduced_motion = !self.preferences.reduced_motion,
+                    10 => {
+                        self.preferences.two_row_home_favorites =
+                            !self.preferences.two_row_home_favorites;
+                        self.home_scroll = 0.;
+                    }
                     4 => {
                         self.subpage = Some(Subpage::Language);
                         self.focus = Target::Choice(self.preferences.language.index());

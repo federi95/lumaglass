@@ -94,6 +94,14 @@ the previous snapshot with a notice. Consent flags are not evidence of service
 activity or effective data collection. The UI uses neutral labels, including
 the opposite meaning of enabled Limit ad tracking versus granted consents.
 
+## Home layout
+
+Home favorites share row/column rules in `src/features/apps/home_layout.rs` for
+scene composition, scroll bounds, remote focus and reordering. The optional
+two-row layout uses the saved order and divides visible favorites evenly across
+at most two rows. Missing preference fields keep the
+single-row layout. Layout changes affect local preferences, not TV app state.
+
 ## Font parsing and geometry
 
 The renderer uses [Skrifa 0.49](https://docs.rs/skrifa/0.49.0/skrifa/)

@@ -2418,5 +2418,16 @@
     "ru": "Показать в Lumaglass",
     "pl": "Pokaż w Lumaglass",
     "fr": "Afficher dans Lumaglass"
+  },
+  "twoRowFavorites": {
+    "en": "Two-row Home favorites",
+    "de": "Home-Favoriten in zwei Reihen",
+    "zh": "主页收藏显示为两行",
+    "es": "Favoritos de Home en dos filas",
+    "pt": "Favoritos da Home em duas linhas",
+    "it": "Preferiti Home su due righe",
+    "ru": "Избранное Home в два ряда",
+    "pl": "Ulubione Home w dwóch rzędach",
+    "fr": "Favoris Home sur deux rangées"
   }
 }

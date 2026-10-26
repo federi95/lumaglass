@@ -2,6 +2,20 @@
 
 ## Controls and navigation
 
+**Settings → General → Two-row Home favorites** switches between the default
+single row and an optional two-row layout immediately. Favorite order is kept
+left to right across the first row, then the second. With at least two favorites,
+both rows are used: six favorites become three per row. Both rows share horizontal
+scrolling when more than twelve are visible. Hidden and uninstalled apps do not occupy slots.
+Up/Down moves between rows before reaching the navigation bar or inputs. While
+reordering, all four arrows move the selected favorite; OK/Back finishes.
+Captions keep their space and inputs move below the last row, with vertical
+scrolling when needed. The setting is saved without restarting the launcher.
+
+Long localized Home greetings scale down within the existing heading width,
+preserving the name and space for the weather summary. Short greetings keep
+their original size.
+
 App options distinguish **Hide in Lumaglass** from **Uninstall app**. Eligible
 removal targets get a separate name/ID confirmation with Cancel selected first.
 Pending removals can be inspected through **Uninstall status**; **Check status**

@@ -10,6 +10,83 @@ use std::{collections::BTreeMap, path::PathBuf};
 mod recent_tests;
 
 #[test]
+fn two_row_home_toggle_persists_and_preserves_favorite_order() {
+    let legacy: Preferences = serde_json::from_value(json!({})).unwrap();
+    assert!(!legacy.two_row_home_favorites);
+    let mut state = ready();
+    let ids: Vec<_> = state
+        .inventory
+        .apps
+        .iter()
+        .take(13)
+        .map(|app| app.id.clone())
+        .collect();
+    state.preferences.favorites = Some(ids.clone());
+    state.open(2);
+    state.focus = Target::Setting(10);
+    assert_eq!(state.activate(), vec![Effect::Save]);
+    let saved = serde_json::to_value(&state.preferences).unwrap();
+    let restored: Preferences = serde_json::from_value(saved).unwrap();
+    assert!(restored.two_row_home_favorites);
+    assert_eq!(restored.favorites, Some(ids.clone()));
+    assert_eq!(state.activate(), vec![Effect::Save]);
+    assert!(!state.preferences.two_row_home_favorites);
+    assert_eq!(state.preferences.favorites, Some(ids));
+}
+
+#[test]
+fn two_row_home_shares_geometry_navigation_reordering_and_scroll_bounds() {
+    let mut state = ready();
+    let ids: Vec<_> = state
+        .inventory
+        .apps
+        .iter()
+        .take(13)
+        .map(|app| app.id.clone())
+        .collect();
+    state.preferences.favorites = Some(ids.clone());
+    state.preferences.two_row_home_favorites = true;
+    state.focus = Target::App(ids[0].clone());
+    let laid_out = controls(&state);
+    let first = laid_out
+        .iter()
+        .find(|c| c.target == Target::App(ids[0].clone()))
+        .unwrap()
+        .rect;
+    let second_row = laid_out
+        .iter()
+        .find(|c| c.target == Target::App(ids[7].clone()))
+        .unwrap()
+        .rect;
+    assert!((first.x - second_row.x).abs() < 0.01);
+    assert!(second_row.y > first.y + first.h);
+    assert_eq!(
+        state.hit_test(&laid_out, second_row.x + 50., second_row.y + 50.),
+        Some(Target::App(ids[7].clone()))
+    );
+    state.direction(Direction::Down, &laid_out);
+    assert_eq!(state.focus, Target::App(ids[7].clone()));
+    state.direction(Direction::Up, &controls(&state));
+    assert_eq!(state.focus, Target::App(ids[0].clone()));
+    state.focus(Target::App(ids[6].clone()), &controls(&state));
+    assert!(state.home_scroll > 0. && state.home_scroll <= crate::state::HOME_TILE_PITCH + 0.01);
+    let shifted = controls(&state);
+    state.direction(Direction::Right, &shifted);
+    assert_eq!(state.focus, Target::App(ids[6].clone()));
+    state.scroll_favorites(-100000.);
+    state.focus = Target::App(ids[0].clone());
+    state.moving = Some(ids[0].clone());
+    assert_eq!(
+        state.direction(Direction::Down, &controls(&state)),
+        vec![Effect::Save]
+    );
+    let favorites = state.preferences.favorites.as_ref().unwrap();
+    assert_eq!(favorites[0], ids[7]);
+    assert_eq!(favorites[7], ids[0]);
+    assert_eq!(state.moving, Some(ids[0].clone()));
+}
+
+#[test]
 fn long_home_greetings_shrink_without_losing_the_saved_name() {
     use crate::renderer::Draw;
     for name in ["W".repeat(40), "宽".repeat(40)] {

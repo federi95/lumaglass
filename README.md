@@ -12,7 +12,8 @@ and an MQTT bridge.
 ## Current status
 
 The inherited native launcher includes app/input discovery, favorites, hidden
-apps, recent apps, backgrounds, weather and settings. This fork establishes the
+apps, recent apps, backgrounds, weather and settings. General settings now offer
+optional two-row Home favorites; long Home greetings scale to fit. This fork establishes the
 Lumaglass identity, modular layout, local development setup and license notices.
 Settings → System → TV information adds read-only device information and Home
 replacement observations. Preference writes run on a worker with durable atomic

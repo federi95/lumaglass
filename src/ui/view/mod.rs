@@ -886,6 +886,7 @@ fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
     }
     let apps = state.apps();
     let names = state.preferences.show_home_names;
+    let layout = state.home_layout(apps.len());
     let mut grid_height = FACE_HEIGHT;
     if state.loading && state.inventory.apps.is_empty() {
         for index in 0..6 {
@@ -935,6 +936,10 @@ fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
                 0.
             };
     }
+    let row_pitch = grid_height + 28.8;
+    if !apps.is_empty() {
+        grid_height += layout.rows.saturating_sub(1) as f32 * row_pitch;
+    }
     // Like Apple TV's rows, the favourites run to the screen edge: the next tile shows cut off
     // at the right (and a scrolled-away one at the left), so it is clear the row continues.
     out.draw.push(Draw::Clip(Some(state.favorites_viewport())));
@@ -952,14 +957,15 @@ fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
         HOME_FADE_RIGHT,
     ])));
     for (index, app) in apps.iter().enumerate() {
+        let (column, row) = layout.cell(index);
         tile(
             out,
             state,
             assets,
             app,
             Rect::new(
-                84. + index as f32 * HOME_TILE_PITCH - state.home_scroll,
-                544.8 - s,
+                84. + column as f32 * HOME_TILE_PITCH - state.home_scroll,
+                544.8 + row as f32 * row_pitch - s,
                 HOME_TILE_WIDTH,
                 FACE_HEIGHT,
             ),
@@ -2002,6 +2008,17 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                     }),
                     true,
                 ),
+                (
+                    10,
+                    "twoRowFavorites",
+                    "grid",
+                    Some(language.t(if state.preferences.two_row_home_favorites {
+                        "stateOn"
+                    } else {
+                        "stateOff"
+                    })),
+                    false,
+                ),
             ]
             .into_iter()
             .enumerate()
@@ -2576,15 +2593,29 @@ fn footer(out: &mut Scene, state: &State, assets: &Assets) {
     }
     let color = c(0xeeeeee, 0.37);
     if state.moving.is_some() {
-        keycap(out, "← →", 84., 1030.4, 42., false);
+        let two_rows = state.preferences.two_row_home_favorites;
+        let key_width = if two_rows { 76. } else { 42. };
+        let label_x = 84. + key_width + 8.;
+        keycap(
+            out,
+            if two_rows {
+                "← ↑ ↓ →"
+            } else {
+                "← →"
+            },
+            84.,
+            1030.4,
+            key_width,
+            false,
+        );
         out.text(
             language.t("move"),
-            Rect::new(134., 1033., 100., 20.),
+            Rect::new(label_x, 1033., 100., 20.),
             text(14.4, 400, 0.005),
             color,
             false,
         );
-        let second_x = 134. + assets.width(language.t("move"), style) + 25.6;
+        let second_x = label_x + assets.width(language.t("move"), style) + 25.6;
         keycap(out, "OK/Back", second_x, 1030.4, 62., false);
         out.text(
             language.t("done"),
