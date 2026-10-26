@@ -75,6 +75,19 @@ impl Assets {
             .sum()
     }
 
+    fn fit_line(&self, value: &str, mut style: TextStyle, width: f32) -> TextStyle {
+        // Shrinking below 32 px selects the body metrics instead of the display
+        // font. Remeasure after that boundary rather than applying one ratio.
+        for _ in 0..3 {
+            let measured = self.width(value, style);
+            if measured <= width {
+                break;
+            }
+            style.size *= width / measured;
+        }
+        style
+    }
+
     fn lines(&self, value: &str, style: TextStyle, width: f32) -> usize {
         let key = format!(
             "{}{}",
@@ -844,10 +857,11 @@ fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
         false,
     );
     let greeting = language.greeting(now.hour(), &state.preferences.greeting_name);
+    let greeting_style = assets.fit_line(&greeting, text(90.4, 500, -0.065).leading(1.05), 1496.);
     out.text(
         &greeting,
         Rect::new(84., 265. - shift - s, 1500., 95.),
-        text(90.4, 500, -0.065).leading(1.05),
+        greeting_style,
         WHITE,
         false,
     );

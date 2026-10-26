@@ -10,6 +10,34 @@ use std::{collections::BTreeMap, path::PathBuf};
 mod recent_tests;
 
 #[test]
+fn long_home_greetings_shrink_without_losing_the_saved_name() {
+    use crate::renderer::Draw;
+    for name in ["W".repeat(40), "宽".repeat(40)] {
+        let mut state = ready();
+        state.preferences.greeting_name = name.clone();
+        let expected = state.preferences.language.greeting(0, &name);
+        let scene = scene(&state);
+        let (rect, style) = scene
+            .draw
+            .iter()
+            .find_map(|draw| match draw {
+                Draw::Text(value, rect, style, ..) if value == &expected => Some((rect, style)),
+                _ => None,
+            })
+            .expect("Home keeps the complete greeting");
+        assert!(style.size > 0. && style.size < 90.4);
+        assert!(rect.h >= style.size * style.line_height);
+        assert_eq!(state.preferences.greeting_name, name);
+    }
+    let state = ready();
+    let expected = state.preferences.language.greeting(0, "");
+    assert!(
+        scene(&state).draw.iter().any(|draw| matches!(draw,
+        Draw::Text(value, _, style, ..) if value == &expected && (style.size - 90.4).abs() < 0.01))
+    );
+}
+
+#[test]
 fn uninstall_confirmation_defaults_to_cancel_and_cannot_send_twice() {
     use crate::features::apps::management::Command;
     let mut state = ready();
