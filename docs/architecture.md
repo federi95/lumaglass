@@ -13,6 +13,7 @@ src/features/apps/          artwork, branding, recent apps and preview inventory
                             and typed, verified app-removal state
 src/features/privacy/       fixed privacy observations and transient request state
 src/features/home/          local Home customization and validated preferences
+src/features/appearance/    shared card geometry and local visual preferences
 src/features/weather/       forecast scheduling, HTTP worker and cache
 src/features/system/        typed read-only TV observations and request state
 src/platform/               inventory/actions, SDL input and installation lookup

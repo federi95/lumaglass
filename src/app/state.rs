@@ -1,3 +1,4 @@
+use crate::features::appearance::Setting as AppearanceOption;
 use crate::features::apps::management::{self, Command as ManagementCommand, RemovalTarget, Route};
 use crate::features::home::{GreetingMode, Setting as HomeOption, StartupFocus};
 use crate::i18n::Language;
@@ -14,7 +15,6 @@ pub const WEATHER_SECTION: usize = 2;
 pub const INPUTS_SECTION: usize = 3;
 pub const SYSTEM_SECTION: usize = 4;
 pub const SECTION_COUNT: usize = 5;
-pub const APPS_COLUMNS: usize = 6;
 /// Automatic inventory retries before the error shows: with the 6.5 s Luna timeout about 50 s.
 pub const INVENTORY_RETRIES: u32 = 5;
 pub const INVENTORY_RETRY_DELAY: Duration = Duration::from_secs(2);
@@ -22,7 +22,7 @@ pub const HOME_STRIP_LEFT: f32 = 84.;
 // Six favourites in full and the seventh cut off and fading out at the right (Apple TV rows):
 // the strip ends after the sixth tile, so a focused tile never sits in the fade.
 pub const HOME_STRIP_RIGHT: f32 = 1748.;
-pub const HOME_TILE_WIDTH: f32 = 256.;
+#[cfg(test)]
 pub const HOME_TILE_PITCH: f32 = 281.6;
 pub const HOME_FADE_LEFT: f32 = 8.;
 pub const HOME_FADE_RIGHT: f32 = 1910.;
@@ -57,6 +57,7 @@ pub enum Target {
     GreetingName,
     GreetingNameClear,
     HomeOption(HomeOption),
+    AppearanceOption(AppearanceOption),
     StartupFocus(StartupFocus),
     AppNamesHome,
     AppNamesApps,
@@ -138,6 +139,7 @@ pub enum Overlay {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum Subpage {
+    Appearance,
     Home,
     StartupFocus,
     Privacy,
@@ -459,7 +461,7 @@ impl State {
             });
         let favorites = self.page == Page::Home && (x != 0 || over_favorites);
         if favorites {
-            self.scroll_favorites((if x != 0 { x } else { -y }) as f32 * HOME_TILE_PITCH);
+            self.scroll_favorites((if x != 0 { x } else { -y }) as f32 * self.home_cards().pitch);
         } else {
             let bottom = self.content_viewport().y + self.content_viewport().h - 12.;
             let max = controls
@@ -487,7 +489,8 @@ impl State {
         let content = if count == 0 {
             0.
         } else {
-            (self.home_layout(count).columns - 1) as f32 * HOME_TILE_PITCH + HOME_TILE_WIDTH
+            (self.home_layout(count).columns - 1) as f32 * self.home_cards().pitch
+                + self.home_cards().width
         };
         let max = (content - (HOME_STRIP_RIGHT - HOME_STRIP_LEFT)).max(0.);
         let next = (self.home_scroll + delta).clamp(0., max);
@@ -502,6 +505,14 @@ impl State {
             count,
             self.preferences.two_row_home_favorites,
         )
+    }
+
+    pub fn home_cards(&self) -> crate::features::appearance::Cards {
+        self.preferences.appearance.density.home()
+    }
+
+    pub fn apps_cards(&self) -> crate::features::appearance::Cards {
+        self.preferences.appearance.density.apps()
     }
 
     pub fn greeting_text(&self) -> &str {
@@ -678,7 +689,7 @@ impl State {
         match self.page {
             Page::Home => self
                 .apps()
-                .get(((self.home_scroll - 0.01).max(0.) / HOME_TILE_PITCH).ceil() as usize)
+                .get(((self.home_scroll - 0.01).max(0.) / self.home_cards().pitch).ceil() as usize)
                 .map(|app| Target::App(app.id.clone()))
                 .unwrap_or(if self.error.is_some() {
                     Target::Retry
@@ -822,6 +833,7 @@ impl State {
             }
             Some(Subpage::Greeting) => Target::Setting(6),
             Some(Subpage::Home) => Target::Setting(11),
+            Some(Subpage::Appearance) => Target::Setting(12),
             Some(Subpage::StartupFocus) => {
                 self.subpage = Some(Subpage::Home);
                 Target::HomeOption(HomeOption::StartupFocus)
@@ -851,6 +863,32 @@ impl State {
     pub fn direction(&mut self, direction: Direction, controls: &[Control]) -> Vec<Effect> {
         self.pointer = false;
         self.dirty = true;
+        if self.overlay.is_none() && self.subpage == Some(Subpage::Appearance) {
+            if self.focus == Target::Nav(2) && matches!(direction, Direction::Down) {
+                self.focus(Target::AppearanceOption(AppearanceOption::ALL[0]), controls);
+                return vec![];
+            }
+            if let Target::AppearanceOption(option) = self.focus
+                && let Some(index) = AppearanceOption::ALL
+                    .iter()
+                    .position(|item| *item == option)
+            {
+                match direction {
+                    Direction::Up if index == 0 => self.focus(Target::Nav(2), controls),
+                    Direction::Up => self.focus(
+                        Target::AppearanceOption(AppearanceOption::ALL[index - 1]),
+                        controls,
+                    ),
+                    Direction::Down if index + 1 < AppearanceOption::ALL.len() => self.focus(
+                        Target::AppearanceOption(AppearanceOption::ALL[index + 1]),
+                        controls,
+                    ),
+                    Direction::Left => self.close_subpage(),
+                    _ => {}
+                }
+                return vec![];
+            }
+        }
         if self.overlay.is_none() && self.subpage == Some(Subpage::Home) {
             if self.focus == Target::Nav(2) && matches!(direction, Direction::Down) {
                 self.focus(Target::HomeOption(HomeOption::ALL[0]), controls);
@@ -1137,7 +1175,7 @@ impl State {
             }
             if matches!(
                 self.focus,
-                Target::Setting(0 | 1 | 4 | 6 | 7 | 8 | 9 | 11)
+                Target::Setting(0 | 1 | 4 | 6 | 7 | 8 | 9 | 11 | 12)
                     | Target::InputMode(_)
                     | Target::WeatherLocation
                     | Target::WeatherTemperature
@@ -1263,16 +1301,13 @@ impl State {
                     // A preceding row may be above the visible scroll region.
                     // Its grid index still defines the route; reveal_focus then
                     // scrolls it into view, without letting the fixed nav steal Up.
+                    let columns = self.apps_cards().columns;
                     let next = match direction {
-                        Direction::Up if index < APPS_COLUMNS => Some(Target::Filter(1)),
-                        Direction::Up => Some(Target::App(apps[index - APPS_COLUMNS].id.clone())),
-                        Direction::Down
-                            if (index / APPS_COLUMNS + 1) * APPS_COLUMNS < apps.len() =>
-                        {
-                            Some(Target::App(
-                                apps[(index + APPS_COLUMNS).min(apps.len() - 1)].id.clone(),
-                            ))
-                        }
+                        Direction::Up if index < columns => Some(Target::Filter(1)),
+                        Direction::Up => Some(Target::App(apps[index - columns].id.clone())),
+                        Direction::Down if (index / columns + 1) * columns < apps.len() => Some(
+                            Target::App(apps[(index + columns).min(apps.len() - 1)].id.clone()),
+                        ),
                         _ => None,
                     };
                     if let Some(next) = next {
@@ -1649,6 +1684,19 @@ impl State {
         }
         self.dirty = true;
         match self.focus.clone() {
+            Target::AppearanceOption(option) => {
+                if self.subpage != Some(Subpage::Appearance) || self.overlay.is_some() {
+                    return vec![];
+                }
+                match option {
+                    AppearanceOption::Density => {
+                        self.preferences.appearance.density =
+                            self.preferences.appearance.density.next();
+                        self.home_scroll = 0.;
+                    }
+                }
+                return vec![Effect::Save];
+            }
             Target::HomeOption(option) => {
                 if self.subpage != Some(Subpage::Home) || self.overlay.is_some() {
                     return vec![];
@@ -1947,6 +1995,15 @@ impl State {
                         }
                         return vec![];
                     }
+                    12 => {
+                        self.subpage = Some(Subpage::Appearance);
+                        self.focus = Target::AppearanceOption(AppearanceOption::ALL[0]);
+                        self.scroll = 0.;
+                        if !self.preferences.reduced_motion {
+                            self.panel_started = Some(Instant::now());
+                        }
+                        return vec![];
+                    }
                     4 => {
                         self.subpage = Some(Subpage::Language);
                         self.focus = Target::Choice(self.preferences.language.index());
@@ -2037,7 +2094,8 @@ impl State {
                         }
                     }
                     Some(
-                        Subpage::Home
+                        Subpage::Appearance
+                        | Subpage::Home
                         | Subpage::StartupFocus
                         | Subpage::WeatherLocation
                         | Subpage::Greeting

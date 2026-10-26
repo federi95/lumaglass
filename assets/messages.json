@@ -2693,5 +2693,60 @@
     "ru": "Без текста используется приветствие по времени суток.",
     "pl": "Pusty tekst przywraca powitanie według pory dnia.",
     "fr": "Sans texte, le message suit l’heure de la journée."
+  },
+  "appearance": {
+    "en": "Appearance",
+    "de": "Darstellung",
+    "zh": "外观",
+    "es": "Apariencia",
+    "pt": "Aparência",
+    "it": "Aspetto",
+    "ru": "Внешний вид",
+    "pl": "Wygląd",
+    "fr": "Apparence"
+  },
+  "appearanceDensity": {
+    "en": "Card density",
+    "de": "Kartendichte",
+    "zh": "卡片密度",
+    "es": "Densidad de tarjetas",
+    "pt": "Densidade dos cartões",
+    "it": "Densità delle carte",
+    "ru": "Плотность карточек",
+    "pl": "Gęstość kart",
+    "fr": "Densité des cartes"
+  },
+  "appearanceCompact": {
+    "en": "Compact",
+    "de": "Kompakt",
+    "zh": "紧凑",
+    "es": "Compacta",
+    "pt": "Compacta",
+    "it": "Compatta",
+    "ru": "Компактная",
+    "pl": "Mała",
+    "fr": "Compacte"
+  },
+  "appearanceStandard": {
+    "en": "Standard",
+    "de": "Standard",
+    "zh": "标准",
+    "es": "Estándar",
+    "pt": "Padrão",
+    "it": "Standard",
+    "ru": "Обычная",
+    "pl": "Standardowa",
+    "fr": "Standard"
+  },
+  "appearanceComfortable": {
+    "en": "Comfortable",
+    "de": "Komfortabel",
+    "zh": "宽松",
+    "es": "Cómoda",
+    "pt": "Confortável",
+    "it": "Comoda",
+    "ru": "Просторная",
+    "pl": "Duża",
+    "fr": "Confortable"
   }
 }

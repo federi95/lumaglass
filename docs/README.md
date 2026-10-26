@@ -9,6 +9,7 @@ the current implementation; the project excludes a web dashboard and MQTT bridge
 | [Development](development.md)                   | Toolchain, command reference, checks and preview tooling         |
 | [Controls](controls.md)                         | Remote, pointer, keyboard and recent-app navigation              |
 | [Home personalization](home-personalization.md) | Greeting, date, section order and initial focus                  |
+| [Appearance](appearance.md)                     | Card density and native visual preferences                       |
 | [App management](app-management.md)             | Local hiding, confirmed uninstallation and verification rules    |
 | [Architecture](architecture.md)                 | Native modules, platform workers, storage and project boundaries |
 | [TV integration](tv-integration.md)             | Installation, Home takeover, diagnostics and recovery            |

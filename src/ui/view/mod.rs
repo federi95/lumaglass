@@ -4,9 +4,8 @@ use crate::{
     model::{App, BACKGROUNDS, CATEGORIES, Input, InputMode},
     renderer::{Color, Draw, TextStyle, WHITE},
     state::{
-        APPS_COLUMNS, Control, HOME_FADE_LEFT, HOME_FADE_RIGHT, HOME_STRIP_LEFT, HOME_STRIP_RIGHT,
-        HOME_TILE_PITCH, HOME_TILE_WIDTH, KEYS, Overlay, Page, Rect, SYSTEM_SECTION, State,
-        Subpage, Target, TextField, WEATHER_SECTION,
+        Control, HOME_FADE_LEFT, HOME_FADE_RIGHT, HOME_STRIP_LEFT, HOME_STRIP_RIGHT, KEYS, Overlay,
+        Page, Rect, SYSTEM_SECTION, State, Subpage, Target, TextField, WEATHER_SECTION,
     },
     weather::{self, Unit},
 };
@@ -18,7 +17,6 @@ use time::OffsetDateTime;
 
 const MAIN_TOP: f32 = 108.8;
 const FACE_HEIGHT: f32 = 154.4;
-const GRID_PITCH: f32 = 296.4;
 const RECENTS_BACKDROP_OPACITY: f32 = 0.86;
 
 mod recents_view;
@@ -921,6 +919,7 @@ fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
 
 fn home_favorites(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> f32 {
     let language = state.preferences.language;
+    let cards = state.home_cards();
     let s = state.scroll;
     out.text(
         language.t("favorites"),
@@ -941,15 +940,15 @@ fn home_favorites(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> 
     let apps = state.apps();
     let names = state.preferences.show_home_names;
     let layout = state.home_layout(apps.len());
-    let mut grid_height = FACE_HEIGHT;
+    let mut grid_height = cards.height;
     if state.loading && state.inventory.apps.is_empty() {
-        for index in 0..6 {
+        for index in 0..cards.columns {
             out.shape(
                 Rect::new(
-                    84. + index as f32 * GRID_PITCH,
+                    84. + index as f32 * cards.pitch,
                     top + 66.3 - s,
-                    270.,
-                    FACE_HEIGHT,
+                    cards.width,
+                    cards.height,
                 ),
                 19.2,
                 c(0xffffff, 0.06),
@@ -980,11 +979,11 @@ fn home_favorites(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> 
         grid_height = 247.5;
     }
     if !apps.is_empty() {
-        grid_height = FACE_HEIGHT
+        grid_height = cards.height
             + if names {
                 18.4 + apps
                     .iter()
-                    .map(|app| caption_height(state, assets, app, HOME_TILE_WIDTH))
+                    .map(|app| caption_height(state, assets, app, cards.width))
                     .fold(49.28, f32::max)
             } else {
                 0.
@@ -1018,10 +1017,10 @@ fn home_favorites(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> 
             assets,
             app,
             Rect::new(
-                84. + column as f32 * HOME_TILE_PITCH - state.home_scroll,
+                84. + column as f32 * cards.pitch - state.home_scroll,
                 top + 66.3 + row as f32 * row_pitch - s,
-                HOME_TILE_WIDTH,
-                FACE_HEIGHT,
+                cards.width,
+                cards.height,
             ),
             names,
             false,
@@ -1284,6 +1283,7 @@ fn weather_summary(
 
 fn library(out: &mut Scene, state: &State, assets: &Assets) {
     let language = state.preferences.language;
+    let cards = state.apps_cards();
     let s = state.scroll;
     let mut x = 84.;
     for (index, label) in CATEGORIES.into_iter().enumerate() {
@@ -1415,12 +1415,12 @@ fn library(out: &mut Scene, state: &State, assets: &Assets) {
     }
     let mut y = 270.4;
     let names = state.preferences.show_app_names;
-    for row in apps.chunks(APPS_COLUMNS) {
-        let row_height = FACE_HEIGHT
+    for row in apps.chunks(cards.columns) {
+        let row_height = cards.height
             + if names {
                 18.4 + row
                     .iter()
-                    .map(|app| caption_height(state, assets, app, 270.))
+                    .map(|app| caption_height(state, assets, app, cards.width))
                     .fold(49.28, f32::max)
             } else {
                 0.
@@ -1431,7 +1431,12 @@ fn library(out: &mut Scene, state: &State, assets: &Assets) {
                 state,
                 assets,
                 app,
-                Rect::new(84. + column as f32 * GRID_PITCH, y - s, 270., FACE_HEIGHT),
+                Rect::new(
+                    84. + column as f32 * cards.pitch,
+                    y - s,
+                    cards.width,
+                    cards.height,
+                ),
                 names,
                 favorites.contains(&app.id),
             );
@@ -1848,6 +1853,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 Some(Subpage::AppNames) => language.t("appNames"),
                 Some(Subpage::Greeting) => language.t("greeting"),
                 Some(Subpage::Home) => language.t("homeLabel"),
+                Some(Subpage::Appearance) => language.t("appearance"),
                 Some(Subpage::StartupFocus) => language.t("homeStartupFocus"),
                 Some(Subpage::Clock) => language.t("clock"),
                 Some(Subpage::ClockFormat | Subpage::TimeFormat) => clock_path.as_deref().unwrap(),
@@ -1929,6 +1935,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             subpage,
             Subpage::WeatherLocation
                 | Subpage::Home
+                | Subpage::Appearance
                 | Subpage::StartupFocus
                 | Subpage::Greeting
                 | Subpage::AppNames
@@ -1940,6 +1947,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 Subpage::WeatherLocation => location_settings(out, state, assets),
                 Subpage::Greeting => greeting_settings(out, state, assets),
                 Subpage::Home => home_settings(out, state, assets),
+                Subpage::Appearance => appearance_settings(out, state, assets),
                 Subpage::StartupFocus => startup_focus_settings(out, state, assets),
                 Subpage::AppNames => app_name_settings(out, state, assets),
                 Subpage::Clock => clock_settings(out, state, assets),
@@ -2000,6 +2008,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             ],
             Subpage::WeatherLocation
             | Subpage::Home
+            | Subpage::Appearance
             | Subpage::StartupFocus
             | Subpage::Greeting
             | Subpage::AppNames
@@ -2097,6 +2106,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                     false,
                 ),
                 (11, "homePersonalization", "settings", None, true),
+                (12, "appearance", "grid", None, true),
             ]
             .into_iter()
             .enumerate()
@@ -2420,6 +2430,31 @@ fn system_information(out: &mut Scene, state: &State, assets: &Assets) {
                 icon: None,
                 value: None,
                 description: Some(value),
+                selected: false,
+                chevron: false,
+            },
+        );
+    }
+}
+
+fn appearance_settings(out: &mut Scene, state: &State, assets: &Assets) {
+    use crate::features::appearance::Setting;
+    let language = state.preferences.language;
+    for (index, option) in Setting::ALL.into_iter().enumerate() {
+        let value = match option {
+            Setting::Density => language.t(state.preferences.appearance.density.key()),
+        };
+        row(
+            out,
+            state,
+            assets,
+            Row {
+                target: Target::AppearanceOption(option),
+                rect: Rect::new(640., 164.8 + index as f32 * 84. - state.scroll, 1120., 72.),
+                title: language.t(option.key()),
+                icon: None,
+                value: Some(value),
+                description: None,
                 selected: false,
                 chevron: false,
             },

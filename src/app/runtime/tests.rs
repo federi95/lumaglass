@@ -10,6 +10,53 @@ use std::{collections::BTreeMap, path::PathBuf};
 mod recent_tests;
 
 #[test]
+fn card_density_keeps_app_navigation_and_home_scroll_in_sync_with_drawn_cards() {
+    use crate::features::appearance::Density;
+    for density in [Density::Compact, Density::Standard, Density::Comfortable] {
+        let mut state = ready();
+        state.preferences.appearance.density = density;
+        state.preferences.favorites = Some(
+            state
+                .inventory
+                .apps
+                .iter()
+                .take(13)
+                .map(|app| app.id.clone())
+                .collect(),
+        );
+        state.preferences.two_row_home_favorites = true;
+        let cards = state.home_cards();
+        let laid_out = controls(&state);
+        let first = laid_out
+            .iter()
+            .find(|c| matches!(c.target, Target::App(_)))
+            .unwrap();
+        assert!((first.rect.w - cards.width).abs() < 0.01);
+        assert_eq!(
+            state.hit_test(&laid_out, first.rect.x + 30., first.rect.y + 30.),
+            Some(first.target.clone())
+        );
+        state.scroll_favorites(100000.);
+        let expected = ((state.home_layout(13).columns - 1) as f32 * cards.pitch + cards.width
+            - 1664.)
+            .max(0.);
+        assert!((state.home_scroll - expected).abs() < 0.01);
+        state.open(1);
+        let ids: Vec<_> = state.apps().iter().map(|app| app.id.clone()).collect();
+        state.focus = Target::App(ids[0].clone());
+        state.direction(Direction::Down, &controls(&state));
+        assert_eq!(state.focus, Target::App(ids[density.columns()].clone()));
+        state.direction(Direction::Up, &controls(&state));
+        assert_eq!(state.focus, Target::App(ids[0].clone()));
+    }
+    let invalid: Preferences =
+        serde_json::from_value(json!({"favorites":["netflix"],"appearance":{"density":"invalid"}}))
+            .unwrap();
+    assert_eq!(invalid.appearance.density, Density::Standard);
+    assert_eq!(invalid.favorites, Some(vec!["netflix".into()]));
+}
+
+#[test]
 fn home_preferences_fall_back_independently_without_losing_unrelated_choices() {
     use crate::features::home::{GreetingMode, GreetingSize, StartupFocus};
     let preferences: Preferences = serde_json::from_value(json!({
