@@ -50,6 +50,23 @@ impl Home {
 }
 
 #[derive(Clone, Copy, Debug, Default, Serialize)]
+pub enum HomeBoot {
+    Clear,
+    Other,
+    #[default]
+    Unknown,
+}
+impl HomeBoot {
+    pub fn key(self) -> &'static str {
+        match self {
+            Self::Clear => "infoHomeBootClear",
+            Self::Other => "infoHomeBootOther",
+            Self::Unknown => "infoUnknown",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Serialize)]
 pub enum Installation {
     Developer,
     Production,
@@ -87,6 +104,7 @@ pub struct Report {
     pub root: Access,
     pub system_info: Access,
     pub home: Home,
+    pub home_boot: HomeBoot,
     pub installation: Installation,
 }
 
@@ -118,6 +136,11 @@ impl Report {
                 Some("other") => Home::Other,
                 Some("stock") => Home::Stock,
                 _ => Home::Unknown,
+            },
+            home_boot: match value["homeBoot"].as_str() {
+                Some("clear") => HomeBoot::Clear,
+                Some("other") => HomeBoot::Other,
+                _ => HomeBoot::Unknown,
             },
             installation,
         })

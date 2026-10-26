@@ -2055,5 +2055,38 @@
     "ru": "Сведения об устройстве и обнаруженных правах.",
     "pl": "Informacje o urządzeniu i wykrytych uprawnieniach.",
     "fr": "Informations de l’appareil et accès détecté."
+  },
+  "infoHomeBoot": {
+    "en": "Other Home startup integrations",
+    "de": "Andere Home-Startintegrationen",
+    "zh": "其他主屏幕启动集成",
+    "es": "Otras integraciones de inicio de Home",
+    "pt": "Outras integrações de início da Home",
+    "it": "Altre integrazioni Home all’avvio",
+    "ru": "Другие интеграции Home при запуске",
+    "pl": "Inne integracje Home przy starcie",
+    "fr": "Autres intégrations Home au démarrage"
+  },
+  "infoHomeBootClear": {
+    "en": "None detected",
+    "de": "Keine erkannt",
+    "zh": "未检测到",
+    "es": "Ninguna detectada",
+    "pt": "Nenhuma detectada",
+    "it": "Nessuna rilevata",
+    "ru": "Не обнаружены",
+    "pl": "Nie wykryto",
+    "fr": "Aucune détectée"
+  },
+  "infoHomeBootOther": {
+    "en": "Configured — check its owner",
+    "de": "Konfiguriert — zuständige Integration prüfen",
+    "zh": "已配置，请检查所属集成",
+    "es": "Configurada: revisa su propietario",
+    "pt": "Configurada: verifique seu responsável",
+    "it": "Configurata: verifica il proprietario",
+    "ru": "Настроены — проверьте владельца",
+    "pl": "Skonfigurowana — sprawdź właściciela",
+    "fr": "Configurée : vérifier son propriétaire"
   }
 }

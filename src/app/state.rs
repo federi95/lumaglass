@@ -692,7 +692,7 @@ impl State {
                         },
                         controls,
                     ),
-                    Direction::Down if index < 6 => {
+                    Direction::Down if index < 7 => {
                         self.focus(Target::SystemField(index), controls)
                     }
                     _ => {}

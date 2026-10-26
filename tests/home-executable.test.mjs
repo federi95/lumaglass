@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
+import homeMountsReader from '../tv/home-mounts.cjs';
 
 const script = await fs.readFile(new URL('../tv/home.cjs', import.meta.url), 'utf8');
 const exe = '/usr/bin/com.webos.app.home';
@@ -20,6 +21,7 @@ function load() {
   const unexpected = () => assert.fail('Tests must not invoke any system or TV command');
   const context = vm.createContext({
     require(name) {
+      if (name === './home-mounts.cjs') return homeMountsReader;
       if (name === 'fs') return { existsSync: () => false };
       if (name === 'path') return path.posix;
       assert.equal(name, 'child_process');
@@ -38,6 +40,7 @@ function tv({ root = null, same = false, front = ['com.webos.app.home'] } = {}) 
   const calls = [];
   const state = { root, same, fronts: [...front], marker: false };
   Object.assign(context, {
+    bootIntegrations: () => ({ foreign: false, uncertain: false }),
     fs: {
       existsSync: (file) => file === `${appDir}/lumaglass` || (file === marker && state.marker),
       writeFileSync(file, data) {
@@ -51,7 +54,15 @@ function tv({ root = null, same = false, front = ['com.webos.app.home'] } = {}) 
         calls.push('unmark');
         state.marker = false;
       },
+      readFileSync(file) {
+        assert.equal(file, marker);
+        return 'org.lumaglass.app\n';
+      },
     },
+    homeMounts: () =>
+      homeMountsReader.inspect(
+        `1 0 0:1 / / rw - rootfs rootfs rw\n${state.root ? `2 1 0:1 ${state.root} ${exe} rw - rootfs rootfs rw\n` : ''}`,
+      ),
     exeMount: () => state.root,
     exeMounted: () => state.same,
     run(file, args) {
@@ -168,4 +179,44 @@ test('restore unmounts, stops Lumaglass and reopens LG Home only if Home was in 
     context.restore({ method: 'executable', appDir });
     assert.deepEqual(calls, ['unmark', `umount ${exe}`, 'stop', ...(reopened ? ['launch'] : [])]);
   }
+});
+
+test('explicit recovery of an own executable mount survives corrupt state', () => {
+  const { context, calls } = tv({ root: `${appDir}/lumaglass`, front: ['youtube.leanback.v4'] });
+  const originalExists = context.fs.existsSync;
+  // A merely configured foreign startup must not prevent restoring our own mount.
+  context.bootIntegrations = () => ({ foreign: true, uncertain: false });
+  context.fs.existsSync = (file) =>
+    file === '/var/lib/lumaglass-home/state.json' || originalExists(file);
+  context.fs.readFileSync = () => {
+    throw new SyntaxError('Corrupt state');
+  };
+  context.hookOwned = () => true;
+  context.fs.unlinkSync = (file) => {
+    assert.equal(file, '/var/lib/webosbrew/init.d/64-lumaglass-home');
+    calls.push('unhook');
+  };
+  context.writeJson = (file, saved) => {
+    assert.equal(file, '/var/lib/lumaglass-home/state.json');
+    assert.equal(saved.enabled, false);
+    assert.equal(saved.method, 'executable');
+    calls.push('disable-state');
+  };
+  context.recover();
+  assert.deepEqual(calls, ['unhook', 'disable-state', `umount ${exe}`, 'stop']);
+});
+
+test('explicit recovery refuses foreign ownership before changing hooks or state', () => {
+  const { context, calls } = tv({ root: '/var/lib/other/launcher' });
+  context.hookOwned = () => assert.fail('No hook mutation path is allowed');
+  context.writeJson = () => assert.fail('No state writes are allowed');
+  assert.throws(() => context.recover(), /Another integration/);
+  assert.deepEqual(calls, []);
+});
+
+test('a foreign startup configuration prevents apply before mounts or app changes', () => {
+  const { context, calls } = tv();
+  context.bootIntegrations = () => ({ foreign: true, uncertain: false });
+  assert.throws(() => context.applyExecutable({ method: 'executable', appDir }, true), /startup/);
+  assert.deepEqual(calls, []);
 });

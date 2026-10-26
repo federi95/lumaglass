@@ -7,6 +7,7 @@ var fs = require('fs');
 var path = require('path');
 var execFileSync = require('child_process').execFileSync;
 var spawnSync = require('child_process').spawnSync;
+var homeMountsReader = require('./home-mounts.cjs');
 var APP = 'org.lumaglass.app';
 var HOME = 'com.webos.app.home';
 var STATE = '/var/lib/lumaglass-home';
@@ -133,31 +134,54 @@ function mounted() {
 }
 
 function foreignMount() {
-  return (
-    read('/proc/self/mountinfo')
-      .split('\n')
-      .some(function (line) {
-        var target = line.split(' ')[4] || '';
-        return target === TARGET || target.indexOf(TARGET + '/') === 0;
-      }) && !mounted()
-  );
+  return homeMounts().conflict;
+}
+
+function homeMounts() {
+  return homeMountsReader.snapshot(fs);
+}
+
+function bootIntegrations() {
+  return homeMountsReader.boot(fs);
+}
+
+function assertNoForeignBoot() {
+  var report = bootIntegrations();
+  if (report.foreign)
+    throw new Error(
+      'Another Home replacement is configured at startup (Luma or Glasshouse). Disable it with its own restore command first'
+    );
+  if (report.uncertain)
+    throw new Error(
+      'Other Home startup state could not be read; resolve it before enabling Lumaglass'
+    );
+}
+
+function assertHomeOwnership(method) {
+  var report = homeMounts();
+  if (report.conflict)
+    throw new Error(
+      'Another integration or stacked mounts are present over LG Home; restore their owner first'
+    );
+  if (
+    (method === 'executable' && report.manifest.length) ||
+    (method === 'manifest' && report.executable.length)
+  )
+    throw new Error(
+      'A different Lumaglass Home method is active; restore it before switching methods'
+    );
+  return report;
 }
 
 // The mount source of an active bind mount over LG's Home executable, or null.
 function exeMount() {
-  var root = null;
-  read('/proc/self/mountinfo')
-    .split('\n')
-    .forEach(function (line) {
-      var fields = line.split(' ');
-      if (fields[4] === EXE) root = fields[3];
-    });
-  return root;
+  var report = assertHomeOwnership();
+  return report.executable.length ? report.executable[0].source : null;
 }
 
 // Lumaglass's executable, also after a package update replaced the mounted file.
 function exeOwned(root) {
-  return /\/org\.lumaglass\.app\/lumaglass(\/\/deleted)?$/.test(root || '');
+  return homeMountsReader.executableOwned(root);
 }
 
 function exeMounted(appDir) {
@@ -278,9 +302,8 @@ function stopHome(appDir) {
         path.basename(args[0]) === 'flutter-client' &&
         args.indexOf('-i') !== -1 &&
         args[args.indexOf('-i') + 1] === HOME;
-      var lumaglass =
-        fs.readlinkSync('/proc/' + pid + '/exe').replace(/ \(deleted\)$/, '') ===
-        appDir + '/lumaglass';
+      var executable = fs.readlinkSync('/proc/' + pid + '/exe').replace(/ \(deleted\)$/, '');
+      var lumaglass = appDir ? executable === appDir + '/lumaglass' : exeOwned(executable);
       var metadata = null;
       try {
         metadata = JSON.parse(args[1]);
@@ -338,7 +361,12 @@ function hookOwned() {
   }
 }
 
+function clearHomeMarker() {
+  if (fs.existsSync(MARKER) && read(MARKER).trim() === APP) fs.unlinkSync(MARKER);
+}
+
 function restoreExecutable(config) {
+  assertHomeOwnership('executable');
   var wasHome = false;
   try {
     wasHome = foreground() === HOME;
@@ -347,7 +375,7 @@ function restoreExecutable(config) {
   }
   var root = exeMount();
   if (root && !exeOwned(root)) throw new Error('Another integration is mounted over LG Home');
-  if (fs.existsSync(MARKER)) fs.unlinkSync(MARKER);
+  clearHomeMarker();
   if (root) unmountExe();
   stopHome(config.appDir);
   // LG Home on webOS 5/6 is an overlay above the current app, not a foreground app.
@@ -355,6 +383,8 @@ function restoreExecutable(config) {
 }
 
 function applyExecutable(config, open) {
+  assertHomeOwnership('executable');
+  assertNoForeignBoot();
   var root = exeMount();
   if (root && !exeOwned(root)) throw new Error('Another integration is mounted over LG Home');
   if (!fs.existsSync(config.appDir + '/lumaglass'))
@@ -381,6 +411,7 @@ function applyExecutable(config, open) {
 
 function restore(config) {
   if (config.method === 'executable') return restoreExecutable(config);
+  assertHomeOwnership('manifest');
   var wasHome = false;
   try {
     wasHome = foreground() === HOME;
@@ -401,6 +432,7 @@ function restore(config) {
   // Also finish a restore interrupted between unmounting and the rescan.
   // Read the uncovered files, since a firmware update may have changed LG Home.
   reread(json(TARGET + '/appinfo.json'));
+  clearHomeMarker();
   stopHome(config.appDir);
   if (wasHome) launchHome();
 }
@@ -441,6 +473,8 @@ function stageSplash(appDir) {
 
 function apply(config, open) {
   if (config.method === 'executable') return applyExecutable(config, open);
+  assertHomeOwnership('manifest');
+  assertNoForeignBoot();
   if (foreignMount()) throw new Error('Another integration is mounted over LG Home');
   if (!fs.existsSync(config.appDir + '/lumaglass'))
     throw new Error('Lumaglass is no longer installed');
@@ -465,7 +499,7 @@ function apply(config, open) {
 }
 
 function installScripts() {
-  ['home.sh', 'home.cjs'].forEach(function (name) {
+  ['home-mounts.cjs', 'home.cjs', 'home.sh'].forEach(function (name) {
     var target = STATE + '/' + name;
     var data = fs.readFileSync(path.join(__dirname, name));
     fs.writeFileSync(target + '.new', data, { mode: name === 'home.sh' ? 493 : 420 });
@@ -485,9 +519,12 @@ function install(appDir) {
   if (app.id !== APP || app.type !== 'native' || app.main !== 'lumaglass') {
     throw new Error('Enable this from an installed native Lumaglass package');
   }
+  assertHomeOwnership();
+  assertNoForeignBoot();
   var release = read('/etc/starfish-release');
   // The executable method never mounts over LG's manifest, so it reads the original directly.
   var method = homeMethod(release, mounted() ? null : json(TARGET + '/appinfo.json'));
+  assertHomeOwnership(method);
   if (foreignMount()) throw new Error('Another integration is mounted over LG Home');
   var exeRoot = exeMount();
   if (exeRoot && !exeOwned(exeRoot)) throw new Error('Another integration is mounted over LG Home');
@@ -539,12 +576,80 @@ function install(appDir) {
   console.log('Lumaglass is now Home. Home Auto Launch and Quick Start+ follow the TV settings.');
 }
 
+function recover() {
+  // Observe every layer before touching hooks, state, mounts or processes.
+  var report = assertHomeOwnership();
+  var saved = null;
+  try {
+    if (fs.existsSync(CONFIG)) saved = json(CONFIG);
+  } catch (error) {
+    console.error('Lumaglass Home: saved state is unreadable: ' + error.message);
+  }
+  var method = report.executable.length ? 'executable' : report.manifest.length ? 'manifest' : null;
+  var validSaved =
+    saved &&
+    (saved.method === 'executable' || saved.method === 'manifest' || !saved.method) &&
+    typeof saved.appDir === 'string' &&
+    path.isAbsolute(saved.appDir);
+  if (!method && validSaved) method = saved.method || 'manifest';
+  var appDir = validSaved ? saved.appDir : null;
+  if (!appDir && method === 'manifest') {
+    try {
+      var link = fs.readlinkSync(STAGE + '/lumaglass');
+      if (
+        path.isAbsolute(link) &&
+        path.basename(path.dirname(link)) === APP &&
+        path.basename(link) === 'lumaglass'
+      )
+        appDir = path.dirname(link);
+    } catch (error) {
+      if (error.code !== 'ENOENT' && error.code !== 'EINVAL') throw error;
+    }
+  }
+  // Disable only our boot hook first, so an interrupted recovery cannot reapply it.
+  if (hookOwned()) fs.unlinkSync(HOOK);
+  if (!method) {
+    clearHomeMarker();
+    console.log('No Lumaglass Home mount remains. Owned boot hook disabled; no apps restarted.');
+    return;
+  }
+  var config = { enabled: false, method: method, appDir: appDir };
+  try {
+    writeJson(CONFIG, config);
+  } catch (error) {
+    // A broken state file must not prevent restoration of verified own mounts.
+    console.error('Lumaglass Home: could not save disabled recovery state: ' + error.message);
+  }
+  restore(config);
+  console.log('LG Home restored. Lumaglass Home boot integration disabled.');
+}
+
 try {
   var command = process.argv[2];
   if (command === 'enable') {
     install(process.argv[3]);
   } else if (command === 'status') {
-    var saved = fs.existsSync(CONFIG) ? json(CONFIG) : null;
+    var saved = null;
+    var stateError = null;
+    var mountReport = null;
+    var mountError = null;
+    var bootReport = null;
+    var bootError = null;
+    try {
+      if (fs.existsSync(CONFIG)) saved = json(CONFIG);
+    } catch (error) {
+      stateError = error.message;
+    }
+    try {
+      mountReport = homeMounts();
+    } catch (error) {
+      mountError = error.message;
+    }
+    try {
+      bootReport = bootIntegrations();
+    } catch (error) {
+      bootError = error.message;
+    }
     console.log(
       JSON.stringify(
         {
@@ -552,17 +657,26 @@ try {
           method: saved ? saved.method || 'manifest' : null,
           mounted: saved && saved.method === 'executable' ? exeMounted(saved.appDir) : mounted(),
           bootHook: hookOwned(),
-          appDir: saved ? saved.appDir : null
+          appDir: saved ? saved.appDir : null,
+          ownership: mountReport ? mountReport.home : 'unknown',
+          conflict: mountReport ? mountReport.conflict : null,
+          stateError: stateError,
+          mountError: mountError,
+          otherStartup: bootReport,
+          startupError: bootError
         },
         null,
         2
       )
     );
+  } else if (command === 'recover') {
+    recover();
   } else if (command === 'apply' || command === 'disable' || command === 'restore') {
     if (!fs.existsSync(CONFIG)) throw new Error('Lumaglass Home has not been enabled');
     var config = json(CONFIG);
-    if (command === 'apply' && config.enabled) {
-      apply(config, false);
+    if (command === 'apply') {
+      if (config.enabled) apply(config, false);
+      else console.log('Lumaglass Home integration is disabled; no changes applied.');
     } else {
       config.enabled = false;
       writeJson(CONFIG, config);

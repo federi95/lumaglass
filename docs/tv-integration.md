@@ -95,6 +95,36 @@ sh /var/lib/lumaglass-home/home.sh disable
 
 `restore` is an alias for `disable`.
 
+If the saved state is missing or corrupt, the explicit recovery command is:
+
+```sh
+sh /var/lib/lumaglass-home/home.sh recover
+```
+
+Use the installed package's `home.sh recover` if its copied recovery scripts are
+missing. Recovery inspects every Home mount layer before making changes, removes
+only Lumaglass's own boot-hook symlink, and can restore a verified own mount
+without the original state JSON or installed executable. Foreign mounts, child
+mounts, stacked layers and simultaneous replacement methods are refused. Restore
+the owning integration first; recovery does not force-unmount an ambiguous stack.
+If neither saved state nor an own mount remains, it clears only its own hook/marker
+and does not restart apps. A failure to rewrite the disabled state is reported
+but does not block recovery of a verified own mount.
+
+`home.sh status` performs no filesystem writes and reports ownership, conflicts
+and unreadable state/mount information. A disabled `apply` is a no-op. The native
+TV information page shares the same bounded ownership reader, and reports an
+unknown state for ambiguous own layers rather than claiming LG Home is active.
+These paths still require manual verification on TV hardware.
+
+Enabling or reapplying Lumaglass also checks two known startup records: Luma's
+`64-luma-home` hook and Glasshouse's `/var/lib/tvweb/home.json` enable flag.
+Configured or unreadable conflicting state blocks takeover even before a foreign
+mount appears. Glasshouse's shared service hook alone does not block Lumaglass
+when its Home flag is explicitly false. Use the other project's restore command;
+Lumaglass does not delete its hooks or rewrite its settings. `recover` is still
+allowed for verified own mounts when only the other startup configuration remains.
+
 Boot log: `/var/lib/lumaglass-home/boot.log`. See the
 [development guide](development.md#optional-native-home-integration) for implementation details.
 

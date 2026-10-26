@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import vm from 'node:vm';
+import homeMountsReader from '../tv/home-mounts.cjs';
 
 const script = await fs.readFile(new URL('../tv/home.cjs', import.meta.url), 'utf8');
 const app = 'org.lumaglass.app';
@@ -57,6 +58,7 @@ function fixture({ production = false, mounted = false, preferences = {} } = {})
   };
   const context = vm.createContext({
     require(name) {
+      if (name === './home-mounts.cjs') return homeMountsReader;
       if (name === 'fs') return mockFs;
       if (name === 'path') return path.posix;
       assert.equal(name, 'child_process');
@@ -68,6 +70,11 @@ function fixture({ production = false, mounted = false, preferences = {} } = {})
   });
   vm.runInContext(script, context, { timeout: 2000 });
   assert.equal(context.process.exitCode, undefined);
+  context.bootIntegrations = () => ({ foreign: false, uncertain: false });
+  context.homeMounts = () =>
+    homeMountsReader.inspect(
+      `1 0 0:1 / / rw - rootfs rootfs rw\n${mounted ? `2 1 0:1 ${stage} ${target} rw - rootfs rootfs rw\n` : ''}`,
+    );
   return {
     context,
     files,

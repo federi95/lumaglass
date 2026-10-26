@@ -2214,6 +2214,14 @@ fn system_information(out: &mut Scene, state: &State, assets: &Assets) {
                 language.t(report.map_or("infoUnknown", |r| r.installation.key()))
             },
         ),
+        (
+            "infoHomeBoot",
+            if !state.webos {
+                unavailable
+            } else {
+                language.t(report.map_or("infoUnknown", |r| r.home_boot.key()))
+            },
+        ),
     ];
     for (index, (title, value)) in rows.into_iter().enumerate() {
         row(

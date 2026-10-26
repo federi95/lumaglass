@@ -32,9 +32,9 @@ focuses the Settings tab, then returns Home. **System** in the sidebar groups
 **Refresh apps & inputs**, **Text rendering**, **TV information** and the vector
 power-icon **Quit app** action separately from General preferences.
 
-**TV information** contains a manual Refresh action and six read-only fields:
+**TV information** contains a manual Refresh action and seven read-only fields:
 model, webOS SDK version, firmware, elevated helper access, Home replacement and
-installation location. Arrows navigate the rows; Back/Left restores the TV
+installation location, plus other detected Home startup integrations. Arrows navigate the rows; Back/Left restores the TV
 information row in System. Data is read when opened or refreshed, without
 continuous polling or system changes. Unknown, denied and unavailable values
 remain distinct; the desktop preview labels TV data as not applicable. A failed

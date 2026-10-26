@@ -4,11 +4,15 @@ STATE=/var/lib/lumaglass-home
 SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd) || exit 1
 COMMAND=${1:-boot}
 case "$COMMAND" in
-  enable|disable|restore|status|apply|boot) ;;
-  *) printf '%s\n' 'Usage: home.sh enable [APP_DIR] | disable | restore | status' >&2; exit 1 ;;
+  enable|disable|restore|recover|status|apply|boot) ;;
+  *) printf '%s\n' 'Usage: home.sh enable [APP_DIR] | disable | restore | recover | status' >&2; exit 1 ;;
 esac
 [ "$(id -u)" = 0 ] || { printf '%s\n' 'Run as root.' >&2; exit 1; }
 [ -x /usr/bin/node ] || { printf '%s\n' 'The TV Node.js runtime is missing.' >&2; exit 1; }
+# Status is an observation: do not create state directories, locks or boot logs.
+if [ "$COMMAND" = status ]; then
+  exec /usr/bin/node "$SCRIPT_DIR/home.cjs" status
+fi
 if [ "$COMMAND" = enable ] && grep -q 'release [56]\.' /etc/starfish-release 2>/dev/null; then
   printf '%s\n' \
     'Enabling Lumaglass Home (webOS 5/6) will:' \

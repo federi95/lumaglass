@@ -2,26 +2,7 @@
 // process-control or filesystem mutations. Keep compatible with webOS Node 8.
 var fs = require('fs');
 var spawnSync = require('child_process').spawnSync;
-
-function read(file, limit) {
-  var fd;
-  try {
-    fd = fs.openSync(file, 'r');
-    var bytes = Buffer.alloc(limit + 1);
-    var count = 0;
-    while (count < bytes.length) {
-      var next = fs.readSync(fd, bytes, count, bytes.length - count, null);
-      if (!next) break;
-      count += next;
-    }
-    return count > limit ? null : bytes.slice(0, count).toString('utf8');
-  } catch (error) {
-    if (error.code !== 'ENOENT' && error.code !== 'EACCES') console.error(error.message);
-    return null;
-  } finally {
-    if (fd !== undefined) fs.closeSync(fd);
-  }
-}
+var homeMountsReader = require('./home-mounts.cjs');
 
 function access(reply) {
   if (reply && reply.returnValue === true) return 'available';
@@ -50,30 +31,20 @@ try {
   console.error(error.message);
 }
 
-var mounts = read('/proc/self/mountinfo', 256 * 1024);
 var home = 'unknown';
-if (mounts) {
-  home = 'stock';
-  mounts.split('\n').forEach(function (line) {
-    var fields = line.split(' ');
-    var target = fields[4] || '';
-    if (
-      target === '/usr/bin/com.webos.app.home' ||
-      target === '/usr/palm/applications/com.webos.app.home' ||
-      target.indexOf('/usr/palm/applications/com.webos.app.home/') === 0
-    ) {
-      var source = fields[3] || '';
-      var own =
-        /\/org\.lumaglass\.app\/lumaglass(\/\/deleted)?$/.test(source) ||
-        source === '/var/lib/lumaglass-home/app' ||
-        source.indexOf('/var/lib/lumaglass-home/app/') === 0;
-      // Any foreign layer wins, even if another layer belongs to Lumaglass.
-      if (!own) home = 'other';
-      else if (home !== 'other') home = 'lumaglass';
-    }
-  });
+try {
+  home = homeMountsReader.snapshot(fs).home;
+} catch (error) {
+  console.error(error.message);
 }
 var systemAccess = access(info);
+var homeBoot = 'unknown';
+try {
+  var boot = homeMountsReader.boot(fs);
+  homeBoot = boot.foreign ? 'other' : boot.uncertain ? 'unknown' : 'clear';
+} catch (error) {
+  console.error(error.message);
+}
 console.log(
   JSON.stringify({
     returnValue: true,
@@ -88,6 +59,7 @@ console.log(
     model: systemAccess === 'available' ? info.modelName : null,
     firmware: systemAccess === 'available' ? info.firmwareVersion : null,
     sdk: systemAccess === 'available' ? info.sdkVersion : null,
-    home: home
+    home: home,
+    homeBoot: homeBoot
   })
 );

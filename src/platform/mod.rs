@@ -304,23 +304,32 @@ impl Platform {
 }
 
 fn system_information() -> Result<crate::features::system::Report, String> {
-    let quote = |value: &str| format!("'{}'", value.replace('\'', "'\\''"));
-    let command = format!(
-        "/usr/bin/node -e {}",
-        quote(include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/tv/read-system-info.cjs"
-        )))
+    // Inline the same fixed ownership reader used by the packaged recovery script.
+    // The helper runs via node -e, whose relative require path is not the package.
+    let source = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tv/home-mounts.cjs"));
+    let reader = format!(
+        "(function() {{ var module = {{ exports: {{}} }}; {source}\nreturn module.exports; }})()"
     );
-    let envelope = call(
-        "luna://org.webosbrew.hbchannel.service/exec",
-        json!({"command": command}),
-    )?;
-    let reply = command_reply(&envelope)?;
+    let script = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tv/read-system-info.cjs"
+    ))
+    .replace("require('./home-mounts.cjs')", &reader);
+    let reply = fixed_observation_helper(&script)?;
     let installation = install_dir()
         .map(|directory| crate::features::system::Installation::from_path(&directory))
         .unwrap_or_default();
     crate::features::system::Report::from_reply(&reply, installation)
+}
+
+/// Callers supply only bundled fixed read-only scripts, never UI or saved input.
+fn fixed_observation_helper(script: &str) -> Result<Value, String> {
+    let command = format!("/usr/bin/node -e '{}'", script.replace('\'', "'\\''"));
+    let envelope = call(
+        "luna://org.webosbrew.hbchannel.service/exec",
+        json!({"command": command}),
+    )?;
+    command_reply(&envelope)
 }
 
 fn sync_splash(background: &str) -> Result<(), String> {

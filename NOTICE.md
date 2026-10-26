@@ -29,6 +29,10 @@ upstream revision, affected files, changes and applicable notices here and next
 to the derived implementation. Glasshouse's web dashboard and MQTT bridge are
 outside Lumaglass's product scope.
 
+`tv/home-mounts.cjs` is an original Lumaglass ownership observer. Its known
+Glasshouse Home startup paths are informed by `server/50-tvweb.sh` at that
+revision; other projects' startup files are only observed, never modified.
+
 ## Artwork, fonts, data and runtime libraries
 
 The MIT license for the application does not replace the licenses of its assets

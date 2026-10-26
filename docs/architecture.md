@@ -55,6 +55,24 @@ same executable with `--local-offset`, handled before SDL or any workers start.
 This preserves `time`'s Unix thread-safety safeguard. Failed lookups keep the
 previous offset; fixed `--time` captures do not start this worker.
 
+`tv/home-mounts.cjs` is the shared, read-only mount observer used by both the
+native information helper and takeover/recovery scripts. It reads at most
+256 KiB, decodes mountinfo path escapes and checks all relevant layers, including
+child mounts. A valid own takeover has exactly one mount and one method.
+Mount roots are resolved relative to their containing filesystem and device,
+including a separate or symlinked `/var`, as described by the
+[kernel mountinfo format](https://www.kernel.org/doc/Documentation/filesystems/proc.txt).
+
+Before enabling/reapplying takeover, the same reader checks the known Luma
+Home hook and Glasshouse's `home.json` enable flag, including an unreadable-state
+outcome. The shared Glasshouse boot hook alone does not imply a Home takeover.
+Other integrations' files are never changed; Lumaglass recovery remains available
+when a different integration is merely configured but has no conflicting mount.
+This is detection of known integrations, not a scan of arbitrary boot scripts.
+Foreign, stacked or mixed-method mounts prevent mutations. The observer is
+embedded alongside the native information helper and packaged/copied with the
+standalone recovery scripts; it does not depend on the renderer remaining open.
+
 ## Persistent privileged operations
 
 The current platform adapter uses the native LS2 caller and Homebrew Channel's
