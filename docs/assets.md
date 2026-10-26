@@ -2,6 +2,11 @@
 
 Inherited Luma artwork and original third-party notices are retained by Lumaglass. See [../NOTICE.md](../NOTICE.md) and [licensing.md](licensing.md).
 
+Generated `-blur-soft` and `-blur-strong` wallpapers are Gaussian-blurred
+derivatives of the corresponding sources below. They retain the source artwork's
+license and attribution, including David Iliff's CC BY-SA 3.0 Yosemite image.
+The build parameters are documented in [Appearance](appearance.md).
+
 - `assets/mark.svg`, `assets/app-icon.svg`, and the Midnight/Slate/Prism SVG wallpapers:
   original Luma artwork, MIT. webOS supplies the app icon panel using `iconColor`.
 - `assets/wallpapers/dunes.jpg`: Unsplash photo `1509316785289-025f5b846b35`,

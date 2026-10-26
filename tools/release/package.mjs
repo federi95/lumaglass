@@ -104,7 +104,7 @@ for (const file of ['home.sh', 'home.cjs', 'home-mounts.cjs']) {
 await fs.copyFile(path.join(root, 'LICENSE'), path.join(stage, 'LICENSE'));
 await fs.copyFile(path.join(root, 'NOTICE.md'), path.join(stage, 'NOTICE.md'));
 await fs.mkdir(path.join(stage, 'docs'));
-for (const file of ['assets.md', 'licensing.md']) {
+for (const file of ['assets.md', 'licensing.md', 'appearance.md']) {
   await fs.copyFile(path.join(root, 'docs', file), path.join(stage, 'docs', file));
 }
 const assetNotices = await fs.readFile(path.join(root, 'docs/assets.md'), 'utf8');
@@ -112,7 +112,8 @@ await fs.writeFile(
   path.join(stage, 'ASSETS.md'),
   assetNotices
     .replaceAll('](../NOTICE.md)', '](NOTICE.md)')
-    .replaceAll('](licensing.md)', '](docs/licensing.md)'),
+    .replaceAll('](licensing.md)', '](docs/licensing.md)')
+    .replaceAll('](appearance.md)', '](docs/appearance.md)'),
 );
 await fs.mkdir(path.join(stage, 'lib'));
 async function copyLibrary(directory, name) {

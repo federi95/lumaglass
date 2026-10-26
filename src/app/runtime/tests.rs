@@ -10,6 +10,50 @@ use std::{collections::BTreeMap, path::PathBuf};
 mod recent_tests;
 
 #[test]
+fn wallpaper_effects_cover_only_the_background_and_follow_crossfade_images() {
+    use crate::{
+        features::appearance::{Blur, Dimming},
+        renderer::Draw,
+    };
+    let mut state = ready();
+    let original = scene(&state);
+    state.preferences.appearance.blur = Blur::Strong;
+    state.preferences.appearance.dimming = Dimming::Medium;
+    state.previous_background = Some(("forest".into(), std::time::Instant::now()));
+    let changed = scene(&state);
+    assert!(
+        matches!(&changed.draw[0], Draw::Image(path, ..) if path.ends_with("forest-blur-strong.jpg"))
+    );
+    assert!(
+        matches!(&changed.draw[1], Draw::TintedImage(path, ..) if path.ends_with("dunes-blur-strong.jpg"))
+    );
+    assert!(
+        matches!(&changed.draw[2], Draw::Shape(rect, _, _, color) if rect.w >= 1920. && rect.h >= 1080. && (color[3] - 0.4).abs() < 0.01)
+    );
+    let text_colors = |scene: &view::Scene| {
+        scene
+            .draw
+            .iter()
+            .filter_map(|draw| match draw {
+                Draw::Text(value, _, _, color, _) => Some((value.clone(), *color)),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(text_colors(&original), text_colors(&changed));
+    let invalid: Preferences = serde_json::from_value(
+        json!({"appearance":{"dimming":99,"blur":"missing","accent":"violet"}}),
+    )
+    .unwrap();
+    assert_eq!(invalid.appearance.blur, Blur::Off);
+    assert_eq!(invalid.appearance.dimming, Dimming::Off);
+    assert_eq!(
+        invalid.appearance.accent,
+        crate::features::appearance::Accent::Violet
+    );
+}
+
+#[test]
 fn accent_palette_recolors_native_selection_surfaces_and_keeps_dark_labels() {
     use crate::{
         features::appearance::{Accent, Density},

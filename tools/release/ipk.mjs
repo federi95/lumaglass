@@ -85,6 +85,7 @@ export function normalizeAndVerifyPackage(bytes, manifest) {
     'ASSETS.md',
     'docs/assets.md',
     'docs/licensing.md',
+    'docs/appearance.md',
     'licenses/luma.txt',
     'licenses/glasshouse.txt',
     'licenses/simple-icons.txt',
@@ -125,6 +126,8 @@ export function normalizeAndVerifyPackage(bytes, manifest) {
       'northern-lights',
     ].flatMap((name) => [
       `assets/wallpapers/${name}.jpg`,
+      `assets/wallpapers/${name}-blur-soft.jpg`,
+      `assets/wallpapers/${name}-blur-strong.jpg`,
       `assets/thumbnails/${name}.jpg`,
       `splash/${name}.png`,
     ]),

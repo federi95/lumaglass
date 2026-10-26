@@ -11,7 +11,8 @@ toggle/cycle values, or open an arrow-marked editor. See
 single row and an optional two-row layout immediately. Favorite order is kept
 left to right across the first row, then the second. With at least two favorites,
 both rows are used: six favorites become three per row. Both rows share horizontal
-scrolling when more than twelve are visible. Hidden and uninstalled apps do not occupy slots.
+scrolling beyond two full rows at the selected card density (twelve cards at
+Standard). Hidden and uninstalled apps do not occupy slots.
 Up/Down moves between rows before reaching the navigation bar or inputs. While
 reordering, all four arrows move the selected favorite; OK/Back finishes.
 Captions keep their space and inputs move below the last row, with vertical
@@ -93,7 +94,7 @@ Home favorites form one horizontal strip, never a second row. Left/Right follows
 including reorder mode, and reveals complete cards. Up returns to Home navigation; Down enters
 the nearest input in the first row. The strip position survives page changes. Wheel movement over
 favorites scrolls horizontally; elsewhere it scrolls vertically. Pointer hover/down never moves
-the clicked control. Apps Up/Down follows the six-column grid order, including offscreen rows,
+the clicked control. Apps Up/Down follows the selected card density's grid order, including offscreen rows,
 and only the first row's Up route reaches the category toolbar. Scrolling Apps content fades into
 the existing wallpaper at the header/footer, with one alpha mask for surfaces, shadows, rings,
 vector icons/logos and text. The wallpaper/header are unmasked; no blur texture is needed.

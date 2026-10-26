@@ -100,6 +100,73 @@ impl Accent {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Dimming {
+    #[default]
+    Off,
+    Low,
+    Medium,
+    High,
+}
+impl Dimming {
+    pub fn alpha(self) -> f32 {
+        match self {
+            Self::Off => 0.,
+            Self::Low => 0.2,
+            Self::Medium => 0.4,
+            Self::High => 0.6,
+        }
+    }
+    pub fn key(self) -> &'static str {
+        match self {
+            Self::Off => "stateOff",
+            Self::Low => "20%",
+            Self::Medium => "40%",
+            Self::High => "60%",
+        }
+    }
+    pub fn next(self) -> Self {
+        match self {
+            Self::Off => Self::Low,
+            Self::Low => Self::Medium,
+            Self::Medium => Self::High,
+            Self::High => Self::Off,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Blur {
+    #[default]
+    Off,
+    Soft,
+    Strong,
+}
+impl Blur {
+    pub fn suffix(self) -> &'static str {
+        match self {
+            Self::Off => "",
+            Self::Soft => "-blur-soft",
+            Self::Strong => "-blur-strong",
+        }
+    }
+    pub fn key(self) -> &'static str {
+        match self {
+            Self::Off => "stateOff",
+            Self::Soft => "appearanceBlurSoft",
+            Self::Strong => "appearanceBlurStrong",
+        }
+    }
+    pub fn next(self) -> Self {
+        match self {
+            Self::Off => Self::Soft,
+            Self::Soft => Self::Strong,
+            Self::Strong => Self::Off,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Preferences {
@@ -107,6 +174,10 @@ pub struct Preferences {
     pub density: Density,
     #[serde(deserialize_with = "fallback")]
     pub accent: Accent,
+    #[serde(deserialize_with = "fallback")]
+    pub dimming: Dimming,
+    #[serde(deserialize_with = "fallback")]
+    pub blur: Blur,
 }
 fn fallback<'de, D: Deserializer<'de>, T: serde::de::DeserializeOwned + Default>(
     deserializer: D,
@@ -121,13 +192,17 @@ pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Prefere
 pub enum Setting {
     Density,
     Accent,
+    Dimming,
+    Blur,
 }
 impl Setting {
-    pub const ALL: [Self; 2] = [Self::Density, Self::Accent];
+    pub const ALL: [Self; 4] = [Self::Density, Self::Accent, Self::Dimming, Self::Blur];
     pub fn key(self) -> &'static str {
         match self {
             Self::Density => "appearanceDensity",
             Self::Accent => "appearanceAccent",
+            Self::Dimming => "appearanceDimming",
+            Self::Blur => "appearanceBlur",
         }
     }
 }

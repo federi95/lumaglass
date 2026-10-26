@@ -16,6 +16,7 @@ apps, recent apps, backgrounds, weather and settings. General settings now offer
 optional two-row Home favorites, greeting/date personalization, section ordering
 and initial focus; long Home greetings scale to fit. This fork establishes the
 Lumaglass identity, modular layout, local development setup and license notices.
+Appearance settings configure card density, accent color and wallpaper dimming/blur.
 Settings → System → TV information adds read-only device information and Home
 replacement observations. Preference writes run on a worker with durable atomic
 replacement; the clock refreshes its timezone offset and SDK archives are SHA-256 checked.

@@ -15,6 +15,13 @@ for (const legacy of ['app-icons', 'icons.json', 'colors.json']) {
 for (const directory of ['wallpapers', 'thumbnails', 'logos', 'ui-icons', 'surfaces', 'splash']) {
   await fs.mkdir(path.join(out, directory), { recursive: true });
 }
+if (!highResolution) {
+  for (const file of await fs.readdir(path.join(out, 'wallpapers'))) {
+    if (/-blur-(soft|strong)@2x\.jpg$/.test(file)) {
+      await fs.rm(path.join(out, 'wallpapers', file));
+    }
+  }
+}
 
 // Decode the existing licensed font, rather than introducing a different font.
 const font = path.join(out, 'font.woff2');
@@ -98,9 +105,21 @@ for (const file of await fs.readdir(path.join(source, 'wallpapers'))) {
     <path fill="#17191c" d="M0 0h1920v1080H0z"/><image href="data:image/png;base64,${data.toString('base64')}" width="1920" height="1080" opacity=".92"/><path fill="url(#h)" d="M0 0h1920v1080H0z"/><path fill="url(#v)" d="M0 0h1920v1080H0z"/></svg>`;
     // This generated SVG embeds a trusted bundled photograph; its data URL can
     // exceed libxml's default 10 MiB attribute limit at 4K.
-    await sharp(Buffer.from(shaded), { unlimited: true })
+    const wallpaper = await sharp(Buffer.from(shaded), { unlimited: true })
       .jpeg({ quality: 96 })
-      .toFile(path.join(out, 'wallpapers', `${id}${scale === 2 ? '@2x' : ''}.jpg`));
+      .toBuffer();
+    const densitySuffix = scale === 2 ? '@2x' : '';
+    await fs.writeFile(path.join(out, 'wallpapers', `${id}${densitySuffix}.jpg`), wallpaper);
+    // Precompute bounded blur variants once on the host, not on each TV frame.
+    for (const [effect, sigma] of [
+      ['soft', 8],
+      ['strong', 20],
+    ]) {
+      await sharp(wallpaper)
+        .blur(sigma * scale)
+        .jpeg({ quality: 96 })
+        .toFile(path.join(out, 'wallpapers', `${id}-blur-${effect}${densitySuffix}.jpg`));
+    }
   }
   await sharp(input)
     .resize(480, 270, { fit: 'cover' })
@@ -110,7 +129,8 @@ for (const file of await fs.readdir(path.join(source, 'wallpapers'))) {
 // webOS shows `splashBackground` (a static image, scaled to 1080p) until the window opens. One
 // 1080p PNG per background lets the package start on the user's wallpaper instead of a grey card.
 for (const file of await fs.readdir(path.join(out, 'wallpapers'))) {
-  if (!file.endsWith('.jpg') || file.includes('@2x')) continue;
+  if (!file.endsWith('.jpg') || file.includes('@2x') || /-blur-(soft|strong)\.jpg$/.test(file))
+    continue;
   await sharp(path.join(out, 'wallpapers', file))
     .resize(1920, 1080, { fit: 'cover' })
     .png({ compressionLevel: 9 })

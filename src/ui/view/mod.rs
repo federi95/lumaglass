@@ -318,16 +318,20 @@ pub fn scene_with_pill(
     now: OffsetDateTime,
 ) -> Scene {
     let mut out = Scene::new(state.preferences.appearance.accent);
+    let blur_suffix = state.preferences.appearance.blur.suffix();
     if let Some((previous, start)) = &state.previous_background {
         out.image(
-            assets.path(format!("wallpapers/{previous}.jpg")),
+            assets.path(format!("wallpapers/{previous}{blur_suffix}.jpg")),
             Rect::new(0., 0., 1920., 1080.),
             0.,
             false,
         );
         let alpha = (start.elapsed().as_secs_f32() / 0.4).min(1.);
         out.draw.push(Draw::TintedImage(
-            assets.path(format!("wallpapers/{}.jpg", state.preferences.background)),
+            assets.path(format!(
+                "wallpapers/{}{blur_suffix}.jpg",
+                state.preferences.background
+            )),
             Rect::new(0., 0., 1920., 1080.),
             0.,
             false,
@@ -335,11 +339,18 @@ pub fn scene_with_pill(
         ));
     } else {
         out.image(
-            assets.path(format!("wallpapers/{}.jpg", state.preferences.background)),
+            assets.path(format!(
+                "wallpapers/{}{blur_suffix}.jpg",
+                state.preferences.background
+            )),
             Rect::new(0., 0., 1920., 1080.),
             0.,
             false,
         );
+    }
+    let dimming = state.preferences.appearance.dimming.alpha();
+    if dimming > 0. {
+        out.shape(Rect::new(0., 0., 1920., 1080.), 0., c(0, dimming));
     }
     let content_start = out.draw.len();
     if recents_replaces_page(state) {
@@ -2492,6 +2503,8 @@ fn appearance_settings(out: &mut Scene, state: &State, assets: &Assets) {
         let value = match option {
             Setting::Density => language.t(state.preferences.appearance.density.key()),
             Setting::Accent => language.t(state.preferences.appearance.accent.key()),
+            Setting::Dimming => language.t(state.preferences.appearance.dimming.key()),
+            Setting::Blur => language.t(state.preferences.appearance.blur.key()),
         };
         row(
             out,

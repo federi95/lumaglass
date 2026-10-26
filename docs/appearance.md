@@ -28,3 +28,18 @@ The palette uses light selection surfaces with dark labels. Accent colors apply
 to navigation and settings selections, focus outlines and selected indicators;
 the app artwork keeps its original colors. This controls color only: outline
 thickness, animation speed and other focus styling are not additional settings.
+
+## Wallpaper effects
+
+**Wallpaper dimming** cycles Off, 20%, 40% and 60%. **Wallpaper blur** cycles Off,
+Soft and Strong. Both default to Off and are independent of one another.
+The dimming layer sits beneath cards, text and menus, so only the background is
+darkened. Effects follow the selected wallpaper across Home, Apps and Settings,
+including both wallpapers during a background crossfade.
+
+The asset build prepares soft/strong JPEG variants for every bundled wallpaper
+with Gaussian sigma 8/20 at 1080p, scaled proportionally for optional `--4k`
+assets. The TV loads the selected variant through its existing texture cache;
+there is no per-frame blur filter. The packaged variants are required by IPK
+verification. Effects apply inside the launcher; LG's startup splash uses the
+selected stock image. Personal image sources are a separate planned feature.

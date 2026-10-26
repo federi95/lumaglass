@@ -19,8 +19,8 @@ pub const SECTION_COUNT: usize = 5;
 pub const INVENTORY_RETRIES: u32 = 5;
 pub const INVENTORY_RETRY_DELAY: Duration = Duration::from_secs(2);
 pub const HOME_STRIP_LEFT: f32 = 84.;
-// Six favourites in full and the seventh cut off and fading out at the right (Apple TV rows):
-// the strip ends after the sixth tile, so a focused tile never sits in the fade.
+// Every density fits its full cards inside this strip; the next card peeks into
+// the fade at the right, while a focused card stays fully visible.
 pub const HOME_STRIP_RIGHT: f32 = 1748.;
 #[cfg(test)]
 pub const HOME_TILE_PITCH: f32 = 281.6;
@@ -1697,6 +1697,13 @@ impl State {
                     AppearanceOption::Accent => {
                         self.preferences.appearance.accent =
                             self.preferences.appearance.accent.next();
+                    }
+                    AppearanceOption::Dimming => {
+                        self.preferences.appearance.dimming =
+                            self.preferences.appearance.dimming.next()
+                    }
+                    AppearanceOption::Blur => {
+                        self.preferences.appearance.blur = self.preferences.appearance.blur.next()
                     }
                 }
                 return vec![Effect::Save];
