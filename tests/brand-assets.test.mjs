@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import test from 'node:test';
 import sharp from 'sharp';
-import { sources, prepareSvg } from '../tools/brand-assets.mjs';
+import { sources, prepareSvg } from '../tools/assets/brand-assets.mjs';
 
 test('every expanded brand has standalone, renderable vector artwork and pinned provenance', async () => {
   assert.equal(sources.length, 27);

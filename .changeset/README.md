@@ -1,6 +1,6 @@
 # Changesets
 
-Run `pnpm changeset` in a feature or fix branch, select `lg-luma`, choose a patch, minor or major
+Run `pnpm changeset` in a feature or fix branch, select `lumaglass`, choose a patch, minor or major
 bump, and describe the user-facing change. Commit the generated Markdown file with the PR.
 Documentation-only and maintenance PRs that do not need a release can omit a changeset.
 
@@ -10,8 +10,8 @@ should include a changeset: patch for compatible fixes, minor for compatible fea
 for breaking changes. The comment is informational and also works on fork PRs.
 
 Merged changesets accumulate in the automated **Version Packages** PR. Its version command
-updates `package.json`, `CHANGELOG.md`, `appinfo.json`, the root `Cargo.toml`, the `luma` entry in
-`Cargo.lock`, and the versioned IPK examples in `readme.md`. Supporting Rust crates keep their
+updates `package.json`, `CHANGELOG.md`, `appinfo.json`, the root `Cargo.toml`, the `lumaglass` entry in
+`Cargo.lock`, and the versioned IPK examples in `README.md`. Supporting Rust crates keep their
 own versions. Do not run `pnpm version:release` in ordinary feature PRs.
 
 The version PR receives the same CI checks as other PRs. Merging it into `main` publishes the

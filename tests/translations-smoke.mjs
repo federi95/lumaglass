@@ -10,7 +10,7 @@ const out = path.join(root, '.build');
 await fs.mkdir(out, { recursive: true });
 const temporary = await fs.mkdtemp(path.join(out, 'translations-smoke-'));
 const preferences = path.join(temporary, 'preferences.json');
-const binary = path.resolve(root, process.env.CARGO_TARGET_DIR ?? 'target', 'debug/luma');
+const binary = path.resolve(root, process.env.CARGO_TARGET_DIR ?? 'target', 'debug/lumaglass');
 const requests = [];
 const places = {
   en: { name: 'Vienna', region: 'Vienna', country: 'Austria' },
@@ -102,7 +102,7 @@ function contains(state, key, language) {
 const picker = 'settings,down,enter,down,down,down,enter';
 const location = 'settings,down,down,down,enter,down,enter';
 try {
-  await run('cargo', ['build', '--locked', '--package', 'luma']);
+  await run('cargo', ['build', '--locked', '--package', 'lumaglass']);
   await fs.writeFile(
     preferences,
     JSON.stringify({ language: 'en', show_home_names: true, reduced_motion: true }),

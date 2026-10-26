@@ -1,3 +1,3 @@
-/media/cryptofs/apps/usr/palm/applications/com.ecklf.luma
-/media/developer/apps/usr/palm/applications/com.ecklf.luma
-/usr/palm/applications/com.ecklf.luma
+/media/cryptofs/apps/usr/palm/applications/org.lumaglass.app
+/media/developer/apps/usr/palm/applications/org.lumaglass.app
+/usr/palm/applications/org.lumaglass.app

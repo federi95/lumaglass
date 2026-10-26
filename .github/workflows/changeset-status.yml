@@ -22,12 +22,12 @@ jobs:
       comment-body: ${{ steps.status.outputs.comment-body }}
     steps:
       # Read the PR with the bundled Changesets action, without running PR code or installing dependencies.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.event.pull_request.base.sha }}
       - name: Generate changeset status
         id: status
-        uses: changesets/action/pr-status@v2
+        uses: changesets/action/pr-status@v2.1.2
 
   comment:
     name: Update changeset comment
@@ -38,15 +38,15 @@ jobs:
       pull-requests: write
     steps:
       - name: Create or update the PR comment
-        uses: changesets/action/pr-comment@v2
+        uses: changesets/action/pr-comment@v2.1.2
         with:
-          update-id: luma-changeset-status
+          update-id: lumaglass-changeset-status
           body: |
             ${{ needs.status.outputs.comment-body }}
 
             ---
 
-            **For code or behavior changes:** run `pnpm changeset`, select `lg-luma`, and commit the generated `.changeset/*.md` file with this PR.
+            **For code or behavior changes:** run `pnpm changeset`, select `lumaglass`, and commit the generated `.changeset/*.md` file with this PR.
 
             Choose the semantic version bump that matches the change:
             - **patch** for backward-compatible bug fixes.

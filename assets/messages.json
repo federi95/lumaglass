@@ -33,15 +33,15 @@
     "fr": "Analytique"
   },
   "textRenderingRestart": {
-    "en": "Restart Luma to apply changes.",
-    "de": "Luma neu starten, um Änderungen anzuwenden.",
-    "zh": "重启 Luma 以应用更改。",
-    "es": "Reinicia Luma para aplicar los cambios.",
-    "pt": "Reinicie o Luma para aplicar as alterações.",
-    "it": "Riavvia Luma per applicare le modifiche.",
-    "ru": "Перезапустите Luma, чтобы применить изменения.",
-    "pl": "Uruchom ponownie Luma, aby zastosować zmiany.",
-    "fr": "Redémarrez Luma pour appliquer les modifications."
+    "en": "Restart Lumaglass to apply changes.",
+    "de": "Lumaglass neu starten, um Änderungen anzuwenden.",
+    "zh": "重启 Lumaglass 以应用更改。",
+    "es": "Reinicia Lumaglass para aplicar los cambios.",
+    "pt": "Reinicie o Lumaglass para aplicar as alterações.",
+    "it": "Riavvia Lumaglass per applicare le modifiche.",
+    "ru": "Перезапустите Lumaglass, чтобы применить изменения.",
+    "pl": "Uruchom ponownie Lumaglass, aby zastosować zmiany.",
+    "fr": "Redémarrez Lumaglass pour appliquer les modifications."
   },
   "recentEmpty": {
     "en": "No recent apps",
@@ -132,15 +132,15 @@
     "fr": "Paramètres"
   },
   "settingsRegion": {
-    "en": "Luma settings",
-    "de": "Luma-Einstellungen",
-    "es": "Ajustes de Luma",
-    "zh": "Luma 设置",
-    "pt": "Ajustes do Luma",
-    "it": "Impostazioni Luma",
-    "ru": "Настройки Luma",
-    "pl": "Ustawienia Luma",
-    "fr": "Paramètres de Luma"
+    "en": "Lumaglass settings",
+    "de": "Lumaglass-Einstellungen",
+    "es": "Ajustes de Lumaglass",
+    "zh": "Lumaglass 设置",
+    "pt": "Ajustes do Lumaglass",
+    "it": "Impostazioni Lumaglass",
+    "ru": "Настройки Lumaglass",
+    "pl": "Ustawienia Lumaglass",
+    "fr": "Paramètres de Lumaglass"
   },
   "mainNavigation": {
     "en": "Main navigation",
@@ -1802,5 +1802,258 @@
     "ru": "Тестовая карточка для прокрутки; приложение не запускается.",
     "pl": "Karta testowa do przewijania; brak aplikacji do uruchomienia.",
     "fr": "Carte de test pour le défilement ; aucune application à lancer."
+  },
+  "tvInformation": {
+    "en": "TV information",
+    "de": "TV-Informationen",
+    "zh": "电视信息",
+    "es": "Información del televisor",
+    "pt": "Informações da TV",
+    "it": "Informazioni TV",
+    "ru": "Сведения о телевизоре",
+    "pl": "Informacje o telewizorze",
+    "fr": "Informations du téléviseur"
+  },
+  "infoRefresh": {
+    "en": "Refresh information",
+    "de": "Informationen aktualisieren",
+    "zh": "刷新信息",
+    "es": "Actualizar información",
+    "pt": "Atualizar informações",
+    "it": "Aggiorna informazioni",
+    "ru": "Обновить сведения",
+    "pl": "Odśwież informacje",
+    "fr": "Actualiser les informations"
+  },
+  "infoReading": {
+    "en": "Reading…",
+    "de": "Wird gelesen…",
+    "zh": "正在读取…",
+    "es": "Leyendo…",
+    "pt": "Lendo…",
+    "it": "Lettura…",
+    "ru": "Чтение…",
+    "pl": "Odczytywanie…",
+    "fr": "Lecture…"
+  },
+  "infoModel": {
+    "en": "Model",
+    "de": "Modell",
+    "zh": "型号",
+    "es": "Modelo",
+    "pt": "Modelo",
+    "it": "Modello",
+    "ru": "Модель",
+    "pl": "Model",
+    "fr": "Modèle"
+  },
+  "infoWebos": {
+    "en": "webOS (SDK)",
+    "de": "webOS (SDK)",
+    "zh": "webOS (SDK)",
+    "es": "webOS (SDK)",
+    "pt": "webOS (SDK)",
+    "it": "webOS (SDK)",
+    "ru": "webOS (SDK)",
+    "pl": "webOS (SDK)",
+    "fr": "webOS (SDK)"
+  },
+  "infoFirmware": {
+    "en": "Firmware",
+    "de": "Firmware",
+    "zh": "固件",
+    "es": "Firmware",
+    "pt": "Firmware",
+    "it": "Firmware",
+    "ru": "Прошивка",
+    "pl": "Oprogramowanie",
+    "fr": "Micrologiciel"
+  },
+  "infoRoot": {
+    "en": "Elevated access",
+    "de": "Erhöhte Berechtigungen",
+    "zh": "高级权限",
+    "es": "Acceso elevado",
+    "pt": "Acesso elevado",
+    "it": "Accesso elevato",
+    "ru": "Повышенные права",
+    "pl": "Podwyższone uprawnienia",
+    "fr": "Accès privilégié"
+  },
+  "infoHome": {
+    "en": "Home replacement",
+    "de": "Home-Ersatz",
+    "zh": "主屏幕替换",
+    "es": "Pantalla de inicio",
+    "pt": "Substituição da tela inicial",
+    "it": "Sostituzione della Home",
+    "ru": "Замена главного экрана",
+    "pl": "Zastąpienie ekranu głównego",
+    "fr": "Remplacement de l’accueil"
+  },
+  "infoInstallation": {
+    "en": "Installation",
+    "de": "Installation",
+    "zh": "安装位置",
+    "es": "Instalación",
+    "pt": "Instalação",
+    "it": "Installazione",
+    "ru": "Установка",
+    "pl": "Instalacja",
+    "fr": "Installation"
+  },
+  "infoAvailable": {
+    "en": "Available",
+    "de": "Verfügbar",
+    "zh": "可用",
+    "es": "Disponible",
+    "pt": "Disponível",
+    "it": "Disponibile",
+    "ru": "Доступно",
+    "pl": "Dostępne",
+    "fr": "Disponible"
+  },
+  "infoDenied": {
+    "en": "Access denied",
+    "de": "Zugriff verweigert",
+    "zh": "访问被拒绝",
+    "es": "Acceso denegado",
+    "pt": "Acesso negado",
+    "it": "Accesso negato",
+    "ru": "Доступ запрещён",
+    "pl": "Odmowa dostępu",
+    "fr": "Accès refusé"
+  },
+  "infoUnavailable": {
+    "en": "Not available",
+    "de": "Nicht verfügbar",
+    "zh": "不可用",
+    "es": "No disponible",
+    "pt": "Indisponível",
+    "it": "Non disponibile",
+    "ru": "Недоступно",
+    "pl": "Niedostępne",
+    "fr": "Indisponible"
+  },
+  "infoUnknown": {
+    "en": "Unknown",
+    "de": "Unbekannt",
+    "zh": "未知",
+    "es": "Desconocido",
+    "pt": "Desconhecido",
+    "it": "Sconosciuto",
+    "ru": "Неизвестно",
+    "pl": "Nieznane",
+    "fr": "Inconnu"
+  },
+  "infoNotApplicable": {
+    "en": "Not applicable",
+    "de": "Nicht zutreffend",
+    "zh": "不适用",
+    "es": "No corresponde",
+    "pt": "Não se aplica",
+    "it": "Non applicabile",
+    "ru": "Неприменимо",
+    "pl": "Nie dotyczy",
+    "fr": "Sans objet"
+  },
+  "infoHomeLumaglass": {
+    "en": "Lumaglass active",
+    "de": "Lumaglass aktiv",
+    "zh": "Lumaglass 已启用",
+    "es": "Lumaglass activo",
+    "pt": "Lumaglass ativo",
+    "it": "Lumaglass attivo",
+    "ru": "Lumaglass активен",
+    "pl": "Lumaglass aktywny",
+    "fr": "Lumaglass actif"
+  },
+  "infoHomeOther": {
+    "en": "Another Home replacement",
+    "de": "Anderer Home-Ersatz",
+    "zh": "其他主屏幕替换",
+    "es": "Otra pantalla de inicio",
+    "pt": "Outra tela inicial",
+    "it": "Un’altra Home sostitutiva",
+    "ru": "Другой главный экран",
+    "pl": "Inny ekran główny",
+    "fr": "Autre remplacement de l’accueil"
+  },
+  "infoHomeStock": {
+    "en": "LG Home",
+    "de": "LG Home",
+    "zh": "LG Home",
+    "es": "LG Home",
+    "pt": "LG Home",
+    "it": "LG Home",
+    "ru": "LG Home",
+    "pl": "LG Home",
+    "fr": "LG Home"
+  },
+  "infoInstallDeveloper": {
+    "en": "Developer storage",
+    "de": "Entwicklerspeicher",
+    "zh": "开发者存储",
+    "es": "Almacenamiento de desarrollador",
+    "pt": "Armazenamento de desenvolvedor",
+    "it": "Archivio sviluppatore",
+    "ru": "Хранилище разработчика",
+    "pl": "Pamięć deweloperska",
+    "fr": "Stockage développeur"
+  },
+  "infoInstallProduction": {
+    "en": "TV app storage",
+    "de": "TV-App-Speicher",
+    "zh": "电视应用存储",
+    "es": "Almacenamiento de aplicaciones",
+    "pt": "Armazenamento de aplicativos",
+    "it": "Archivio app della TV",
+    "ru": "Хранилище приложений",
+    "pl": "Pamięć aplikacji TV",
+    "fr": "Stockage des applications TV"
+  },
+  "infoInstallSystem": {
+    "en": "System storage",
+    "de": "Systemspeicher",
+    "zh": "系统存储",
+    "es": "Almacenamiento del sistema",
+    "pt": "Armazenamento do sistema",
+    "it": "Archivio di sistema",
+    "ru": "Системное хранилище",
+    "pl": "Pamięć systemowa",
+    "fr": "Stockage système"
+  },
+  "infoReadFailed": {
+    "en": "Could not refresh. Previous information is retained.",
+    "de": "Aktualisierung fehlgeschlagen. Vorherige Informationen bleiben erhalten.",
+    "zh": "无法刷新。已保留之前的信息。",
+    "es": "No se pudo actualizar. Se conserva la información anterior.",
+    "pt": "Não foi possível atualizar. As informações anteriores foram mantidas.",
+    "it": "Aggiornamento non riuscito. Le informazioni precedenti sono conservate.",
+    "ru": "Не удалось обновить. Предыдущие сведения сохранены.",
+    "pl": "Nie udało się odświeżyć. Poprzednie informacje zostały zachowane.",
+    "fr": "Actualisation impossible. Les informations précédentes sont conservées."
+  },
+  "infoPreview": {
+    "en": "Desktop preview. TV information is available on the TV.",
+    "de": "Desktop-Vorschau. TV-Informationen sind auf dem Fernseher verfügbar.",
+    "zh": "桌面预览。电视信息可在电视上查看。",
+    "es": "Vista previa de escritorio. La información está disponible en el televisor.",
+    "pt": "Prévia no computador. As informações estão disponíveis na TV.",
+    "it": "Anteprima desktop. Le informazioni della TV sono disponibili sulla TV.",
+    "ru": "Предпросмотр на компьютере. Сведения доступны на телевизоре.",
+    "pl": "Podgląd na komputerze. Informacje są dostępne na telewizorze.",
+    "fr": "Aperçu sur ordinateur. Les informations sont disponibles sur le téléviseur."
+  },
+  "infoReadOnly": {
+    "en": "Device information and detected access.",
+    "de": "Geräteinformationen und erkannte Berechtigungen.",
+    "zh": "设备信息和检测到的权限。",
+    "es": "Información del dispositivo y acceso detectado.",
+    "pt": "Informações do dispositivo e acesso detectado.",
+    "it": "Informazioni del dispositivo e accesso rilevato.",
+    "ru": "Сведения об устройстве и обнаруженных правах.",
+    "pl": "Informacje o urządzeniu i wykrytych uprawnieniach.",
+    "fr": "Informations de l’appareil et accès détecté."
   }
 }

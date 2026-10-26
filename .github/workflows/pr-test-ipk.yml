@@ -20,14 +20,14 @@ jobs:
     steps:
       # The base-branch workflow is trusted; the PR code is not. Keep this
       # job read-only, without secrets, persisted credentials, or shared build caches.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.sha }}
           allow-unsafe-pr-checkout: true
           persist-credentials: false
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@v6.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
       - name: Install dependencies
@@ -49,11 +49,11 @@ jobs:
         run: |
           export WEBOS_NDK="$GITHUB_WORKSPACE/.build/toolchain/arm-webos-linux-gnueabi_sdk-buildroot"
           pnpm build
-          node tools/package.mjs
+          node tools/release/package.mjs
       - name: Upload test IPK and checksum
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
-          name: luma-pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+          name: lumaglass-pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
           if-no-files-found: error
           retention-days: 14
           overwrite: true
@@ -74,19 +74,19 @@ jobs:
       # Never check out or execute PR code in this write-enabled job. Obtain artifact
       # metadata from GitHub, rather than trusting files or outputs from the build.
       - name: Create or update the PR comment
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         env:
           BUILD_RESULT: ${{ needs.build.result }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         with:
           script: |
-            const marker = '<!-- luma-pr-test-ipk -->';
+            const marker = '<!-- lumaglass-pr-test-ipk -->';
             const pull_number = Number(process.env.PR_NUMBER);
             const sha = process.env.PR_HEAD_SHA;
             const repositoryUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}`;
             const runUrl = `${repositoryUrl}/actions/runs/${context.runId}`;
-            const artifactName = `luma-pr-${pull_number}-${sha}`;
+            const artifactName = `lumaglass-pr-${pull_number}-${sha}`;
             let status;
 
             if (process.env.BUILD_RESULT === 'success') {
@@ -104,14 +104,14 @@ jobs:
                 `**[Download test IPK + SHA-256 checksum](${downloadUrl})**`,
                 '',
                 'Sign in to GitHub to download the ZIP, then extract the `.ipk` and `sha256sums`.',
-                'Artifacts are retained for 14 days. This test package uses the normal `com.ecklf.luma` app ID and replaces an existing Luma installation.',
+                'Artifacts are retained for 14 days. This test package uses the normal `org.lumaglass.app` app ID and replaces an existing Lumaglass installation.',
                 '',
                 '### Manual installation over SSH',
                 '',
                 'On your computer, open a terminal in the extracted folder and replace `TV_IP` with your TV’s IP address:',
                 '',
                 '```sh',
-                'scp -O com.ecklf.luma_*_arm.ipk root@TV_IP:/tmp/luma.ipk',
+                'scp -O org.lumaglass.app_*_arm.ipk root@TV_IP:/tmp/lumaglass.ipk',
                 'ssh root@TV_IP',
                 '```',
                 '',
@@ -119,7 +119,7 @@ jobs:
                 '',
                 '```sh',
                 'luna-send -i luna://com.webos.appInstallService/dev/install \\',
-                '  \'{"id":"com.ecklf.luma","ipkUrl":"/tmp/luma.ipk","subscribe":true}\'',
+                '  \'{"id":"org.lumaglass.app","ipkUrl":"/tmp/lumaglass.ipk","subscribe":true}\'',
                 '```',
                 '',
                 'Once installation reports success, press **Ctrl+C** to exit the subscription.',
@@ -130,7 +130,7 @@ jobs:
 
             const body = [
               marker,
-              '## Luma test IPK',
+              '## Lumaglass test IPK',
               '',
               `**Commit:** [\`${sha}\`](${repositoryUrl}/commit/${sha})`,
               `**Build:** [#${context.runNumber}](${runUrl}) (attempt ${process.env.GITHUB_RUN_ATTEMPT})`,

@@ -5,8 +5,8 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 const script = await fs.readFile(new URL('../tv/home.cjs', import.meta.url), 'utf8');
-const app = 'com.ecklf.luma';
-const stage = '/var/lib/luma-home/app';
+const app = 'org.lumaglass.app';
+const stage = '/var/lib/lumaglass-home/app';
 const target = '/usr/palm/applications/com.webos.app.home';
 const developer = `/media/developer/${app}/preferences.json`;
 const shared = `/media/developer/temp/${app}/preferences.json`;
@@ -17,7 +17,7 @@ function fixture({ production = false, mounted = false, preferences = {} } = {})
   const files = new Map([
     [stage, Buffer.alloc(0)],
     [`${stage}/appinfo.json`, Buffer.from('{}')],
-    [`${appDir}/luma`, Buffer.from('mock executable')],
+    [`${appDir}/lumaglass`, Buffer.from('mock executable')],
     [`${appDir}/splash.png`, Buffer.from('default')],
     ...['dunes', 'forest', 'prism'].map((name) => [
       `${appDir}/splash/${name}.png`,
@@ -194,13 +194,16 @@ test('close failures remain visible when the normal instance is still running', 
   });
   assert.throws(
     () => mock.context.closeNormal(),
-    /Close the normal Luma instance.*Permission denied/,
+    /Close the normal Lumaglass instance.*Permission denied/,
   );
   assert.equal(mock.pauses(), 0);
 });
 
 test('takeover stops waiting after five seconds if the normal instance stays running', () => {
   const mock = closeFixture({ running: [[{ id: app }]] });
-  assert.throws(() => mock.context.closeNormal(), /Close Luma before enabling Home integration/);
+  assert.throws(
+    () => mock.context.closeNormal(),
+    /Close Lumaglass before enabling Home integration/,
+  );
   assert.equal(mock.pauses(), 5);
 });

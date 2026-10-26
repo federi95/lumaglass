@@ -5,15 +5,15 @@ import test from 'node:test';
 import vm from 'node:vm';
 
 const script = await fs.readFile(new URL('../tv/sync-splash.cjs', import.meta.url), 'utf8');
-const app = 'com.ecklf.luma';
-const state = '/var/lib/luma-home';
+const app = 'org.lumaglass.app';
+const state = '/var/lib/lumaglass-home';
 
 function fixture({ production = false, config, failWrite = false, stage = true } = {}) {
   const directory = `/media/${production ? 'cryptofs' : 'developer'}/apps/usr/palm/applications/${app}`;
   const files = new Map([
     [
       `${directory}/appinfo.json`,
-      Buffer.from(JSON.stringify({ id: app, type: 'native', main: 'luma' })),
+      Buffer.from(JSON.stringify({ id: app, type: 'native', main: 'lumaglass' })),
     ],
     [`${directory}/splash.png`, Buffer.from('dunes')],
     [`${directory}/splash/forest.png`, Buffer.from('forest')],
@@ -153,12 +153,12 @@ test('unrelated installations and invalid selections cannot update a launch spla
     assert.throws(() => mock.sync(background), /Invalid splash background/);
   }
   for (const directory of ['/etc', `${mock.directory}/..`, `${mock.directory}-other`]) {
-    assert.throws(() => mock.sync('forest', { directory }), /Invalid Luma installation/);
+    assert.throws(() => mock.sync('forest', { directory }), /Invalid Lumaglass installation/);
   }
   mock.files.set(
     `${mock.directory}/appinfo.json`,
-    Buffer.from(JSON.stringify({ id: 'another.app', type: 'native', main: 'luma' })),
+    Buffer.from(JSON.stringify({ id: 'another.app', type: 'native', main: 'lumaglass' })),
   );
-  assert.throws(() => mock.sync('forest'), /installed native Luma package/);
+  assert.throws(() => mock.sync('forest'), /installed native Lumaglass package/);
   assert.deepEqual(mock.writes, []);
 });

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Optional native Home replacement. The webosbrew hook has no .sh suffix.
-STATE=/var/lib/luma-home
+STATE=/var/lib/lumaglass-home
 SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd) || exit 1
 COMMAND=${1:-boot}
 case "$COMMAND" in
@@ -11,13 +11,13 @@ esac
 [ -x /usr/bin/node ] || { printf '%s\n' 'The TV Node.js runtime is missing.' >&2; exit 1; }
 if [ "$COMMAND" = enable ] && grep -q 'release [56]\.' /etc/starfish-release 2>/dev/null; then
   printf '%s\n' \
-    'Enabling Luma Home (webOS 5/6) will:' \
-    '  1. Close any running normal Luma instance.' \
+    'Enabling Lumaglass Home (webOS 5/6) will:' \
+    '  1. Close any running normal Lumaglass instance.' \
     "  2. Create $STATE with integration scripts and saved state." \
-    "  3. Bind-mount Luma's executable over /usr/bin/com.webos.app.home." \
-    "     LG's Home manifest and role stay; Luma registers with SAM itself." \
-    '  4. Stop the previous Home process and launch Luma as Home.' \
-    '  5. Install /var/lib/webosbrew/init.d/64-luma-home to reapply the mount at cold boot.' \
+    "  3. Bind-mount Lumaglass's executable over /usr/bin/com.webos.app.home." \
+    "     LG's Home manifest and role stay; Lumaglass registers with SAM itself." \
+    '  4. Stop the previous Home process and launch Lumaglass as Home.' \
+    '  5. Install /var/lib/webosbrew/init.d/64-lumaglass-home to reapply the mount at cold boot.' \
     '' \
     "LG Home's original executable remains underneath the mount." \
     'Home Auto Launch and Quick Start+ retain their current settings.' \
@@ -25,13 +25,13 @@ if [ "$COMMAND" = enable ] && grep -q 'release [56]\.' /etc/starfish-release 2>/
     ''
 elif [ "$COMMAND" = enable ]; then
   printf '%s\n' \
-    'Enabling Luma Home will:' \
-    '  1. Close any running normal Luma instance.' \
-    "  2. Create $STATE with integration scripts, saved state and a staged native Home app linked to Luma." \
+    'Enabling Lumaglass Home will:' \
+    '  1. Close any running normal Lumaglass instance.' \
+    "  2. Create $STATE with integration scripts, saved state and a staged native Home app linked to Lumaglass." \
     "  3. Bind-mount $STATE/app over /usr/palm/applications/com.webos.app.home." \
     '  4. Temporarily block and release Home so SAM rereads its manifest.' \
-    '  5. Stop the previous Home process and launch Luma as Home.' \
-    '  6. Install /var/lib/webosbrew/init.d/64-luma-home to reapply the mount at cold boot.' \
+    '  5. Stop the previous Home process and launch Lumaglass as Home.' \
+    '  6. Install /var/lib/webosbrew/init.d/64-lumaglass-home to reapply the mount at cold boot.' \
     '' \
     "LG Home's original files remain underneath the mount." \
     'Home Auto Launch and Quick Start+ retain their current settings.' \
@@ -63,5 +63,5 @@ if [ "$COMMAND" = boot ]; then
   exit 0
 fi
 exec 9>"$STATE/lock"
-flock -n 9 || { printf '%s\n' 'Luma Home integration is already being changed.' >&2; exit 1; }
+flock -n 9 || { printf '%s\n' 'Lumaglass Home integration is already being changed.' >&2; exit 1; }
 exec /usr/bin/node "$SCRIPT_DIR/home.cjs" "$COMMAND" "${2:-$SCRIPT_DIR}"

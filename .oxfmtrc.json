@@ -11,8 +11,10 @@
     "node_modules/**",
     "dist/**",
     ".build/**",
+    ".pixi/**",
     "target/**",
     "pnpm-lock.yaml",
+    "pixi.lock",
     "assets/fonts/**",
     "assets/licenses/**",
     "assets/ui-icons/**"

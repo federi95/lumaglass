@@ -1,8 +1,19 @@
 node_modules/
 dist/
 .build/
+.pixi/
 .DS_Store
 *.key
 .env
 .env.*
 target/
+
+# Local planning and agent instructions; keep these files out of published commits.
+/AGENTS.md
+/agents.md
+/.agents/
+/.codex/
+/skills-lock.json
+/docs/roadmap.md
+/docs/audits/
+/docs/fork-migration.md

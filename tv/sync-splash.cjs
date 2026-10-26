@@ -3,8 +3,8 @@
 var fs = require('fs');
 var path = require('path');
 var selected = JSON.parse(process.argv[1]);
-var APP = 'com.ecklf.luma';
-var STATE = '/var/lib/luma-home';
+var APP = 'org.lumaglass.app';
+var STATE = '/var/lib/lumaglass-home';
 var roots = [
   '/media/developer/apps/usr/palm/applications',
   '/media/cryptofs/apps/usr/palm/applications',
@@ -17,15 +17,15 @@ if (
     return selected.directory === root + '/' + APP;
   })
 ) {
-  throw new Error('Invalid Luma installation directory');
+  throw new Error('Invalid Lumaglass installation directory');
 }
 if (typeof selected.background !== 'string' || !/^[a-z0-9-]{1,32}$/.test(selected.background)) {
   throw new Error('Invalid splash background');
 }
 var appDir = selected.directory;
 var app = JSON.parse(fs.readFileSync(appDir + '/appinfo.json', 'utf8'));
-if (app.id !== APP || app.type !== 'native' || app.main !== 'luma') {
-  throw new Error('Splash updates require an installed native Luma package');
+if (app.id !== APP || app.type !== 'native' || app.main !== 'lumaglass') {
+  throw new Error('Splash updates require an installed native Lumaglass package');
 }
 // Read the selection already loaded by the native app, rather than trying to
 // rediscover its preferences from outside the jail. Never copy the default over

@@ -1,5 +1,5 @@
 {
-  description = "Luma Rust/SDL2 development and packaging environment";
+  description = "Lumaglass Rust/SDL2 development and packaging environment";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -43,15 +43,16 @@
             ];
             targets = [ "armv7-unknown-linux-gnueabi" ];
           };
-          pnpm =
-            assert pkgs.lib.assertMsg (
-              pkgs.pnpm_10.version == pnpmVersion
-            ) "The flake's pnpm must match package.json; update flake.lock and packageManager together.";
-            pkgs.pnpm_10;
+          # Pin pnpm independently of nixpkgs so local, Nix and CI use the same
+          # security patch even before it reaches the nixpkgs snapshot.
+          pnpm = pkgs.pnpm_10.override {
+            version = pnpmVersion;
+            hash = "sha256-foqUYQjnuqsRnlHSfCTWF4tGVFQiZD28keNOLx7jLg8=";
+          };
         in
         {
           default = pkgs.mkShell ({
-            name = "luma";
+            name = "lumaglass";
             packages = [
               pkgs.nodejs_24
               pnpm
@@ -75,7 +76,7 @@
       formatter = forEachSystem (
         pkgs:
         pkgs.writeShellApplication {
-          name = "luma-nixfmt";
+          name = "lumaglass-nixfmt";
           runtimeInputs = [ pkgs.nixfmt ];
           text = ''
             exec nixfmt "$@" flake.nix

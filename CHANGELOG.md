@@ -1,4 +1,8 @@
-# lg-luma
+# Lumaglass
+
+The entries below are inherited Luma release history through 2.9.0. Lumaglass
+changes are queued separately through Changesets; these entries are preserved
+with their original authorship and describe the upstream project.
 
 ## 2.9.0
 

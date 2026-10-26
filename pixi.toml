@@ -1,0 +1,16 @@
+[workspace]
+name = "lumaglass-dev"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64"]
+requires-pixi = "==0.83.0"
+
+# Host tools only. ARM builds use the separate webOS SDK and SDL-webOS runtime.
+# Rust and pnpm are installed locally by tools/dev/setup-local.sh at the repo pins.
+[dependencies]
+nodejs = "24.*"
+sdl2 = ">=2.32,<3"
+pkg-config = ">=0.29,<1"
+woff2 = "1.0.2.*"
+python = "3.13.*"
+fonttools = ">=4.60,<5"
+cmake = ">=4,<5"

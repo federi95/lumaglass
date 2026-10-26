@@ -1,6 +1,6 @@
 //! Host-only SVG compiler. No XML parser or tessellator is linked into the TV app.
-use luma_vector_geometry as geometry;
-use luma_vector_geometry::lyon_tessellation::{
+use lumaglass_vector_geometry as geometry;
+use lumaglass_vector_geometry::lyon_tessellation::{
     FillRule,
     math::{Point, point},
     path::Path,

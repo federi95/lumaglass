@@ -1,3 +1,5 @@
+// Derived from Luma (MIT), with Glasshouse Home takeover as an upstream reference.
+// Copyright notices and licenses: LICENSE, NOTICE.md, assets/licenses/glasshouse.txt.
 // Root-only TV integration. Keep ES5 syntax for the TV's bundled Node runtime.
 // The native executable remains in its installed package so its LS2 role,
 // libraries, assets and preference identity continue to use that installation.
@@ -5,20 +7,20 @@ var fs = require('fs');
 var path = require('path');
 var execFileSync = require('child_process').execFileSync;
 var spawnSync = require('child_process').spawnSync;
-var APP = 'com.ecklf.luma';
+var APP = 'org.lumaglass.app';
 var HOME = 'com.webos.app.home';
-var STATE = '/var/lib/luma-home';
+var STATE = '/var/lib/lumaglass-home';
 var STAGE = STATE + '/app';
 var TARGET = '/usr/palm/applications/' + HOME;
-var HOOK = '/var/lib/webosbrew/init.d/64-luma-home';
+var HOOK = '/var/lib/webosbrew/init.d/64-lumaglass-home';
 var CONFIG = STATE + '/state.json';
 // webOS 5/6 (method "executable"): SAM cannot reread a mounted manifest there, but LG Home is a
-// native lifecycle-v2 program whose LS2 role is bound to this executable path. Mounting Luma's
-// executable over it keeps LG's manifest and role; Luma then registers with SAM itself.
+// native lifecycle-v2 program whose LS2 role is bound to this executable path. Mounting Lumaglass's
+// executable over it keeps LG's manifest and role; Lumaglass then registers with SAM itself.
 var EXE = '/usr/bin/' + HOME;
 // Tells a normal tile launch to open the Home instance. The tile's jail sees /usr/bin without
 // this mount but shares /var/run, which is volatile like the mount itself.
-var MARKER = '/var/run/luma-home';
+var MARKER = '/var/run/lumaglass-home';
 
 function read(file) {
   return fs.readFileSync(file, 'utf8');
@@ -153,14 +155,14 @@ function exeMount() {
   return root;
 }
 
-// Luma's executable, also after a package update replaced the mounted file.
+// Lumaglass's executable, also after a package update replaced the mounted file.
 function exeOwned(root) {
-  return /\/com\.ecklf\.luma\/luma(\/\/deleted)?$/.test(root || '');
+  return /\/org\.lumaglass\.app\/lumaglass(\/\/deleted)?$/.test(root || '');
 }
 
 function exeMounted(appDir) {
   try {
-    var a = fs.statSync(appDir + '/luma');
+    var a = fs.statSync(appDir + '/lumaglass');
     var b = fs.statSync(EXE);
     return a.dev === b.dev && a.ino === b.ino;
   } catch (error) {
@@ -174,10 +176,10 @@ function unmountExe() {
     run('/bin/umount', [EXE]);
   } catch (error) {
     // The running Home executes the mounted file.
-    console.error('Luma Home: ' + error.message + ', detaching the mount');
+    console.error('Lumaglass Home: ' + error.message + ', detaching the mount');
     run('/bin/umount', ['-l', EXE]);
   }
-  if (exeMount()) throw new Error('The Luma Home mount is still active');
+  if (exeMount()) throw new Error('The Lumaglass Home mount is still active');
 }
 
 function homeMethod(release, stock) {
@@ -229,7 +231,7 @@ function reread(expected) {
       info.type === expected.type &&
       (typeof expected.main !== 'string' ||
         path.basename(info.main || '') === path.basename(expected.main)) &&
-      (expected.main !== 'luma' ||
+      (expected.main !== 'lumaglass' ||
         (Array.isArray(info.appCategory) && info.appCategory.indexOf('home') !== -1))
     )
       return;
@@ -252,7 +254,7 @@ function closeNormal() {
   if (!normalRunning()) return;
   try {
     // On TV, close's id identifies a process. Use the app-ID endpoint for APP.
-    accepted(luna('closeByAppId', { id: APP }), 'Close the normal Luma instance');
+    accepted(luna('closeByAppId', { id: APP }), 'Close the normal Lumaglass instance');
   } catch (error) {
     // The app may have exited between the running query and the close request.
     if (normalRunning()) throw error;
@@ -262,7 +264,7 @@ function closeNormal() {
     if (!normalRunning()) return;
     if (attempt < 5) pause();
   }
-  throw new Error('Close Luma before enabling Home integration');
+  throw new Error('Close Lumaglass before enabling Home integration');
 }
 
 function stopHome(appDir) {
@@ -276,15 +278,16 @@ function stopHome(appDir) {
         path.basename(args[0]) === 'flutter-client' &&
         args.indexOf('-i') !== -1 &&
         args[args.indexOf('-i') + 1] === HOME;
-      var luma =
-        fs.readlinkSync('/proc/' + pid + '/exe').replace(/ \(deleted\)$/, '') === appDir + '/luma';
+      var lumaglass =
+        fs.readlinkSync('/proc/' + pid + '/exe').replace(/ \(deleted\)$/, '') ===
+        appDir + '/lumaglass';
       var metadata = null;
       try {
         metadata = JSON.parse(args[1]);
       } catch (error) {
         if (!(error instanceof SyntaxError)) throw error;
       }
-      if (oldNative || flutter || (luma && metadata && metadata.nid === HOME)) {
+      if (oldNative || flutter || (lumaglass && metadata && metadata.nid === HOME)) {
         process.kill(Number(pid), 'SIGTERM');
         stopped.push(pid);
       }
@@ -310,14 +313,14 @@ function launchHome() {
 }
 
 // SAM may answer a cold native launch late, and right after the previous Home process stopped it
-// can accept a launch without starting anything: Luma in front is the success condition.
+// can accept a launch without starting anything: Lumaglass in front is the success condition.
 function openExecutableHome() {
   for (var i = 0; i < 15; i++) {
     if (i === 0 || i === 6) {
       try {
         launchHome();
       } catch (error) {
-        console.error('Luma Home: ' + error.message);
+        console.error('Lumaglass Home: ' + error.message);
       }
     }
     if (foreground() === HOME) return;
@@ -340,7 +343,7 @@ function restoreExecutable(config) {
   try {
     wasHome = foreground() === HOME;
   } catch (error) {
-    console.error('Luma Home: ' + error.message + ', restoring the files first');
+    console.error('Lumaglass Home: ' + error.message + ', restoring the files first');
   }
   var root = exeMount();
   if (root && !exeOwned(root)) throw new Error('Another integration is mounted over LG Home');
@@ -354,12 +357,14 @@ function restoreExecutable(config) {
 function applyExecutable(config, open) {
   var root = exeMount();
   if (root && !exeOwned(root)) throw new Error('Another integration is mounted over LG Home');
-  if (!fs.existsSync(config.appDir + '/luma')) throw new Error('Luma is no longer installed');
+  if (!fs.existsSync(config.appDir + '/lumaglass'))
+    throw new Error('Lumaglass is no longer installed');
   var front = foreground();
   try {
     // After a package update the mount still holds the replaced file.
     if (root && !exeMounted(config.appDir)) unmountExe();
-    if (!exeMounted(config.appDir)) run('/bin/mount', ['--bind', config.appDir + '/luma', EXE]);
+    if (!exeMounted(config.appDir))
+      run('/bin/mount', ['--bind', config.appDir + '/lumaglass', EXE]);
     if (!exeMounted(config.appDir)) throw new Error('The Home bind mount did not take');
     fs.writeFileSync(MARKER, APP + '\n', { mode: 420 });
     stopHome(config.appDir);
@@ -380,7 +385,7 @@ function restore(config) {
   try {
     wasHome = foreground() === HOME;
   } catch (error) {
-    console.error('Luma Home: ' + error.message + ', restoring the files first');
+    console.error('Lumaglass Home: ' + error.message + ', restoring the files first');
   }
   if (foreignMount()) throw new Error('Another integration is mounted over LG Home');
   if (mounted()) {
@@ -388,10 +393,10 @@ function restore(config) {
       run('/bin/umount', [TARGET]);
     } catch (error) {
       // A running Home may still hold its working directory in the mount.
-      console.error('Luma Home: ' + error.message + ', detaching the mount');
+      console.error('Lumaglass Home: ' + error.message + ', detaching the mount');
       run('/bin/umount', ['-l', TARGET]);
     }
-    if (mounted()) throw new Error('The Luma Home mount is still active');
+    if (mounted()) throw new Error('The Lumaglass Home mount is still active');
   }
   // Also finish a restore interrupted between unmounting and the rescan.
   // Read the uncovered files, since a firmware update may have changed LG Home.
@@ -401,7 +406,7 @@ function restore(config) {
 }
 
 // The LG splash is a static file. Stage the splash of the owner's current background, so a cold
-// boot into Luma Home opens on their wallpaper. Falls back to the package default on any error.
+// boot into Lumaglass Home opens on their wallpaper. Falls back to the package default on any error.
 function stageSplash(appDir) {
   var background = 'dunes';
   var candidates = [
@@ -437,7 +442,8 @@ function stageSplash(appDir) {
 function apply(config, open) {
   if (config.method === 'executable') return applyExecutable(config, open);
   if (foreignMount()) throw new Error('Another integration is mounted over LG Home');
-  if (!fs.existsSync(config.appDir + '/luma')) throw new Error('Luma is no longer installed');
+  if (!fs.existsSync(config.appDir + '/lumaglass'))
+    throw new Error('Lumaglass is no longer installed');
   stageSplash(config.appDir);
   var front = foreground();
   try {
@@ -476,8 +482,8 @@ function installHook() {
 function install(appDir) {
   appDir = fs.realpathSync(appDir);
   var app = json(appDir + '/appinfo.json');
-  if (app.id !== APP || app.type !== 'native' || app.main !== 'luma') {
-    throw new Error('Enable this from an installed native Luma package');
+  if (app.id !== APP || app.type !== 'native' || app.main !== 'lumaglass') {
+    throw new Error('Enable this from an installed native Lumaglass package');
   }
   var release = read('/etc/starfish-release');
   // The executable method never mounts over LG's manifest, so it reads the original directly.
@@ -485,13 +491,13 @@ function install(appDir) {
   if (foreignMount()) throw new Error('Another integration is mounted over LG Home');
   var exeRoot = exeMount();
   if (exeRoot && !exeOwned(exeRoot)) throw new Error('Another integration is mounted over LG Home');
-  if (exists(HOOK) && !hookOwned()) throw new Error('64-luma-home is already in use');
-  if (exists('/var/lib/webosbrew/init.d/65-luma')) {
+  if (exists(HOOK) && !hookOwned()) throw new Error('64-lumaglass-home is already in use');
+  if (exists('/var/lib/webosbrew/init.d/65-lumaglass')) {
     throw new Error('Disable the standalone cold-boot hook with autostart.sh disable first');
   }
   var previous = fs.existsSync(CONFIG) ? json(CONFIG) : null;
   var stock = mounted() ? previous && previous.stock : json(TARGET + '/appinfo.json');
-  if (!stock || stock.id !== HOME || stock.main === 'luma') {
+  if (!stock || stock.id !== HOME || stock.main === 'lumaglass') {
     throw new Error('Could not identify the original LG Home manifest');
   }
   // Finish any normal tile instance before the Home identity starts using the
@@ -505,13 +511,13 @@ function install(appDir) {
     apply(exeConfig, true);
     exeConfig.enabled = true;
     writeJson(CONFIG, exeConfig);
-    console.log('Luma is now Home. Home Auto Launch and Quick Start+ follow the TV settings.');
+    console.log('Lumaglass is now Home. Home Auto Launch and Quick Start+ follow the TV settings.');
     return;
   }
   mkdir(STAGE);
   // Symlinks keep the executable at its installed path for the dynamic loader
   // and LS2. They also follow ordinary in-place package updates.
-  ['luma', 'assets', 'lib', 'splash', app.icon, app.largeIcon].forEach(function (name) {
+  ['lumaglass', 'assets', 'lib', 'splash', app.icon, app.largeIcon].forEach(function (name) {
     var link = STAGE + '/' + name;
     if (exists(link + '.new')) fs.unlinkSync(link + '.new');
     fs.symlinkSync(appDir + '/' + name, link + '.new');
@@ -522,7 +528,7 @@ function install(appDir) {
   app.visible = false;
   app.appCategory = ['home'];
   writeJson(STAGE + '/appinfo.json', app);
-  fs.writeFileSync(STAGE + '/.luma-home', APP + '\n', { mode: 420 });
+  fs.writeFileSync(STAGE + '/.lumaglass-home', APP + '\n', { mode: 420 });
   installScripts();
   var config = { enabled: false, method: method, appDir: appDir, stock: stock };
   writeJson(CONFIG, config);
@@ -530,7 +536,7 @@ function install(appDir) {
   apply(config, true);
   config.enabled = true;
   writeJson(CONFIG, config);
-  console.log('Luma is now Home. Home Auto Launch and Quick Start+ follow the TV settings.');
+  console.log('Lumaglass is now Home. Home Auto Launch and Quick Start+ follow the TV settings.');
 }
 
 try {
@@ -553,7 +559,7 @@ try {
       )
     );
   } else if (command === 'apply' || command === 'disable' || command === 'restore') {
-    if (!fs.existsSync(CONFIG)) throw new Error('Luma Home has not been enabled');
+    if (!fs.existsSync(CONFIG)) throw new Error('Lumaglass Home has not been enabled');
     var config = json(CONFIG);
     if (command === 'apply' && config.enabled) {
       apply(config, false);
@@ -562,12 +568,12 @@ try {
       writeJson(CONFIG, config);
       restore(config);
       if (hookOwned()) fs.unlinkSync(HOOK);
-      console.log('LG Home restored. Luma Home boot integration disabled.');
+      console.log('LG Home restored. Lumaglass Home boot integration disabled.');
     }
   } else {
     throw new Error('Unknown Home integration command');
   }
 } catch (error) {
-  console.error('Luma Home: ' + error.message);
+  console.error('Lumaglass Home: ' + error.message);
   process.exitCode = 1;
 }

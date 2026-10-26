@@ -7,3 +7,8 @@ ignoredBuiltDependencies:
   - '@webos-tools/cli'
   - cpu-features
   - ssh2
+
+# The current webOS CLI pins body-parser 2.3.0. Keep its local HTTP tools on
+# the fixed 2.x release for GHSA-27r3-jxmh-p828 (including Express's copy).
+overrides:
+  'body-parser@>=2.0.0 <2.4.0': '2.4.0'
