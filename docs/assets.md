@@ -132,3 +132,10 @@ included in the package.
 ### Optical shader
 
 The optical section of `src/render/shaders/paint.frag` is adapted from ziuus/liquid-glass under MIT, Copyright (c) 2026 ziuus. Its pinned source, changes and complete notice are recorded in [NOTICE](../NOTICE.md) and `assets/licenses/ziuus-liquid-glass.txt`. This is code provenance rather than Apple artwork.
+
+### Xbox input illustration
+
+`assets/ui-icons/input-xbox.svg` is an original Lumaglass line illustration of a
+console tower, under the repository's MIT license. It is not a copied Microsoft
+logo or downloaded artwork. The Xbox Series X name identifies the locally chosen
+input device; its trademarks remain with their respective owner.

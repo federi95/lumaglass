@@ -59,10 +59,20 @@ failure fallback and input latency on TV. These checks have not been executed.
 ## Favorites dock and interaction states
 
 Enable the dock in Home personalization and check a short list is centered, a long
-list scrolls inside its tray, and all densities/captions preserve padding. Use
+list scrolls inside its tray, and all densities preserve padding. Confirm captions
+are hidden, their switches are locked, and the saved caption choice returns when
+the dock is Off. Use
 remote reveal, wheel, pointer, app options and reordering at both ends. Enable two
-rows and confirm the dock switches off; enable the dock again and confirm one row
-and zero horizontal scroll. Restart to check persistence, compare glass On/Off,
+rows and confirm the dock switches off and is locked. Attempt activation by both
+pointer and remote; it must remain Off. Disable two rows before re-enabling the
+dock and confirm zero horizontal scroll. Restart to check persistence, compare glass On/Off,
 and check inputs above/below the lower dock remain reachable. Verify hover, active
 tab, remote focus and press are distinguishable without moving hit areas; compare
 reduced motion. These checks remain pending.
+
+Check Control Center over Settings, Home and detailed personal wallpapers: parent
+labels must be subdued, while title, disabled statuses, icons and focus remain
+readable. Check profile and app-options panels for consistent rows, text sizing,
+opaque fallback and restoration of the current page. Verify the Xbox Series X
+preset on a discovered input, its icon, local persistence and Clear name; confirm
+that no port or connection state is fabricated. These checks remain pending.

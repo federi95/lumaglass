@@ -3,7 +3,9 @@
 Lumaglass has an original native quick-controls panel inspired by the compact
 right-hand layout and focus treatment of tvOS Control Center. The floating group
 has a large power tile, network/audio capsules, screensaver/timer capsules and
-four circular shortcuts. There is no large enclosing backplate. The panel uses the shared [Liquid Glass appearance](liquid-glass.md), the chosen wallpaper and explicit focus outlines. Disabling glass selects opaque surfaces. Optical tiles use a cached GPU backdrop with bounded lens refraction. Backdrop updates are conditional; there is no per-frame blur engine.
+four circular shortcuts. There is no large enclosing backplate. The parent page
+is attenuated before backdrop capture, with a stronger contrast scrim and denser
+modal tint so its rows/text cannot compete with quick controls. The panel uses the shared [Liquid Glass appearance](liquid-glass.md), the chosen wallpaper and explicit focus outlines. Disabling glass selects opaque surfaces. Optical tiles use a cached GPU backdrop with bounded lens refraction. Backdrop updates are conditional; there is no per-frame blur engine.
 
 ## Opening and closing
 
@@ -55,19 +57,39 @@ preferences; no LG, Apple or online account is created or accessed. The name is
 also used by timed Home greetings. Editing it leaves a custom static greeting
 unchanged. Finishing text entry returns to the profile; Back restores avatar
 focus on the underlying page. Pointer and remote navigation share the controls.
+The profile and app-options menus share an optical outer panel, standard pill
+rows, typography, padding and focus feedback with the current interface.
 
 ## Favorites dock
 
 **Settings → General → Home personalization → Favorites dock** enables a centered,
 lower Home tray with padded rounded glass, Off by default. Its width follows the
 visible card count and density, up to one full row. Longer favorites lists scroll
-inside the tray; captions, favorite ordering, reordering and remote reveal remain
-available. The dock uses opaque material if Liquid Glass is Off.
+inside the tray; favorite ordering, reordering and remote reveal remain available.
+The dock always hides captions and uses opaque material if Liquid Glass is Off.
 
-Dock and two-row favorites are mutually exclusive. Enabling either turns the
-other off and resets horizontal scrolling without changing favorite IDs/order.
-When loading contradictory saved preferences, the two-row choice takes precedence.
-Turning two rows off does not silently restore a previously disabled dock.
+**Home personalization → Favorites** groups **Two-row favorites**, **Favorites
+dock** and **Favorite names**. Greeting, date, inputs and startup options follow
+in separate groups. General retains a separate **App names** entry for Home and
+Apps labels. Favorite names can be changed from either route when the dock is Off.
+
+Enabling two rows turns the dock Off and locks its switch. Turn two rows Off
+before enabling the dock; clicking the disabled switch cannot override the choice.
+The caption switches are locked while the dock is On. The saved caption preference
+is preserved and becomes effective again when the dock is Off. Layout changes
+reset horizontal scroll without changing favorite IDs/order. Two rows take
+precedence when loading contradictory saved preferences, and turning two rows Off
+does not silently restore the dock.
+
+## Xbox Series X input
+
+**Settings → Inputs → [discovered HDMI port] → Use Xbox Series X** assigns the local
+name and original console-tower icon to that port. Clear name restores its reported
+label. Recognition also works when the TV reports an Xbox name or it is typed as
+a custom input name. The app ID, HDMI port and observed connection state remain
+unchanged; selecting the preset does not send TV commands or create a virtual port.
+Desktop example inventory includes an Xbox Series X alongside the existing inputs;
+TV inventory continues to come exclusively from the TV services.
 
 Selected/active chrome, hover/remote focus and presses have distinct tint,
 rim and shadow treatments. App artwork lifts on focus inside stable hit areas;
