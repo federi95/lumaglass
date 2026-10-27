@@ -30,3 +30,6 @@ Upstream project provenance and complete notice locations are in
 [NOTICE.md](../NOTICE.md).
 
 - [Control center and header](control-center.md): quick controls, value sliders and clock/avatar layout.
+
+- [Liquid Glass](liquid-glass.md): optional native material and rendering budget.
+- [CI duration](ci-performance.md): measured bottlenecks and proposed improvements.

@@ -186,7 +186,7 @@ presses, stale responses, failures, navigation, reduced motion, reversible cross
 
 ### Control center and value sliders
 
-The header avatar opens the [control center](control-center.md). From the navigation
+The dedicated header button opens the [control center](control-center.md). The avatar opens clock/avatar preferences. From the navigation
 bar use Up, then OK; desktop preview also supports F6. An optional color-button
 binding provides another entry while Lumaglass is active. Back restores the parent
 focus. Clock/avatar grouping and left/right placement are configured in

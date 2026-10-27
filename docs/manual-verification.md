@@ -27,7 +27,7 @@ milestone 8. No item above is marked passed by compilation or CI alone.
 
 ## Control center and header
 
-On QNED756RA/webOS 25, verify avatar, Up/OK, optional color binding and Back focus
+On QNED756RA/webOS 25, verify the dedicated control-center button, Up/OK, optional color binding and Back focus
 restoration. Check separate/combined clock layouts on both sides, 12/24-hour time,
 seconds and empty/long greeting names. Confirm that local sliders work with remote
 steps and Magic Remote drag without activating another control on release.
@@ -40,3 +40,5 @@ confirm LG's own timer UI agrees. Missing permissions must produce unavailable
 state, not a fabricated success. Start the local saver with automatic timeout Off, including while the panel’s
 read-only status refresh is pending, and ensure its wake gesture is consumed. Confirm that these entry points do not
 intercept Home while another application is active.
+
+Verify that the avatar opens its preferences, never quick controls. Compare glass On/Off, text contrast, slider padding, endpoint labels and pointer snapping. Confirm that Back exits the timer detail before the full panel. Measure input latency and frame times on the TV; this revision has not been visually exercised or benchmarked.

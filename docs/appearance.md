@@ -43,3 +43,7 @@ assets. The TV loads the selected variant through its existing texture cache;
 there is no per-frame blur filter. The packaged variants are required by IPK
 verification. Effects apply inside the launcher; LG's startup splash uses the
 selected stock image. Personal image sources are a separate planned feature.
+
+## Liquid Glass
+
+The Liquid Glass toggle defaults to On. It applies the shared translucent material to navigation, controls and the control center; Off selects opaque surfaces. See [the rendering budget and design references](liquid-glass.md).
