@@ -15,7 +15,7 @@
     "build": "sh tools/webos/build-webos.sh",
     "package": "pnpm assets && pnpm build && node tools/release/package.mjs && node tools/release/repository.mjs",
     "deploy": "pnpm run package && node tools/webos/deploy.mjs",
-    "test": "pnpm test:release && pnpm test:home && pnpm test:icons && pnpm test:apps && cargo test --locked --workspace --all-features",
+    "test": "pnpm test:release && pnpm test:home && pnpm test:icons && pnpm test:apps && pnpm test:controls && cargo test --locked --workspace --all-features",
     "test:apps": "node --test tests/app-management.test.mjs",
     "test:release": "node --test tests/release.test.mjs",
     "test:home": "node --test tests/home-splash.test.mjs tests/home-executable.test.mjs tests/home-mounts.test.mjs tests/sync-splash.test.mjs",
@@ -39,7 +39,8 @@
     "changeset": "changeset",
     "version:release": "changeset version && pnpm version:sync && oxfmt --write CHANGELOG.md",
     "version:sync": "node tools/release/sync-version.mjs",
-    "version:check": "node tools/release/sync-version.mjs --check"
+    "version:check": "node tools/release/sync-version.mjs --check",
+    "test:controls": "node --test tests/tv-controls.test.mjs tests/blocker.test.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "3.0.3",
