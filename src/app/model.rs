@@ -96,6 +96,12 @@ pub struct Preferences {
     pub favorites: Option<Vec<String>>,
     pub hidden: Vec<String>,
     pub background: String,
+    #[serde(deserialize_with = "crate::features::display::deserialize")]
+    pub display: crate::features::display::Preferences,
+    #[serde(deserialize_with = "crate::features::screensaver::deserialize")]
+    pub screensaver: crate::features::screensaver::Preferences,
+    #[serde(deserialize_with = "crate::features::wallpapers::deserialize")]
+    pub wallpapers: crate::features::wallpapers::Preferences,
     pub show_home_names: bool,
     pub two_row_home_favorites: bool,
     #[serde(deserialize_with = "crate::features::home::deserialize")]
@@ -132,6 +138,9 @@ impl Default for Preferences {
             favorites: None,
             hidden: vec![],
             background: "dunes".into(),
+            display: crate::features::display::Preferences::default(),
+            screensaver: crate::features::screensaver::Preferences::default(),
+            wallpapers: crate::features::wallpapers::Preferences::default(),
             show_home_names: false,
             two_row_home_favorites: false,
             home: crate::features::home::Preferences::default(),

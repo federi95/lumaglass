@@ -30,7 +30,39 @@ if (app.id !== APP || app.type !== 'native' || app.main !== 'lumaglass') {
 // Read the selection already loaded by the native app, rather than trying to
 // rediscover its preferences from outside the jail. Never copy the default over
 // a working splash if an update is missing the selected image.
-var image = fs.readFileSync(path.join(appDir, 'splash', selected.background + '.png'));
+var source = path.join(appDir, 'splash', selected.background + '.png');
+if (selected.personal !== undefined && selected.personal !== null) {
+  if (typeof selected.personal !== 'string' || !/^personal-[a-f0-9]{16}$/.test(selected.background))
+    throw Error('Invalid personal splash');
+  var allowed = [
+    '/media/developer/' + APP,
+    '/media/developer/temp/' + APP,
+    '/media/internal/.' + APP
+  ];
+  if (
+    !allowed.some(function (base) {
+      return selected.personal === base + '/preferences.wallpapers/' + selected.background + '.png';
+    })
+  )
+    throw Error('Invalid personal cache path');
+  if (
+    fs.lstatSync(path.dirname(selected.personal)).isSymbolicLink() ||
+    fs.lstatSync(selected.personal).isSymbolicLink()
+  )
+    throw Error('Symlink splash refused');
+  if (fs.statSync(selected.personal).size > 16 * 1024 * 1024)
+    throw Error('Personal splash too large');
+  source = selected.personal;
+}
+var image = fs.readFileSync(source);
+if (
+  selected.personal &&
+  (image.length < 24 ||
+    image.slice(0, 8).toString('hex') !== '89504e470d0a1a0a' ||
+    image.readUInt32BE(16) !== 1920 ||
+    image.readUInt32BE(20) !== 1080)
+)
+  throw Error('Invalid personal PNG');
 
 function replace(file) {
   try {

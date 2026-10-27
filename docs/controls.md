@@ -73,13 +73,14 @@ remain distinct; the desktop preview labels TV data as not applicable. A failed
 refresh keeps the last snapshot and displays a failure notice. Home ownership
 reflects the mounts visible to the helper, not a hardware compatibility guarantee.
 
-**Privacy** is a read-only page with an explicit Refresh action: Live Plus,
+**Privacy** has an explicit Refresh action: Live Plus,
 Limit ad tracking, and seven selected consent records. The consent labels
 distinguish granted/not granted; a granted consent does not establish that
 tracking is active, and a missing field never becomes an off value. Unknown,
 unavailable and denied observations remain explicit. Arrows reveal all nine
-rows; Back/Left restores Privacy in System. No controls change LG settings or
-agreements in this phase. Desktop preview labels every TV value as not applicable.
+rows; Back/Left restores Privacy in System. OK on a known Live Plus or limit-ad-tracking value opens a confirmed change/restore
+flow. Consent records stay read-only. Desktop preview labels every TV value as not applicable.
+See [Privacy and blocker](privacy-and-blocker.md).
 
 The **Clock** subpage contains **Clock format** (12-hour or 24-hour) and **Time format** (`HH:MM`
 or `HH:MM:SS`, defaulting to `HH:MM`). Choosing a format returns to its row in Clock, and Back

@@ -143,6 +143,10 @@ pub fn redirect_to_home() -> Result<bool, String> {
 }
 
 pub enum Request {
+    Control {
+        generation: u64,
+        command: crate::features::controls::Command,
+    },
     Refresh {
         generation: u64,
     },
@@ -157,13 +161,21 @@ pub enum Request {
         generation: u64,
     },
     Launch(String),
-    SyncSplash(String),
+    SyncSplash {
+        background: String,
+        personal: Option<std::path::PathBuf>,
+    },
     Recent {
         generation: u64,
         command: crate::recents::Command,
     },
 }
 pub enum Response {
+    Controlled {
+        generation: u64,
+        command: crate::features::controls::Command,
+        result: Result<crate::features::controls::Report, String>,
+    },
     Inventory {
         generation: u64,
         result: Result<(Inventory, Option<String>), String>,
@@ -190,6 +202,7 @@ pub enum Response {
 }
 
 enum ObservationRequest {
+    Control(u64, crate::features::controls::Command),
     System(u64),
     Privacy(u64),
 }
@@ -255,6 +268,15 @@ impl Platform {
         thread::spawn(move || {
             for job in jobs {
                 let response = match job {
+                    ObservationRequest::Control(generation, command) => Response::Controlled {
+                        generation,
+                        command,
+                        result: if webos {
+                            control_command(command)
+                        } else {
+                            Err("TV controls unavailable in desktop preview".into())
+                        },
+                    },
                     ObservationRequest::System(generation) => Response::SystemInfo {
                         generation,
                         result: if webos {
@@ -286,6 +308,14 @@ impl Platform {
             };
             while let Ok(request) = requests.recv() {
                 let response = match request {
+                    Request::Control {
+                        generation,
+                        command,
+                    } => Response::Controlled {
+                        generation,
+                        command,
+                        result: Err("Wrong worker".into()),
+                    },
                     Request::Manage {
                         generation,
                         command,
@@ -354,13 +384,14 @@ impl Platform {
                     } else {
                         Ok(())
                     }),
-                    Request::SyncSplash(background) => {
-                        if webos
-                            && splash_enabled
-                            && splash_background.as_ref() != Some(&background)
-                        {
-                            match sync_splash(&background) {
-                                Ok(()) => splash_background = Some(background),
+                    Request::SyncSplash {
+                        background,
+                        personal,
+                    } => {
+                        let key = format!("{background}:{personal:?}");
+                        if webos && splash_enabled && splash_background.as_ref() != Some(&key) {
+                            match sync_splash(&background, personal.as_deref()) {
+                                Ok(()) => splash_background = Some(key),
                                 Err(error) => eprintln!("Lumaglass splash: {error}"),
                             }
                         }
@@ -402,6 +433,10 @@ impl Platform {
             return;
         }
         let job = match request {
+            Request::Control {
+                generation,
+                command,
+            } => ObservationRequest::Control(generation, command),
             Request::SystemInfo { generation } => ObservationRequest::System(generation),
             Request::Privacy { generation } => ObservationRequest::Privacy(generation),
             request => {
@@ -415,6 +450,11 @@ impl Platform {
             };
             let error = "Observation worker unavailable".to_owned();
             let response = match job {
+                ObservationRequest::Control(generation, command) => Response::Controlled {
+                    generation,
+                    command,
+                    result: Err(error),
+                },
                 ObservationRequest::System(generation) => Response::SystemInfo {
                     generation,
                     result: Err(error),
@@ -428,9 +468,20 @@ impl Platform {
         }
     }
 
+    pub fn sync_personal_splash(&self, id: &str, root: &std::path::Path) {
+        if self.webos && self.splash_enabled && crate::features::wallpapers::valid_id(id) {
+            self.send(Request::SyncSplash {
+                background: id.to_owned(),
+                personal: Some(root.join(format!("{id}.png"))),
+            });
+        }
+    }
     pub fn sync_splash(&self, background: &str) {
         if self.webos && self.splash_enabled {
-            self.send(Request::SyncSplash(background.to_owned()));
+            self.send(Request::SyncSplash {
+                background: background.to_owned(),
+                personal: None,
+            });
         }
     }
 }
@@ -452,6 +503,38 @@ fn system_information() -> Result<crate::features::system::Report, String> {
         .map(|directory| crate::features::system::Installation::from_path(&directory))
         .unwrap_or_default();
     crate::features::system::Report::from_reply(&reply, installation)
+}
+
+fn control_command(
+    command: crate::features::controls::Command,
+) -> Result<crate::features::controls::Report, String> {
+    let quote = |text: &str| format!("'{}'", text.replace('\'', "'\\''"));
+    let mut payload = serde_json::to_value(command).map_err(|_| "Invalid intent")?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| "Clock unavailable")?
+        .as_millis();
+    payload["expiresAt"] = json!(now + 8000);
+    let blocker = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tv/blocker.cjs"));
+    let reader = format!(
+        "(function() {{var module = {{exports:{{}}}}; {blocker}\nreturn module.exports; }})()"
+    );
+    let script = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tv/control.cjs"))
+        .replace("require('./blocker.cjs')", &reader)
+        .replace(
+            "/* BLOCKER_SOURCE */",
+            &format!("var blockerSource = {};", json!(blocker)),
+        );
+    let command = format!(
+        "/usr/bin/node -e {} {}",
+        quote(&script),
+        quote(&payload.to_string())
+    );
+    let envelope = call(
+        "luna://org.webosbrew.hbchannel.service/exec",
+        json!({"command":command}),
+    )?;
+    serde_json::from_value(command_reply(&envelope)?).map_err(|_| "Invalid control response".into())
 }
 
 fn privacy_information() -> Result<crate::features::privacy::Report, String> {
@@ -502,7 +585,7 @@ fn fixed_observation_helper(script: &str) -> Result<Value, String> {
     command_reply(&envelope)
 }
 
-fn sync_splash(background: &str) -> Result<(), String> {
+fn sync_splash(background: &str, personal: Option<&std::path::Path>) -> Result<(), String> {
     let directory = install_dir()?;
     let quote = |value: &str| format!("'{}'", value.replace('\'', "'\\''"));
     let command = format!(
@@ -511,7 +594,10 @@ fn sync_splash(background: &str) -> Result<(), String> {
             env!("CARGO_MANIFEST_DIR"),
             "/tv/sync-splash.cjs"
         ))),
-        quote(&json!({"directory": directory, "background": background}).to_string())
+        quote(
+            &json!({"directory": directory, "background": background, "personal":personal})
+                .to_string()
+        )
     );
     let envelope = call(
         "luna://org.webosbrew.hbchannel.service/exec",

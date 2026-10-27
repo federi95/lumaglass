@@ -14,6 +14,10 @@ src/features/apps/          artwork, branding, recent apps and preview inventory
 src/features/privacy/       fixed privacy observations and transient request state
 src/features/home/          local Home customization and validated preferences
 src/features/appearance/    shared card geometry and local visual preferences
+src/features/controls/      fixed confirmed TV mutations and result state
+src/features/display/       guarded render-resolution trials and watchdog
+src/features/wallpapers/    bounded acquisition/cache and Home rotation
+src/features/screensaver/   foreground-only idle presentation
 src/features/shortcuts/     local navigation bindings and held-button state
 src/features/weather/       forecast scheduling, HTTP worker and cache
 src/features/system/        typed read-only TV observations and request state
@@ -154,8 +158,9 @@ removal uses an isolated in-memory inventory with one explicit Kodi simulation.
 See [app-management.md](app-management.md) for the policy and completion rules.
 
 The current platform adapter uses the native LS2 caller and Homebrew Channel's
-elevated fixed helpers. Future privacy, blocker and screensaver integrations
-must expose typed, bounded operations with detected capabilities. Boot hooks
+elevated fixed helpers. Privacy and blocker operations expose typed, bounded intents with explicit
+verification. Future system-wide screensaver integrations must follow the same
+capability and recovery boundaries. Boot hooks
 and persistent settings must not depend on the renderer remaining open. A
 separate local service is introduced only for operations that need one; it
 must not expose a general shell or a LAN administration server.

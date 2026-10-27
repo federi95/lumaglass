@@ -251,6 +251,13 @@ fn effects(
                 command,
             }),
             Effect::SystemInfo { generation } => platform.send(Request::SystemInfo { generation }),
+            Effect::Control {
+                generation,
+                command,
+            } => platform.send(Request::Control {
+                generation,
+                command,
+            }),
             Effect::Privacy { generation } => platform.send(Request::Privacy { generation }),
             Effect::Save => {
                 preferences.save(&state.preferences);
@@ -367,7 +374,15 @@ fn script(
 }
 
 pub(crate) fn main() {
-    if let Err(error) = run() {
+    let result = run();
+    if result.is_ok()
+        && crate::features::display::RESTART.swap(false, std::sync::atomic::Ordering::Relaxed)
+        && let Err(error) = crate::features::display::restart()
+    {
+        eprintln!("{error}");
+        std::process::exit(1);
+    }
+    if let Err(error) = result {
         eprintln!("Lumaglass native: {error}");
         std::process::exit(1);
     }
@@ -578,6 +593,24 @@ fn run() -> Result<(), String> {
     };
     let mut state = State::new(initial_preferences);
     state.webos = webos;
+    let mut display_guard = crate::features::display::Guard::begin(
+        &preferences_path,
+        state.preferences.display.four_k,
+        options.resolution.is_none() && options.frames.is_none() && options.script.is_empty(),
+    )?;
+    state.display_trial = display_guard.trial;
+    if display_guard.trial {
+        state.open(2);
+        state.section = state::SYSTEM_SECTION;
+        state.subpage = Some(state::Subpage::Display);
+        state.focus = Target::DisplayHD;
+    }
+    state.wallpapers.root = preferences_path.with_extension("wallpapers");
+    state.wallpapers.loading = true;
+    let wallpaper_service =
+        crate::features::wallpapers::Service::new(state.wallpapers.root.clone());
+    let wallpaper_decoder =
+        crate::features::wallpapers::Decoder::new(state.wallpapers.root.clone());
     let mut preferences_writer = storage::Writer::new(preferences_path.clone())?;
     let mut clock = if options.time.is_none() {
         Some(platform::clock::Clock::new(local_offset)?)
@@ -611,7 +644,11 @@ fn run() -> Result<(), String> {
         &preferences_writer,
         &weather_service,
     );
-    platform.sync_splash(&state.preferences.background);
+    if let Some(id) = &state.preferences.wallpapers.selected {
+        platform.sync_personal_splash(id, &state.wallpapers.root);
+    } else {
+        platform.sync_splash(&state.preferences.background);
+    }
     startup_stage("preferences and workers");
 
     let sdl = sdl2::init()?;
@@ -647,7 +684,9 @@ fn run() -> Result<(), String> {
     attributes.set_alpha_size(8);
     attributes.set_depth_size(0);
     attributes.set_stencil_size(0);
-    let requested = options.resolution.unwrap_or(if webos {
+    let requested = options.resolution.unwrap_or(if display_guard.four_k {
+        Size::UHD
+    } else if webos {
         Size::HD
     } else {
         Size::new(1280, 720)
@@ -655,7 +694,7 @@ fn run() -> Result<(), String> {
     let create_window = || {
         let mut builder = video.window("Lumaglass", requested.width, requested.height);
         builder.opengl().allow_highdpi().position_centered();
-        if options.fullscreen || (webos && options.resolution.is_none()) {
+        if options.fullscreen || (webos && options.resolution.is_none() && !display_guard.four_k) {
             builder.fullscreen_desktop();
         } else if webos {
             builder.borderless();
@@ -690,6 +729,23 @@ fn run() -> Result<(), String> {
         }
     }
     let (window, _context) = opened.ok_or_else(|| failures.join("; "))?;
+    let (width, height) = window.drawable_size();
+    let screen = window
+        .display_index()
+        .ok()
+        .and_then(|index| video.current_display_mode(index).ok());
+    state.display_report = format!(
+        "{}: {}×{}; {}: {}×{}; {}: {}. {}",
+        state.preferences.language.t("displayRequested"),
+        requested.width,
+        requested.height,
+        state.preferences.language.t("displayDrawable"),
+        width,
+        height,
+        state.preferences.language.t("displayScreen"),
+        screen.map_or_else(|| "?".into(), |m| format!("{}×{}", m.w, m.h)),
+        state.preferences.language.t("displayCompositorUnknown")
+    );
     gl::load_with(|name| video.gl_get_proc_address(name) as *const _);
     if !webos {
         unsafe { gl::Enable(gl::MULTISAMPLE) };
@@ -847,7 +903,7 @@ fn run() -> Result<(), String> {
     let mut running = true;
     let mut queued_event = None;
     let mut text_active = false;
-    let mut initial_focus = options.script.is_empty();
+    let mut initial_focus = options.script.is_empty() && !state.display_trial;
     // When to ask for the inventory again after a failed load (State::inventory_failed).
     let mut inventory_retry: Option<Instant> = None;
     let scripted_input = !options.script.is_empty();
@@ -877,7 +933,22 @@ fn run() -> Result<(), String> {
         }
         if let Some(saved) = preferences_writer.poll() {
             match saved.result {
-                Ok(()) => platform.sync_splash(&saved.background),
+                Ok(()) => {
+                    if let Some(id) = &saved.personal_background {
+                        platform.sync_personal_splash(id, &state.wallpapers.root);
+                    } else {
+                        platform.sync_splash(&saved.background);
+                    }
+                    if state.display_keep && saved.display_four_k {
+                        state.display_keep = false;
+                        if display_guard.confirm() {
+                            state.display_trial = false;
+                            state.notify(state.preferences.language.t("displayKept"));
+                        } else {
+                            state.notify(state.preferences.language.t("controlUnconfirmed"));
+                        }
+                    }
+                }
                 Err(error) => {
                     eprintln!("{error}");
                     state.notify(state.preferences.language.t("savedError"));
@@ -898,10 +969,42 @@ fn run() -> Result<(), String> {
             last_minute = Some(clock_slot);
             state.dirty = true;
         }
+        if let Some(four_k) = state.display_change.take() {
+            match crate::features::display::stage(&preferences_path, four_k) {
+                Ok(()) => {
+                    if !four_k {
+                        state.preferences.display.four_k = false;
+                    }
+                    preferences_writer.save(&state.preferences);
+                    break;
+                }
+                Err(_) => state.notify(state.preferences.language.t("controlUnconfirmed")),
+            }
+        }
         state.tick();
         state.dirty |= assets.artwork.poll();
         while let Ok(response) = platform.receiver.try_recv() {
             match response {
+                Response::Controlled {
+                    generation,
+                    command,
+                    result,
+                } => {
+                    let verified = state.controls.accept(generation, result);
+                    if command != crate::features::controls::Command::BlockerStatus {
+                        state.notify(state.preferences.language.t(if verified {
+                            "controlVerified"
+                        } else {
+                            "controlUnconfirmed"
+                        }));
+                    }
+                    state.dirty = true;
+                    if command.privacy()
+                        && let Some(generation) = state.privacy.request()
+                    {
+                        platform.send(Request::Privacy { generation });
+                    }
+                }
                 Response::Privacy { generation, result } => {
                     state.dirty |= state.privacy.accept(generation, result)
                 }
@@ -1037,6 +1140,107 @@ fn run() -> Result<(), String> {
         }
         weather_tick(&mut state, &weather_service, visible);
         // Rebuild hit regions before input whenever inventory/layout changed.
+        state.dirty |= state.screensaver.tick(
+            Instant::now(),
+            visible
+                && focused
+                && state.overlay.is_none()
+                && !state.display_trial
+                && !state.controls.loading
+                && state.moving.is_none()
+                && !state.launching
+                && press.is_none()
+                && back_button.press.is_none()
+                && options.frames.is_none()
+                && options.profile_frames.is_none()
+                && options.script.is_empty(),
+            state.preferences.screensaver.timeout,
+        );
+        if state.rotation.due(
+            Instant::now(),
+            visible
+                && focused
+                && state.page == state::Page::Home
+                && !state.screensaver.active
+                && state.overlay.is_none()
+                && !state.launching
+                && !state.wallpapers.loading,
+            state.preferences.wallpapers.rotation.mode,
+        ) {
+            let pending = state.rotate_background();
+            effects(
+                pending,
+                &mut state,
+                &platform,
+                &preferences_writer,
+                &weather_service,
+            );
+        }
+        if state.wallpapers.pending && !state.wallpapers.loading {
+            state.wallpapers.pending = false;
+            state.wallpapers.loading =
+                wallpaper_service.import(state.preferences.wallpapers.clone());
+            state.dirty = true;
+        }
+        while let Ok(result) = wallpaper_service.receiver.try_recv() {
+            state.wallpapers.loading = false;
+            match result {
+                Ok(photos) => {
+                    state.wallpapers.photos = photos;
+                    state.wallpapers.decoded.clear();
+                }
+                Err(_) => state.notify(state.preferences.language.t("photoImportFailed")),
+            }
+            state.dirty = true;
+        }
+        let suffix = state.preferences.appearance.blur.suffix();
+        let mut needed = vec![];
+        for id in [
+            Some(state.current_background()),
+            state
+                .previous_background
+                .as_ref()
+                .map(|(id, _)| id.as_str()),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            if crate::features::wallpapers::valid_id(id) {
+                needed.push(format!("{id}{suffix}"));
+            }
+        }
+        if state.screensaver.active
+            && state.preferences.screensaver.photos
+            && !state.wallpapers.photos.is_empty()
+        {
+            needed.push(
+                state.wallpapers.photos
+                    [(state.screensaver.elapsed() / 30) as usize % state.wallpapers.photos.len()]
+                .id
+                .clone(),
+            );
+        }
+        needed.sort();
+        needed.dedup();
+        state
+            .wallpapers
+            .decoded
+            .retain(|key, _| needed.contains(key));
+        while let Ok((key, image)) = wallpaper_decoder.receiver.try_recv() {
+            state.wallpapers.decoding.remove(&key);
+            if needed.contains(&key) {
+                state.wallpapers.decoded.insert(key, image);
+                state.dirty = true;
+            }
+        }
+        for key in needed {
+            if !state.wallpapers.decoded.contains_key(&key)
+                && !state.wallpapers.decoding.contains(&key)
+                && wallpaper_decoder.request(key.clone())
+            {
+                state.wallpapers.decoding.insert(key);
+            }
+        }
         if state.dirty {
             scene = compose(&mut state, &assets, pill, pill_width, now);
         }
@@ -1067,6 +1271,14 @@ fn run() -> Result<(), String> {
             if script_owns_input && external_input {
                 continue;
             }
+            if state.screensaver.consume_event(&event, Instant::now()) {
+                press = None;
+                back_button.cancel();
+                state.shortcut_session.cancel();
+                state.pressed = None;
+                state.dirty = true;
+                continue;
+            }
             // Evaluate shortcut scope before a key event can confirm focus again.
             let shortcut_active = visible && focused;
             // Conventional remote keys confirm focus on webOS. Color shortcuts
@@ -1079,7 +1291,7 @@ fn run() -> Result<(), String> {
             } = &event
                 && *window_id == window.id()
                 && (focused
-                    || keycode.is_none_or(|key| sdl_events::shortcut_button(key, webos).is_none()))
+                    || keycode.is_some_and(|key| sdl_events::shortcut_button(key, webos).is_none()))
             {
                 focused = true;
                 foreground.confirmed();
@@ -1134,6 +1346,8 @@ fn run() -> Result<(), String> {
                         press = None;
                         back_button.cancel();
                         state.shortcut_session.cancel();
+                        state.screensaver.wake_key = None;
+                        state.screensaver.wake_mouse = None;
                         if matches!(state.overlay, Some(Overlay::SystemKeyboard)) {
                             pending = state.finish_text_input();
                         }
@@ -1144,6 +1358,8 @@ fn run() -> Result<(), String> {
                         press = None;
                         back_button.cancel();
                         state.shortcut_session.cancel();
+                        state.screensaver.wake_key = None;
+                        state.screensaver.wake_mouse = None;
                     }
                     WindowEvent::Shown | WindowEvent::Restored | WindowEvent::FocusGained => {
                         if let Some(clock) = &mut clock {
@@ -1515,7 +1731,11 @@ fn run() -> Result<(), String> {
                 && options
                     .profile_frames
                     .is_some_and(|limit| presented + 1 >= limit));
-        if ((state.dirty || options.profile_frames.is_some()) && visible) || final_frame {
+        if ((state.dirty || options.profile_frames.is_some())
+            && visible
+            && (!state.screensaver.active || last_present.elapsed() >= Duration::from_secs(1)))
+            || final_frame
+        {
             let compose_started = Instant::now();
             scene = compose(&mut state, &assets, pill, pill_width, now);
             let compose_ms = compose_started.elapsed().as_secs_f64() * 1000.;
@@ -1621,6 +1841,9 @@ fn run() -> Result<(), String> {
             }
             state.dirty = false;
         }
+        if display_guard.four_k && !display_guard.trial && presented > 0 {
+            let _ = display_guard.confirm();
+        }
         frame += 1;
         if final_frame {
             running = false;
@@ -1688,8 +1911,13 @@ fn run() -> Result<(), String> {
         };
         queued_event = sdl_events::wait(&mut events, timeout, webos);
     }
+    display_guard.normal_exit();
     if let Some(background) = preferences_writer.finish()? {
-        platform.sync_splash(&background);
+        if let Some(id) = &state.preferences.wallpapers.selected {
+            platform.sync_personal_splash(id, &state.wallpapers.root);
+        } else {
+            platform.sync_splash(&background);
+        }
     }
     if text_active {
         video.text_input().stop();

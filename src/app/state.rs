@@ -37,6 +37,22 @@ pub enum Page {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum Target {
+    DisplayHD,
+    DisplayUHD,
+    DisplayKeep,
+    RotationMode,
+    RotationShuffle,
+    RotationNext,
+    RotationInclude(String),
+    PhotoFolder,
+    PhotoUrl,
+    PhotoFit,
+    PhotoImport,
+    PhotoStock,
+    PhotoClearSources,
+    Photo(usize),
+    ControlApply,
+    ControlRestore,
     Nav(usize),
     TvSettings,
     Recent(String),
@@ -121,6 +137,10 @@ pub struct Control {
 
 #[derive(Clone, Debug)]
 pub enum Overlay {
+    ControlConfirm {
+        command: crate::features::controls::Command,
+        restore: Target,
+    },
     Options {
         id: String,
         restore: Target,
@@ -143,6 +163,9 @@ pub enum Overlay {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum Subpage {
+    Display,
+    Rotation,
+    Wallpapers,
     Shortcuts,
     Appearance,
     Home,
@@ -163,6 +186,8 @@ pub enum Subpage {
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 pub enum TextField {
+    PhotoFolder,
+    PhotoUrl,
     Apps,
     Location,
     Name,
@@ -179,6 +204,10 @@ pub enum Direction {
 
 #[derive(Debug, PartialEq)]
 pub enum Effect {
+    Control {
+        generation: u64,
+        command: crate::features::controls::Command,
+    },
     Save,
     Manage {
         generation: u64,
@@ -210,6 +239,15 @@ pub const KEYS: [&str; 40] = [
 ];
 
 pub struct State {
+    pub display_change: Option<bool>,
+    pub display_keep: bool,
+    pub display_trial: bool,
+    pub display_report: String,
+    pub screensaver: crate::features::screensaver::Session,
+    pub rotation: crate::features::wallpapers::rotation::Session,
+    pub wallpapers: crate::features::wallpapers::Session,
+    pub photo_draft: String,
+    pub controls: crate::features::controls::Controls,
     pub page: Page,
     pub focus: Target,
     pub inventory: Inventory,
@@ -253,6 +291,15 @@ pub struct State {
 impl State {
     pub fn new(preferences: Preferences) -> Self {
         Self {
+            controls: crate::features::controls::Controls::default(),
+            wallpapers: crate::features::wallpapers::Session::default(),
+            photo_draft: String::new(),
+            display_change: None,
+            display_keep: false,
+            display_trial: false,
+            display_report: String::new(),
+            screensaver: crate::features::screensaver::Session::default(),
+            rotation: crate::features::wallpapers::rotation::Session::default(),
             page: Page::Home,
             focus: Target::Nav(0),
             inventory: Inventory::default(),
@@ -522,6 +569,109 @@ impl State {
         self.preferences.appearance.density.apps()
     }
 
+    pub fn rotation_pool(&self) -> Vec<String> {
+        let mut pool = vec![];
+        for id in &self.preferences.wallpapers.rotation.selected {
+            if (BACKGROUNDS.iter().any(|(key, _)| key == id) || self.wallpapers.contains(id))
+                && !pool.contains(id)
+            {
+                pool.push(id.clone());
+            }
+        }
+        pool
+    }
+    pub fn rotate_background(&mut self) -> Vec<Effect> {
+        let pool = self.rotation_pool();
+        let current = self.current_background().to_owned();
+        let Some(next) = self
+            .rotation
+            .choose(
+                &pool,
+                &current,
+                self.preferences.wallpapers.rotation.shuffle,
+            )
+            .map(str::to_owned)
+        else {
+            return vec![];
+        };
+        self.previous_background =
+            (!self.preferences.reduced_motion).then(|| (current, Instant::now()));
+        if crate::features::wallpapers::valid_id(&next) {
+            self.preferences.wallpapers.selected = Some(next);
+        } else {
+            self.preferences.wallpapers.selected = None;
+            self.preferences.background = next;
+        }
+        self.rotation.reset();
+        self.dirty = true;
+        vec![Effect::Save]
+    }
+    pub fn rotation_controls(&self) -> Vec<Target> {
+        let mut rows = vec![
+            Target::RotationMode,
+            Target::RotationShuffle,
+            Target::RotationNext,
+        ];
+        rows.extend(
+            BACKGROUNDS
+                .iter()
+                .map(|(id, _)| Target::RotationInclude((*id).into())),
+        );
+        rows.extend(
+            self.wallpapers
+                .photos
+                .iter()
+                .map(|photo| Target::RotationInclude(photo.id.clone())),
+        );
+        rows
+    }
+    pub fn current_background(&self) -> &str {
+        self.preferences
+            .wallpapers
+            .selected
+            .as_deref()
+            .filter(|id| self.wallpapers.contains(id))
+            .unwrap_or(&self.preferences.background)
+    }
+    pub fn photo_controls(&self) -> Vec<Target> {
+        let mut rows = vec![
+            Target::PhotoFolder,
+            Target::PhotoUrl,
+            Target::PhotoFit,
+            Target::PhotoImport,
+            Target::PhotoStock,
+            Target::PhotoClearSources,
+        ];
+        rows.extend((0..self.wallpapers.photos.len()).map(Target::Photo));
+        rows
+    }
+
+    pub fn confirm_control(&mut self, command: crate::features::controls::Command) {
+        if self.controls.loading || !self.webos || self.overlay.is_some() {
+            return;
+        }
+        self.overlay = Some(Overlay::ControlConfirm {
+            command,
+            restore: self.focus.clone(),
+        });
+        self.focus = Target::CloseDialog;
+        self.dirty = true;
+    }
+    pub fn control_request(&mut self, command: crate::features::controls::Command) -> Vec<Effect> {
+        if !self.webos {
+            return vec![];
+        }
+        self.controls
+            .request(command)
+            .map(|(generation, command)| {
+                vec![Effect::Control {
+                    generation,
+                    command,
+                }]
+            })
+            .unwrap_or_default()
+    }
+
     pub fn shortcut_down(
         &mut self,
         button: ShortcutButton,
@@ -537,6 +687,7 @@ impl State {
             || self.overlay.is_some()
             || self.moving.is_some()
             || self.launching
+            || self.display_trial
             || self.subpage == Some(Subpage::Shortcuts)
         {
             return None;
@@ -917,6 +1068,9 @@ impl State {
             Some(Subpage::Home) => Target::Setting(11),
             Some(Subpage::Appearance) => Target::Setting(12),
             Some(Subpage::Shortcuts) => Target::Setting(13),
+            Some(Subpage::Wallpapers) => Target::Setting(17),
+            Some(Subpage::Rotation) => Target::Setting(18),
+            Some(Subpage::Display) => Target::Setting(21),
             Some(Subpage::StartupFocus) => {
                 self.subpage = Some(Subpage::Home);
                 Target::HomeOption(HomeOption::StartupFocus)
@@ -946,6 +1100,48 @@ impl State {
     pub fn direction(&mut self, direction: Direction, controls: &[Control]) -> Vec<Effect> {
         self.pointer = false;
         self.dirty = true;
+        if self.display_trial {
+            self.focus = if self.focus == Target::DisplayKeep {
+                Target::DisplayHD
+            } else {
+                Target::DisplayKeep
+            };
+            return vec![];
+        }
+        if self.overlay.is_none()
+            && matches!(
+                self.subpage,
+                Some(Subpage::Wallpapers | Subpage::Rotation | Subpage::Display)
+            )
+        {
+            let rows = if self.subpage == Some(Subpage::Display) {
+                if self.display_trial {
+                    vec![Target::DisplayHD, Target::DisplayKeep]
+                } else {
+                    vec![Target::DisplayHD, Target::DisplayUHD]
+                }
+            } else if self.subpage == Some(Subpage::Rotation) {
+                self.rotation_controls()
+            } else {
+                self.photo_controls()
+            };
+            if self.focus == Target::Nav(2) && matches!(direction, Direction::Down) {
+                self.focus(rows[0].clone(), controls);
+                return vec![];
+            }
+            if let Some(index) = rows.iter().position(|r| r == &self.focus) {
+                match direction {
+                    Direction::Up if index == 0 => self.focus(Target::Nav(2), controls),
+                    Direction::Up => self.focus(rows[index - 1].clone(), controls),
+                    Direction::Down if index + 1 < rows.len() => {
+                        self.focus(rows[index + 1].clone(), controls)
+                    }
+                    Direction::Left => self.close_subpage(),
+                    _ => {}
+                }
+                return vec![];
+            }
+        }
         if self.overlay.is_none() && self.subpage == Some(Subpage::Shortcuts) {
             let rows = Self::shortcut_controls();
             if self.focus == Target::Nav(2) && matches!(direction, Direction::Down) {
@@ -1091,6 +1287,23 @@ impl State {
                     _ => {}
                 }
                 return vec![];
+            }
+        }
+        if self.overlay.is_none() && self.page == Page::Settings && self.subpage.is_none() {
+            match (&self.focus, direction) {
+                (Target::Setting(17), Direction::Up) => {
+                    self.focus(Target::Background(6), controls);
+                    return vec![];
+                }
+                (Target::Setting(17), Direction::Down) => {
+                    self.focus(Target::Setting(18), controls);
+                    return vec![];
+                }
+                (Target::Setting(18), Direction::Up) => {
+                    self.focus(Target::Setting(17), controls);
+                    return vec![];
+                }
+                _ => {}
             }
         }
         if self.recents_open() {
@@ -1277,7 +1490,7 @@ impl State {
             }
             if matches!(
                 self.focus,
-                Target::Setting(0 | 1 | 4 | 6 | 7 | 8 | 9 | 11 | 12 | 13)
+                Target::Setting(0 | 1 | 4 | 6 | 7 | 8 | 9 | 11..=21)
                     | Target::InputMode(_)
                     | Target::WeatherLocation
                     | Target::WeatherTemperature
@@ -1420,6 +1633,10 @@ impl State {
             }
             if let Target::Background(index) = self.focus {
                 match direction {
+                    Direction::Down if index >= 6 => {
+                        self.focus(Target::Setting(17), controls);
+                        return vec![];
+                    }
                     Direction::Right if index + 1 < BACKGROUNDS.len() => {
                         self.focus(Target::Background(index + 1), controls);
                         return vec![];
@@ -1561,6 +1778,18 @@ impl State {
 
     pub fn text(&mut self, text: &str) {
         if self.text_input_active() {
+            if matches!(
+                self.keyboard_field,
+                TextField::PhotoFolder | TextField::PhotoUrl
+            ) {
+                self.photo_draft.extend(
+                    text.chars()
+                        .filter(|c| !c.is_control())
+                        .take(2048usize.saturating_sub(self.photo_draft.chars().count())),
+                );
+                self.dirty = true;
+                return;
+            }
             if self.keyboard_field == TextField::Location {
                 let mut query = self.weather.query.clone();
                 query.extend(
@@ -1609,6 +1838,14 @@ impl State {
 
     pub fn delete(&mut self) {
         if self.text_input_active() {
+            if matches!(
+                self.keyboard_field,
+                TextField::PhotoFolder | TextField::PhotoUrl
+            ) {
+                self.photo_draft.pop();
+                self.dirty = true;
+                return;
+            }
             if self.keyboard_field == TextField::Location {
                 let mut query = self.weather.query.clone();
                 query.pop();
@@ -1644,6 +1881,21 @@ impl State {
     }
 
     fn commit_text_input(&mut self) -> Vec<Effect> {
+        if matches!(
+            self.keyboard_field,
+            TextField::PhotoFolder | TextField::PhotoUrl
+        ) {
+            let value = std::mem::take(&mut self.photo_draft).trim().to_owned();
+            if value.is_empty() {
+                return vec![];
+            }
+            if self.keyboard_field == TextField::PhotoFolder {
+                self.preferences.wallpapers.folder = value;
+            } else {
+                self.preferences.wallpapers.url = value;
+            }
+            return vec![Effect::Save];
+        }
         if self.keyboard_field == TextField::Name {
             let name = std::mem::take(&mut self.greeting_name_draft);
             let name = name.trim();
@@ -1714,11 +1966,15 @@ impl State {
             TextField::Location => &self.weather.query,
             TextField::Name => &self.greeting_name_draft,
             TextField::InputName => &self.input_name,
+            TextField::PhotoFolder | TextField::PhotoUrl => &self.photo_draft,
             TextField::Apps => &self.query,
         }
     }
     pub fn open_keyboard(&mut self, field: TextField) {
         self.keyboard_field = field;
+        if matches!(field, TextField::PhotoFolder | TextField::PhotoUrl) {
+            self.photo_draft.clear();
+        }
         if field == TextField::Name {
             // SDL-webOS cannot pre-fill the system keyboard's text model.
             self.greeting_name_draft.clear();
@@ -1737,6 +1993,8 @@ impl State {
                 TextField::Location => Target::WeatherQuery,
                 TextField::Name => Target::GreetingName,
                 TextField::InputName => Target::InputRename,
+                TextField::PhotoFolder => Target::PhotoFolder,
+                TextField::PhotoUrl => Target::PhotoUrl,
                 TextField::Apps => Target::Search,
             };
             self.panel_started = None;
@@ -1762,6 +2020,8 @@ impl State {
     }
     fn keyboard_return(&self) -> Target {
         match self.keyboard_field {
+            TextField::PhotoFolder => Target::PhotoFolder,
+            TextField::PhotoUrl => Target::PhotoUrl,
             TextField::Location => Target::WeatherSearch,
             TextField::Name => Target::GreetingName,
             TextField::InputName => Target::InputRename,
@@ -1770,6 +2030,134 @@ impl State {
     }
 
     pub fn activate(&mut self) -> Vec<Effect> {
+        if self.display_trial && !matches!(self.focus, Target::DisplayHD | Target::DisplayKeep) {
+            return vec![];
+        }
+        if self.subpage == Some(Subpage::Display) && self.overlay.is_none() {
+            match self.focus {
+                Target::DisplayHD => {
+                    self.display_change = Some(false);
+                    return vec![];
+                }
+                Target::DisplayUHD => {
+                    self.display_change = Some(true);
+                    return vec![];
+                }
+                Target::DisplayKeep if self.display_trial => {
+                    self.preferences.display.four_k = true;
+                    self.display_keep = true;
+                    return vec![Effect::Save];
+                }
+                _ => {}
+            }
+        }
+        if self.subpage == Some(Subpage::Rotation) && self.overlay.is_none() {
+            let preferences = &mut self.preferences.wallpapers.rotation;
+            match &self.focus {
+                Target::RotationMode => preferences.mode = preferences.mode.next(),
+                Target::RotationShuffle => preferences.shuffle = !preferences.shuffle,
+                Target::RotationNext => return self.rotate_background(),
+                Target::RotationInclude(id) => {
+                    if preferences.selected.contains(id) {
+                        preferences.selected.retain(|p| p != id);
+                    } else {
+                        preferences.selected.push(id.clone());
+                    }
+                }
+                _ => return vec![],
+            }
+            self.rotation.reset();
+            self.dirty = true;
+            return vec![Effect::Save];
+        }
+        if self.subpage == Some(Subpage::Wallpapers) && self.overlay.is_none() {
+            match self.focus {
+                Target::PhotoFolder => {
+                    self.open_keyboard(TextField::PhotoFolder);
+                    return vec![];
+                }
+                Target::PhotoUrl => {
+                    self.open_keyboard(TextField::PhotoUrl);
+                    return vec![];
+                }
+                Target::PhotoFit => {
+                    self.preferences.wallpapers.contain = !self.preferences.wallpapers.contain;
+                    self.dirty = true;
+                    return vec![Effect::Save];
+                }
+                Target::PhotoImport => {
+                    if !self.wallpapers.loading {
+                        self.wallpapers.pending = true;
+                    }
+                    self.dirty = true;
+                    return vec![];
+                }
+                Target::PhotoStock => {
+                    self.previous_background = (!self.preferences.reduced_motion)
+                        .then(|| (self.current_background().to_owned(), Instant::now()));
+                    self.preferences.wallpapers.selected = None;
+                    self.dirty = true;
+                    return vec![Effect::Save];
+                }
+                Target::PhotoClearSources => {
+                    self.preferences.wallpapers.folder.clear();
+                    self.preferences.wallpapers.url.clear();
+                    self.dirty = true;
+                    return vec![Effect::Save];
+                }
+                Target::Photo(index) => {
+                    if let Some(photo) = self.wallpapers.photos.get(index) {
+                        let id = photo.id.clone();
+                        if self.current_background() == id {
+                            return vec![];
+                        }
+                        self.previous_background = (!self.preferences.reduced_motion)
+                            .then(|| (self.current_background().to_owned(), Instant::now()));
+                        self.preferences.wallpapers.selected = Some(id);
+                        self.dirty = true;
+                        return vec![Effect::Save];
+                    }
+                    return vec![];
+                }
+                _ => {}
+            }
+        }
+        if matches!(self.focus, Target::ControlApply | Target::ControlRestore) {
+            if let Some(Overlay::ControlConfirm { mut command, .. }) = self.overlay.clone() {
+                if self.focus == Target::ControlRestore {
+                    if let crate::features::controls::Command::PrivacySet { index, .. } = command {
+                        command = crate::features::controls::Command::PrivacyRestore { index };
+                    } else {
+                        return vec![];
+                    }
+                }
+                self.back();
+                return self.control_request(command);
+            }
+            return vec![];
+        }
+        if let Target::PrivacyField(index @ 0..=1) = self.focus {
+            if self.subpage == Some(Subpage::Privacy)
+                && self.overlay.is_none()
+                && self.webos
+                && !self.privacy.loading
+                && !self.controls.loading
+            {
+                use crate::features::privacy::Observation;
+                if let Some(value @ (Observation::On | Observation::Off)) =
+                    self.privacy.report.as_ref().map(|r| r.values[index])
+                {
+                    let expected = value == Observation::On;
+                    self.confirm_control(crate::features::controls::Command::PrivacySet {
+                        index,
+                        expected,
+                        value: !expected,
+                    });
+                }
+            }
+            return vec![];
+        }
+
         if self.recents_open() {
             use crate::recents::Command;
             return match self.focus.clone() {
@@ -2065,18 +2453,58 @@ impl State {
             }
             Target::Setting(index) => {
                 match index {
+                    21 => {
+                        self.subpage = Some(Subpage::Display);
+                        self.focus = Target::DisplayHD;
+                        self.scroll = 0.;
+                        return vec![];
+                    }
+                    19 => {
+                        self.preferences.screensaver.timeout =
+                            self.preferences.screensaver.timeout.next();
+                        return vec![Effect::Save];
+                    }
+                    20 => {
+                        self.preferences.screensaver.photos = !self.preferences.screensaver.photos;
+                        return vec![Effect::Save];
+                    }
+                    18 => {
+                        self.subpage = Some(Subpage::Rotation);
+                        self.focus = Target::RotationMode;
+                        self.scroll = 0.;
+                        return vec![];
+                    }
+                    17 => {
+                        self.subpage = Some(Subpage::Wallpapers);
+                        self.focus = Target::PhotoFolder;
+                        self.scroll = 0.;
+                        return vec![];
+                    }
+                    14 => {
+                        return self
+                            .control_request(crate::features::controls::Command::BlockerStatus);
+                    }
+                    15 | 16 => {
+                        self.confirm_control(if index == 15 {
+                            crate::features::controls::Command::BlockerEnable
+                        } else {
+                            crate::features::controls::Command::BlockerDisable
+                        });
+                        return vec![];
+                    }
                     9 => {
+                        let mut controls =
+                            self.control_request(crate::features::controls::Command::BlockerStatus);
                         self.subpage = Some(Subpage::Privacy);
                         self.focus = Target::PrivacyRefresh;
                         self.scroll = 0.;
                         if !self.preferences.reduced_motion {
                             self.panel_started = Some(Instant::now());
                         }
-                        return self
-                            .privacy
-                            .request()
-                            .map(|generation| vec![Effect::Privacy { generation }])
-                            .unwrap_or_default();
+                        if let Some(generation) = self.privacy.request() {
+                            controls.push(Effect::Privacy { generation });
+                        }
+                        return controls;
                     }
                     8 => {
                         self.subpage = Some(Subpage::SystemInfo);
@@ -2175,11 +2603,10 @@ impl State {
                 return vec![Effect::Save];
             }
             Target::Background(index) => {
-                if !self.preferences.reduced_motion
-                    && self.preferences.background != BACKGROUNDS[index].0
-                {
-                    self.previous_background =
-                        Some((self.preferences.background.clone(), Instant::now()));
+                let previous = self.current_background().to_owned();
+                self.preferences.wallpapers.selected = None;
+                if !self.preferences.reduced_motion && previous != BACKGROUNDS[index].0 {
+                    self.previous_background = Some((previous, Instant::now()));
                 }
                 self.preferences.background = BACKGROUNDS[index].0.into();
                 return vec![Effect::Save];
@@ -2232,7 +2659,10 @@ impl State {
                         }
                     }
                     Some(
-                        Subpage::Shortcuts
+                        Subpage::Display
+                        | Subpage::Rotation
+                        | Subpage::Wallpapers
+                        | Subpage::Shortcuts
                         | Subpage::Appearance
                         | Subpage::Home
                         | Subpage::StartupFocus
@@ -2365,6 +2795,7 @@ impl State {
                 "Space" => self.text(" "),
                 "Delete" => self.delete(),
                 "Clear" => match self.keyboard_field {
+                    TextField::PhotoFolder | TextField::PhotoUrl => self.photo_draft.clear(),
                     TextField::Location => self.weather.edit(String::new()),
                     TextField::Name => self.greeting_name_draft.clear(),
                     TextField::InputName => self.input_name.clear(),
@@ -2384,6 +2815,10 @@ impl State {
     }
 
     pub fn back(&mut self) -> Vec<Effect> {
+        if self.display_trial {
+            self.display_change = Some(false);
+            return vec![];
+        }
         self.pointer = false;
         self.dirty = true;
         if self.moving.take().is_some() {
@@ -2414,7 +2849,8 @@ impl State {
             }
             if let Overlay::Options { restore, .. }
             | Overlay::Recents { restore }
-            | Overlay::RemovalStatus { restore } = overlay
+            | Overlay::RemovalStatus { restore }
+            | Overlay::ControlConfirm { restore, .. } = overlay
             {
                 self.focus = restore;
                 self.recents.pending = None;

@@ -21,6 +21,9 @@ use render::{damage, diagnostics, egl_damage, font, raster, renderer, text_rende
 use ui::{i18n, view};
 
 fn main() {
+    if features::display::helper() {
+        return;
+    }
     // The clock worker starts this fresh process solely to resolve local time.
     // Handle it before SDL, Luna, storage, redirects or any worker is initialized.
     if std::env::args().len() == 2

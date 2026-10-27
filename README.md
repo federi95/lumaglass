@@ -23,12 +23,17 @@ Settings → System → TV information adds read-only device information and Hom
 replacement observations. Preference writes run on a worker with durable atomic
 replacement; the clock refreshes its timezone offset and SDK archives are SHA-256 checked.
 Settings → System → Privacy reads Live Plus, limit-ad-tracking and selected
-consent records without changing them. Unknown and denied values stay explicit.
+consent records. Consent records remain read-only; supported boolean setting changes
+use explicit confirmation and verification. Unknown and denied values stay explicit.
 App options add a confirmed uninstall path for explicitly removable non-system
 apps, with protected identities and inventory verification. Hide in Lumaglass
 remains a separate local preference. TV behavior still needs hardware verification.
-Privacy changes, system-app debloating, ad/telemetry blocking and custom
-screensavers are **planned**, not implemented yet.
+Confirmed Live Plus/limit-ad-tracking changes and an optional reversible LG hosts
+blocker are available through System settings. Personal local/HTTPS wallpapers,
+rotation and an app-local clock/photo screensaver are configurable. Render
+resolution includes an experimental guarded 4K trial. Consent writes, system-wide
+app hiding and replacement of LG's system screensaver remain separate future
+integrations. Hardware verification is pending; see the [weekend checklist](docs/manual-verification.md).
 See the [architecture](docs/architecture.md) for the current implementation.
 
 The source version remains 2.9.0 until the automated Changesets version PR.

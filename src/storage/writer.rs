@@ -19,6 +19,8 @@ struct Pending {
 }
 
 pub struct Saved {
+    pub personal_background: Option<String>,
+    pub display_four_k: bool,
     pub background: String,
     pub result: Result<(), String>,
     generation: u64,
@@ -57,6 +59,8 @@ impl Writer {
                         .clone()
                         .map(|()| Some(snapshot.preferences.background.clone()));
                     let _ = sender.send(Saved {
+                        personal_background: snapshot.preferences.wallpapers.selected,
+                        display_four_k: snapshot.preferences.display.four_k,
                         generation: snapshot.generation,
                         background: snapshot.preferences.background,
                         result,

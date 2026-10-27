@@ -7,6 +7,7 @@ use crate::{
 use serde_json::json;
 use std::{collections::BTreeMap, path::PathBuf};
 
+mod milestone_tests;
 mod recent_tests;
 mod shortcut_tests;
 

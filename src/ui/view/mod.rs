@@ -320,37 +320,53 @@ pub fn scene_with_pill(
     let mut out = Scene::new(state.preferences.appearance.accent);
     let blur_suffix = state.preferences.appearance.blur.suffix();
     if let Some((previous, start)) = &state.previous_background {
-        out.image(
-            assets.path(format!("wallpapers/{previous}{blur_suffix}.jpg")),
-            Rect::new(0., 0., 1920., 1080.),
-            0.,
-            false,
+        paint_wallpaper(&mut out, state, assets, previous, blur_suffix, 1.);
+        paint_wallpaper(
+            &mut out,
+            state,
+            assets,
+            state.current_background(),
+            blur_suffix,
+            (start.elapsed().as_secs_f32() / 0.4).min(1.),
         );
-        let alpha = (start.elapsed().as_secs_f32() / 0.4).min(1.);
-        out.draw.push(Draw::TintedImage(
-            assets.path(format!(
-                "wallpapers/{}{blur_suffix}.jpg",
-                state.preferences.background
-            )),
-            Rect::new(0., 0., 1920., 1080.),
-            0.,
-            false,
-            [1., 1., 1., alpha],
-        ));
     } else {
-        out.image(
-            assets.path(format!(
-                "wallpapers/{}{blur_suffix}.jpg",
-                state.preferences.background
-            )),
-            Rect::new(0., 0., 1920., 1080.),
-            0.,
-            false,
+        paint_wallpaper(
+            &mut out,
+            state,
+            assets,
+            state.current_background(),
+            blur_suffix,
+            1.,
         );
     }
     let dimming = state.preferences.appearance.dimming.alpha();
     if dimming > 0. {
         out.shape(Rect::new(0., 0., 1920., 1080.), 0., c(0, dimming));
+    }
+    if state.screensaver.active {
+        if state.preferences.screensaver.photos && !state.wallpapers.photos.is_empty() {
+            let photo = &state.wallpapers.photos
+                [(state.screensaver.elapsed() / 30) as usize % state.wallpapers.photos.len()];
+            paint_wallpaper(&mut out, state, assets, &photo.id, "", 1.);
+            out.shape(Rect::new(0., 0., 1920., 1080.), 0., c(0, 0.72));
+        } else {
+            out.shape(Rect::new(0., 0., 1920., 1080.), 0., c(0, 1.));
+        }
+        let step = state.screensaver.elapsed() / 15;
+        let x = 120. + ((step * 317) % 1240) as f32;
+        let y = 120. + ((step * 193) % 650) as f32;
+        out.text(
+            state
+                .preferences
+                .language
+                .clock(now, state.preferences.hour_24, false),
+            Rect::new(x, y, 440., 130.),
+            text(76., 400, 0.),
+            c(0xcccccc, 0.7),
+            true,
+        );
+        out.controls.clear();
+        return out;
     }
     let content_start = out.draw.len();
     if recents_replaces_page(state) {
@@ -425,7 +441,8 @@ pub fn scene_with_pill(
         overlay @ (Overlay::Options { .. }
         | Overlay::Keyboard
         | Overlay::RemovalConfirm { .. }
-        | Overlay::RemovalStatus { .. }),
+        | Overlay::RemovalStatus { .. }
+        | Overlay::ControlConfirm { .. }),
     ) = &state.overlay
     {
         out.controls.clear();
@@ -443,6 +460,7 @@ pub fn scene_with_pill(
                     removal_dialog(&mut out, state, &target.id, &state.management.title, false);
                 }
             }
+            Overlay::ControlConfirm { command, .. } => control_dialog(&mut out, state, *command),
             Overlay::Keyboard => keyboard(&mut out, state, assets),
             Overlay::SystemKeyboard | Overlay::Recents { .. } => {}
         }
@@ -1871,6 +1889,50 @@ fn location_settings(out: &mut Scene, state: &State, assets: &Assets) {
     }
 }
 
+fn paint_wallpaper(
+    out: &mut Scene,
+    state: &State,
+    assets: &Assets,
+    id: &str,
+    suffix: &str,
+    alpha: f32,
+) {
+    let rect = Rect::new(0., 0., 1920., 1080.);
+    let tint = [1., 1., 1., alpha];
+    if crate::features::wallpapers::valid_id(id) {
+        let key = format!("{id}{suffix}");
+        let image = state
+            .wallpapers
+            .decoded
+            .get(&key)
+            .and_then(Option::as_ref)
+            .or_else(|| {
+                state
+                    .wallpapers
+                    .photos
+                    .iter()
+                    .find(|p| p.id == id)
+                    .and_then(|p| p.preview.as_ref())
+            });
+        if let Some(image) = image {
+            out.draw.push(Draw::AppImage(image.clone(), rect, tint));
+            return;
+        }
+    }
+    let fallback = if crate::features::wallpapers::valid_id(id) {
+        &state.preferences.background
+    } else {
+        id
+    };
+    let path = assets.path(format!("wallpapers/{fallback}{suffix}.jpg"));
+    if alpha >= 1. {
+        out.image(path, rect, 0., false);
+    } else {
+        out.draw
+            .push(Draw::TintedImage(path, rect, 0., false, tint));
+    }
+}
+
 fn settings(out: &mut Scene, state: &State, assets: &Assets) {
     let language = state.preferences.language;
     let s = state.scroll;
@@ -1908,6 +1970,9 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 Some(Subpage::Greeting) => language.t("greeting"),
                 Some(Subpage::Home) => language.t("homeLabel"),
                 Some(Subpage::Appearance) => language.t("appearance"),
+                Some(Subpage::Display) => language.t("displayResolution"),
+                Some(Subpage::Rotation) => language.t("wallpaperRotation"),
+                Some(Subpage::Wallpapers) => language.t("myImages"),
                 Some(Subpage::Shortcuts) => language.t("remoteShortcuts"),
                 Some(Subpage::StartupFocus) => language.t("homeStartupFocus"),
                 Some(Subpage::Clock) => language.t("clock"),
@@ -1994,6 +2059,9 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             Subpage::WeatherLocation
                 | Subpage::Home
                 | Subpage::Appearance
+                | Subpage::Wallpapers
+                | Subpage::Rotation
+                | Subpage::Display
                 | Subpage::Shortcuts
                 | Subpage::StartupFocus
                 | Subpage::Greeting
@@ -2007,6 +2075,9 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 Subpage::Greeting => greeting_settings(out, state, assets),
                 Subpage::Home => home_settings(out, state, assets),
                 Subpage::Appearance => appearance_settings(out, state, assets),
+                Subpage::Display => display_settings(out, state, assets),
+                Subpage::Rotation => rotation_settings(out, state, assets),
+                Subpage::Wallpapers => photo_settings(out, state, assets),
                 Subpage::Shortcuts => shortcut_settings(out, state, assets),
                 Subpage::StartupFocus => startup_focus_settings(out, state, assets),
                 Subpage::AppNames => app_name_settings(out, state, assets),
@@ -2069,6 +2140,9 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             Subpage::WeatherLocation
             | Subpage::Home
             | Subpage::Appearance
+            | Subpage::Wallpapers
+            | Subpage::Rotation
+            | Subpage::Display
             | Subpage::Shortcuts
             | Subpage::StartupFocus
             | Subpage::Greeting
@@ -2169,6 +2243,24 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 (11, "homePersonalization", "settings", None, true),
                 (12, "appearance", "grid", None, true),
                 (13, "remoteShortcuts", "settings", None, true),
+                (
+                    19,
+                    "saverTimeout",
+                    "clock",
+                    Some(language.t(state.preferences.screensaver.timeout.key())),
+                    false,
+                ),
+                (
+                    20,
+                    "saverStyle",
+                    "image",
+                    Some(language.t(if state.preferences.screensaver.photos {
+                        "saverPhotos"
+                    } else {
+                        "clock"
+                    })),
+                    false,
+                ),
             ]
             .into_iter()
             .enumerate()
@@ -2206,7 +2298,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                     false,
                 );
                 out.border(rect, 16., 1., c(0xffffff, 0.086));
-                if state.preferences.background == *id {
+                if state.current_background() == *id {
                     out.border(rect.inset(-2.), 18., 2., out.accent_color(c(0xdedede, 1.)));
                     out.border(
                         rect.inset(-7.),
@@ -2234,6 +2326,36 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                     true,
                 );
             }
+            row(
+                out,
+                state,
+                assets,
+                Row {
+                    target: Target::Setting(17),
+                    rect: Rect::new(640., 950. - s, 1120., 72.),
+                    title: language.t("myImages"),
+                    icon: Some("image"),
+                    value: None,
+                    description: None,
+                    selected: false,
+                    chevron: true,
+                },
+            );
+            row(
+                out,
+                state,
+                assets,
+                Row {
+                    target: Target::Setting(18),
+                    rect: Rect::new(640., 1034. - s, 1120., 72.),
+                    title: language.t("wallpaperRotation"),
+                    icon: Some("refresh"),
+                    value: None,
+                    description: None,
+                    selected: false,
+                    chevron: true,
+                },
+            );
         }
         WEATHER_SECTION => weather_settings(out, state, assets),
         SYSTEM_SECTION => {
@@ -2257,7 +2379,26 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                     true,
                 ),
                 (8, language.t("tvInformation"), "tv", None, true),
+                (21, language.t("displayResolution"), "tv", None, true),
                 (9, language.t("privacy"), "settings", None, true),
+                (
+                    14,
+                    language.t("blockerRefresh"),
+                    "refresh",
+                    Some(language.t(if state.controls.loading {
+                        "infoReading"
+                    } else {
+                        match state.controls.report.blocker.as_str() {
+                            "on" => "stateOn",
+                            "off" => "stateOff",
+                            "conflict" => "blockerConflict",
+                            _ => "infoUnknown",
+                        }
+                    })),
+                    false,
+                ),
+                (15, language.t("blockerEnable"), "settings", None, true),
+                (16, language.t("blockerDisable"), "refresh", None, true),
                 (5, language.t("quitApp"), "power", None, false),
             ]
             .into_iter()
@@ -2367,7 +2508,7 @@ fn privacy_information(out: &mut Scene, state: &State, assets: &Assets) {
             } else if !state.webos {
                 "infoPreview"
             } else {
-                "privacyReadOnly"
+                "controlPrivacyHint"
             })),
             selected: false,
             chevron: false,
@@ -2501,6 +2642,235 @@ fn system_information(out: &mut Scene, state: &State, assets: &Assets) {
                 chevron: false,
             },
         );
+    }
+}
+
+fn display_settings(out: &mut Scene, state: &State, assets: &Assets) {
+    let language = state.preferences.language;
+    out.text(
+        &state.display_report,
+        Rect::new(664., 164.8 - state.scroll, 1072., 110.),
+        text(18., 400, 0.).leading(1.5),
+        WHITE,
+        false,
+    );
+    out.text(
+        language.t(if state.display_trial {
+            "displayConfirmHint"
+        } else {
+            "displayExperimentalHint"
+        }),
+        Rect::new(664., 282. - state.scroll, 1072., 120.),
+        text(19., 400, 0.).leading(1.5),
+        WHITE,
+        false,
+    );
+    let rows = if state.display_trial {
+        vec![
+            (Target::DisplayHD, "displayHD"),
+            (Target::DisplayKeep, "displayKeep"),
+        ]
+    } else {
+        vec![
+            (Target::DisplayHD, "displayHD"),
+            (Target::DisplayUHD, "displayUHD"),
+        ]
+    };
+    for (index, (target, key)) in rows.into_iter().enumerate() {
+        row(
+            out,
+            state,
+            assets,
+            Row {
+                target,
+                rect: Rect::new(640., 430. + index as f32 * 84. - state.scroll, 1120., 72.),
+                title: language.t(key),
+                icon: None,
+                value: None,
+                description: None,
+                selected: false,
+                chevron: false,
+            },
+        );
+    }
+}
+
+fn rotation_settings(out: &mut Scene, state: &State, assets: &Assets) {
+    let language = state.preferences.language;
+    for (index, target) in state.rotation_controls().into_iter().enumerate() {
+        let (title, value, selected) = match &target {
+            Target::RotationMode => (
+                language.t("wallpaperRotation"),
+                Some(language.t(state.preferences.wallpapers.rotation.mode.key())),
+                false,
+            ),
+            Target::RotationShuffle => (
+                language.t("rotationShuffle"),
+                Some(
+                    language.t(if state.preferences.wallpapers.rotation.shuffle {
+                        "stateOn"
+                    } else {
+                        "stateOff"
+                    }),
+                ),
+                false,
+            ),
+            Target::RotationNext => (language.t("rotationNext"), None, false),
+            Target::RotationInclude(id) => (
+                state
+                    .wallpapers
+                    .photos
+                    .iter()
+                    .find(|p| &p.id == id)
+                    .map_or_else(|| language.wallpaper(id), |p| p.title.as_str()),
+                None,
+                state.preferences.wallpapers.rotation.selected.contains(id),
+            ),
+            _ => unreachable!(),
+        };
+        row(
+            out,
+            state,
+            assets,
+            Row {
+                target: target.clone(),
+                rect: Rect::new(640., 164.8 + index as f32 * 84. - state.scroll, 1120., 72.),
+                title,
+                icon: None,
+                value,
+                description: None,
+                selected,
+                chevron: false,
+            },
+        );
+    }
+}
+
+fn photo_settings(out: &mut Scene, state: &State, assets: &Assets) {
+    let language = state.preferences.language;
+    let entries = [
+        (
+            Target::PhotoFolder,
+            "photoFolder",
+            Some(if state.preferences.wallpapers.folder.is_empty() {
+                language.t("stateOff")
+            } else {
+                language.t("photoConfigured")
+            }),
+        ),
+        (
+            Target::PhotoUrl,
+            "photoUrl",
+            Some(if state.preferences.wallpapers.url.is_empty() {
+                language.t("stateOff")
+            } else {
+                language.t("photoConfigured")
+            }),
+        ),
+        (
+            Target::PhotoFit,
+            "photoFit",
+            Some(language.t(if state.preferences.wallpapers.contain {
+                "photoContain"
+            } else {
+                "photoCover"
+            })),
+        ),
+        (
+            Target::PhotoImport,
+            "photoImport",
+            state.wallpapers.loading.then(|| language.t("infoReading")),
+        ),
+        (Target::PhotoStock, "photoStock", None),
+        (Target::PhotoClearSources, "photoClearSources", None),
+    ];
+    let mut y = 164.8 - state.scroll;
+    for (target, key, value) in entries {
+        row(
+            out,
+            state,
+            assets,
+            Row {
+                target,
+                rect: Rect::new(640., y, 1120., 72.),
+                title: language.t(key),
+                icon: None,
+                value,
+                description: None,
+                selected: false,
+                chevron: false,
+            },
+        );
+        y += 84.;
+    }
+    for (index, photo) in state.wallpapers.photos.iter().enumerate() {
+        row(
+            out,
+            state,
+            assets,
+            Row {
+                target: Target::Photo(index),
+                rect: Rect::new(640., y, 1120., 90.7),
+                title: &photo.title,
+                icon: None,
+                value: None,
+                description: None,
+                selected: state.preferences.wallpapers.selected.as_deref() == Some(&photo.id),
+                chevron: false,
+            },
+        );
+        if let Some(image) = &photo.preview {
+            out.draw.push(Draw::AppImage(
+                image.clone(),
+                Rect::new(1480., y + 8., 132., 74.25),
+                WHITE,
+            ));
+        }
+        y += 102.7;
+    }
+}
+
+fn control_dialog(out: &mut Scene, state: &State, command: crate::features::controls::Command) {
+    let language = state.preferences.language;
+    let panel = Rect::new(550., 280., 820., 520.);
+    out.modal = Some(panel);
+    out.shape(panel, 24., c(0x24282d, 1.));
+    let mut title = language.t(command.key()).to_owned();
+    if let crate::features::controls::Command::PrivacySet { index, value, .. } = command {
+        title = format!(
+            "{}: {}",
+            language.t(crate::features::privacy::FIELDS[index].1),
+            language.t(if value { "stateOn" } else { "stateOff" })
+        );
+    }
+    out.text(
+        title,
+        Rect::new(590., 320., 740., 90.),
+        text(26., 550, 0.).leading(1.4),
+        WHITE,
+        false,
+    );
+    out.text(
+        language.t("controlConfirmHint"),
+        Rect::new(590., 425., 740., 160.),
+        text(19., 400, 0.).leading(1.5),
+        WHITE,
+        false,
+    );
+    let mut buttons = vec![
+        (Target::CloseDialog, "cancel"),
+        (Target::ControlApply, "controlApply"),
+    ];
+    if let crate::features::controls::Command::PrivacySet { index, .. } = command
+        && state.controls.report.restore[index]
+    {
+        buttons.push((Target::ControlRestore, "controlRestore"));
+    }
+    for (index, (target, key)) in buttons.into_iter().enumerate() {
+        let rect = Rect::new(590., 610. + index as f32 * 52., 740., 44.);
+        out.pill(rect, state.focus == target, false);
+        out.text(language.t(key), rect, text(18., 500, 0.), WHITE, true);
+        out.control(target, rect, false);
     }
 }
 
@@ -3397,6 +3767,8 @@ fn keyboard(out: &mut Scene, state: &State, assets: &Assets) {
                 },
             ),
             TextField::InputName => language.t("inputName"),
+            TextField::PhotoFolder => language.t("photoFolder"),
+            TextField::PhotoUrl => language.t("photoUrl"),
             TextField::Apps => language.t("findApp"),
         },
         Rect::new(389., 324., 1000., 44.),
