@@ -401,7 +401,7 @@
     "es": "Mostrar en aplicaciones",
     "zh": "在应用页显示",
     "pt": "Mostrar em apps",
-    "it": "Mostra in App",
+    "it": "Mostra in app",
     "ru": "Показывать в приложениях",
     "pl": "Pokazuj w aplikacjach",
     "fr": "Afficher dans applications"
@@ -1358,7 +1358,7 @@
     "es": "{app} oculta. Puedes recuperarla en aplicaciones.",
     "zh": "已隐藏 {app}。你可以在“应用”中恢复。",
     "pt": "{app} oculto. Você pode restaurá-lo em apps.",
-    "it": "{app} nascosta. Puoi ripristinarla da App.",
+    "it": "{app} nascosta. Puoi ripristinarla da app.",
     "ru": "{app}: скрыто. Вернуть можно в разделе «Приложения».",
     "pl": "Ukryto {app}. Możesz ją przywrócić w aplikacjach.",
     "fr": "Application {app} masquée. Vous pouvez la restaurer depuis applications."
@@ -1969,12 +1969,12 @@
     "fr": "Lumaglass actif"
   },
   "infoHomeOther": {
-    "en": "Another Home replacement",
+    "en": "Another home replacement",
     "de": "Anderer Home-Ersatz",
     "zh": "其他主屏幕替换",
     "es": "Otra pantalla de inicio",
     "pt": "Outra tela inicial",
-    "it": "Un’altra Home sostitutiva",
+    "it": "Un’altra home sostitutiva",
     "ru": "Другой главный экран",
     "pl": "Inny ekran główny",
     "fr": "Autre remplacement de l’accueil"
