@@ -285,7 +285,7 @@ try {
   assert.deepEqual(clockFocus.focus, { Choice: 1 });
   const system = await scenario(
     'system-settings',
-    'settings,down,down,down,down,down,right,down,down,down,down',
+    'settings,down,down,down,down,down,right,down,down,down,down,down,down,down,down',
   );
   assert.deepEqual(system.focus, { Setting: 5 });
   assert.ok(system.ui_text.includes('Refresh apps & inputs'));
@@ -293,6 +293,10 @@ try {
   assert.ok(system.ui_text.includes('Text rendering'));
   assert.ok(system.ui_text.includes('TV information'));
   assert.ok(system.ui_text.includes('Privacy'));
+  assert.ok(system.ui_text.includes('Render resolution'));
+  assert.ok(system.ui_text.includes('LG ads & telemetry blocker: refresh status'));
+  assert.ok(system.ui_text.includes('Enable LG ads & telemetry blocker'));
+  assert.ok(system.ui_text.includes('Disable LG blocker and restore hosts'));
   const textOptions = 'settings,down,down,down,down,down,right,down,enter';
   const textRendering = await scenario('text-rendering-options', textOptions);
   assert.equal(textRendering.subpage, 'TextRendering');
