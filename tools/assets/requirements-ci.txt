@@ -1,0 +1,2 @@
+# Match the FontTools version in pixi.lock without Ubuntu's scientific extras.
+fonttools[woff]==4.67.0

@@ -36,11 +36,19 @@ jobs:
         with:
           targets: armv7-unknown-linux-gnueabi
       - name: Install asset dependencies
+        timeout-minutes: 10
         run: |
           apt_options=(-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
           sudo apt-get "${apt_options[@]}" update
           sudo apt-get "${apt_options[@]}" install -y --no-install-recommends \
-            libsdl2-dev pkg-config woff2 python3-fonttools
+            libsdl2-dev pkg-config woff2 python3-venv
+      - name: Prepare isolated font tools
+        timeout-minutes: 5
+        run: |
+          python3 -m venv .build/fonttools-venv
+          .build/fonttools-venv/bin/python -m pip install --disable-pip-version-check \
+            --only-binary=:all: --timeout 30 --retries 2 -r tools/assets/requirements-ci.txt
+          echo "$GITHUB_WORKSPACE/.build/fonttools-venv/bin" >> "$GITHUB_PATH"
       - name: Generate native assets
         run: pnpm assets
       - name: Set up the webOS SDK
