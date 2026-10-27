@@ -83,7 +83,7 @@ test('invalid release versions and missing packages fail before writing metadata
 test('the real release command combines changesets and synchronizes every file', async (t) => {
   const directory = await fixture(t, '1.2.3');
   await syncVersions(directory);
-  await fs.mkdir(path.join(directory, 'tools'));
+  await fs.mkdir(path.join(directory, 'tools/release'), { recursive: true });
   await fs.mkdir(path.join(directory, '.changeset'));
   for (const filename of [
     'tools/release/sync-version.mjs',
