@@ -289,3 +289,72 @@ fn favorites_dock_centers_short_rows_and_reveals_scrolled_cards_with_matching_hi
     let (left, right) = state.home_strip();
     assert!(focused.rect.x >= left - 0.1 && focused.rect.x + focused.rect.w <= right + 0.1);
 }
+
+#[test]
+fn dock_captions_are_hidden_without_losing_the_saved_names_preference() {
+    use crate::{features::home::Setting as HomeSetting, state::Subpage};
+    let mut state = ready();
+    state.preferences.show_home_names = true;
+    state.preferences.home.favorites_dock = true;
+    assert!(!state.home_names_visible());
+    assert!(state.preferences.show_home_names);
+    for target in [
+        Target::AppNamesHome,
+        Target::HomeOption(HomeSetting::FavoriteNames),
+    ] {
+        assert!(!state.target_enabled(&target));
+        state.focus = target;
+        assert!(state.activate().is_empty());
+        assert!(state.preferences.show_home_names);
+    }
+    state.open(2);
+    state.subpage = Some(Subpage::Home);
+    state.focus = Target::HomeOption(HomeSetting::TwoRows);
+    assert_eq!(state.activate(), vec![Effect::Save]);
+    assert!(!state.dock_enabled());
+    assert!(state.home_names_visible());
+    state.focus = Target::HomeOption(HomeSetting::FavoritesDock);
+    assert!(!state.target_enabled(&state.focus));
+    assert!(state.activate().is_empty());
+    assert!(state.preferences.two_row_home_favorites);
+    state.focus = Target::HomeOption(HomeSetting::TwoRows);
+    state.activate();
+    state.focus = Target::HomeOption(HomeSetting::FavoriteNames);
+    assert!(state.target_enabled(&state.focus));
+    assert_eq!(state.activate(), vec![Effect::Save]);
+    assert!(!state.preferences.show_home_names);
+}
+
+#[test]
+fn xbox_preset_keeps_the_discovered_input_identity_and_only_saves_local_preferences() {
+    let mut state = ready();
+    state.open(2);
+    let id = "com.webos.app.hdmi3".to_owned();
+    let original = state
+        .inventory
+        .inputs
+        .iter()
+        .find(|input| input.id == id)
+        .unwrap()
+        .clone();
+    state.subpage = Some(crate::state::Subpage::Input(id.clone()));
+    state.focus = Target::InputRename;
+    state.direction(Direction::Down, &controls(&state));
+    assert_eq!(state.focus, Target::InputXboxPreset);
+    assert_eq!(state.activate(), vec![Effect::Save]);
+    let input = state
+        .inventory
+        .inputs
+        .iter()
+        .find(|input| input.id == id)
+        .unwrap();
+    assert_eq!(input.title, original.title);
+    assert_eq!(input.port, original.port);
+    assert_eq!(input.connected, original.connected);
+    assert_eq!(state.preferences.input_title(input), "Xbox Series X");
+    assert!(state.activate().is_empty());
+    state.direction(Direction::Up, &controls(&state));
+    assert_eq!(state.focus, Target::InputNameReset);
+    assert_eq!(state.activate(), vec![Effect::Save]);
+    assert_eq!(state.preferences.input_title(&original), original.title);
+}
