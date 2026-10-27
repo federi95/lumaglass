@@ -183,3 +183,15 @@ pnpm dev --script recents,await-recents
 `hold-back` is also a scripted opening action. Desktop smoke scenarios render normal, close-one,
 empty, launch, pointer and Home Back flows; unit tests cover hold timing, cancelled
 presses, stale responses, failures, navigation, reduced motion, reversible crossfades and consistent card artwork.
+
+### Control center and value sliders
+
+The header avatar opens the [control center](control-center.md). From the navigation
+bar use Up, then OK; desktop preview also supports F6. An optional color-button
+binding provides another entry while Lumaglass is active. Back restores the parent
+focus. Clock/avatar grouping and left/right placement are configured in
+**Settings → General → Clock**.
+
+Numeric and ordered preferences use labelled discrete sliders: Left/Right adjusts,
+Up/Down changes rows, and the pointer can click or drag the track. OK cycles local
+values. The native LG sleep timer instead keeps a draft until OK and confirmation.

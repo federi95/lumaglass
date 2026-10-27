@@ -120,3 +120,11 @@ small/large webOS installation icons.
 Weather data: [Open-Meteo](https://open-meteo.com/), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 The provided Apple design guidance informed focus, motion and materials. This project is not affiliated with Apple or LG.
+
+### Control center symbols
+
+`assets/ui-icons/user.svg`, `wifi.svg` and `volume.svg` are original Lumaglass
+geometric symbols under the repository's MIT license. They are not extracted
+from Apple SF Symbols or tvOS. The [control center guide](control-center.md)
+records design and protocol references; Apple screenshots and avatars are not
+included in the package.

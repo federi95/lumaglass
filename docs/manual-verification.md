@@ -24,3 +24,19 @@ For the planned weekend session, record the exact commit and package checksum:
 
 The final release audit, release readiness decision and 3.0.0 publication remain
 milestone 8. No item above is marked passed by compilation or CI alone.
+
+## Control center and header
+
+On QNED756RA/webOS 25, verify avatar, Up/OK, optional color binding and Back focus
+restoration. Check separate/combined clock layouts on both sides, 12/24-hour time,
+seconds and empty/long greeting names. Confirm that local sliders work with remote
+steps and Magic Remote drag without activating another control on release.
+
+Check network observations without connecting/disconnecting anything. Verify mute
+and unmute with readback, including external audio output. With a safe viewing
+session, confirm one standby request and inspect actual power state after wake.
+For the native sleep timer verify an available short slot, cancel through Off, and
+confirm LG's own timer UI agrees. Missing permissions must produce unavailable
+state, not a fabricated success. Start the local saver with automatic timeout Off
+and ensure its wake gesture is consumed. Confirm that these entry points do not
+intercept Home while another application is active.

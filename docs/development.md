@@ -193,3 +193,13 @@ uses the trusted base-branch workflow and GitHub's artifact API without checking
 The package keeps the normal `org.lumaglass.app` identity and version, so installing it replaces
 the existing Lumaglass app. These builds are for manual TV verification; the ordinary CI checks still
 run independently.
+
+## Translation style
+
+Write translated labels in sentence case: capitalize the first word, with normal
+language-specific grammar. Preserve proper names and established acronyms, such
+as Lumaglass, LG, HDMI and MSAA. German nouns keep their grammatical capitals.
+Do not automatically lowercase runtime strings: installed app names, greeting
+names, input labels and other user content must remain unchanged. A new sentence
+may start with a capital; sentence case does not mean forcing the entire label
+to lowercase after its first character.
