@@ -316,6 +316,12 @@ pub fn demo_inventory() -> Inventory {
                 port: "HDMI 3".into(),
                 connected: Some(false),
             },
+            Input {
+                id: "com.webos.app.hdmi4".into(),
+                title: "Xbox Series X".into(),
+                port: "HDMI 4".into(),
+                connected: Some(true),
+            },
         ],
     };
     // Desktop-only artwork gallery. TV inventory is always read from services.

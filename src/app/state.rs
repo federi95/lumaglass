@@ -99,6 +99,7 @@ pub enum Target {
     InputMode(String),
     InputRename,
     InputNameReset,
+    InputXboxPreset,
     Choice(usize),
     CloseDialog,
     Retry,
@@ -1932,24 +1933,33 @@ impl State {
                 }
                 return vec![];
             }
-            if matches!(self.focus, Target::InputRename | Target::InputNameReset) {
-                match direction {
-                    Direction::Left => self.close_subpage(),
-                    Direction::Up => self.focus(
-                        if self.focus == Target::InputNameReset {
-                            Target::InputRename
-                        } else {
-                            Target::Choice(2)
-                        },
-                        controls,
-                    ),
-                    Direction::Down
-                        if self.focus == Target::InputRename
-                            && controls.iter().any(|c| c.target == Target::InputNameReset) =>
-                    {
-                        self.focus(Target::InputNameReset, controls)
+            if matches!(
+                self.focus,
+                Target::InputRename | Target::InputNameReset | Target::InputXboxPreset
+            ) {
+                let has_reset = controls.iter().any(|c| c.target == Target::InputNameReset);
+                let next = match (&self.focus, direction) {
+                    (Target::InputRename, Direction::Up) => Some(Target::Choice(2)),
+                    (Target::InputNameReset, Direction::Up) => Some(Target::InputRename),
+                    (Target::InputXboxPreset, Direction::Up) => Some(if has_reset {
+                        Target::InputNameReset
+                    } else {
+                        Target::InputRename
+                    }),
+                    (Target::InputRename, Direction::Down) => Some(if has_reset {
+                        Target::InputNameReset
+                    } else {
+                        Target::InputXboxPreset
+                    }),
+                    (Target::InputNameReset, Direction::Down) => Some(Target::InputXboxPreset),
+                    (_, Direction::Left) => {
+                        self.close_subpage();
+                        None
                     }
-                    _ => {}
+                    _ => None,
+                };
+                if let Some(next) = next {
+                    self.focus(next, controls);
                 }
                 return vec![];
             }
@@ -3024,6 +3034,17 @@ impl State {
                 if !self.preferences.reduced_motion {
                     self.panel_started = Some(Instant::now());
                 }
+            }
+            Target::InputXboxPreset => {
+                if self.overlay.is_none()
+                    && let Some(Subpage::Input(id)) = &self.subpage
+                    && self.inventory.inputs.iter().any(|input| &input.id == id)
+                    && self.preferences.set_input_name(id, "Xbox Series X")
+                {
+                    self.dirty = true;
+                    return vec![Effect::Save];
+                }
+                return vec![];
             }
             Target::InputRename => self.open_keyboard(TextField::InputName),
             Target::InputNameReset => {

@@ -3720,6 +3720,26 @@ fn input_name_rows(out: &mut Scene, state: &State, assets: &Assets, id: &str, y:
             },
         );
     }
+    row(
+        out,
+        state,
+        assets,
+        Row {
+            target: Target::InputXboxPreset,
+            rect: Rect::new(
+                640.,
+                y + 102.7 + if custom.is_some() { 84. } else { 0. },
+                1120.,
+                72.,
+            ),
+            title: language.t("inputXboxPreset"),
+            icon: Some("input-xbox"),
+            value: None,
+            description: None,
+            selected: custom.is_some_and(|name| name == "Xbox Series X"),
+            chevron: false,
+        },
+    );
 }
 
 /// A custom name such as "PS5" can choose the icon; otherwise the TV's label.
@@ -3739,10 +3759,9 @@ fn device_icon(name: &str) -> &'static str {
         "apple-tv"
     } else if name.contains("usb") {
         "usb"
-    } else if ["xbox", "switch", "console"]
-        .iter()
-        .any(|part| name.contains(part))
-    {
+    } else if name.contains("xbox") {
+        "xbox"
+    } else if ["switch", "console"].iter().any(|part| name.contains(part)) {
         "console"
     } else if ["pc", "computer", "laptop"]
         .iter()

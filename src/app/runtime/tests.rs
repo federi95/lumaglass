@@ -599,12 +599,13 @@ fn keyboard_is_modal_and_back_preserves_then_clears_search() {
 #[test]
 fn partial_refresh_preserves_valid_inputs_and_never_invents_tv_apps() {
     let mut state = ready();
+    let input_count = state.inventory.inputs.len();
     state.set_inventory(
         crate::model::Inventory::default(),
         Some("Inputs unavailable".into()),
     );
     assert!(state.inventory.apps.is_empty());
-    assert_eq!(state.inventory.inputs.len(), 3);
+    assert_eq!(state.inventory.inputs.len(), input_count);
     assert_eq!(state.first_content(), Target::Browse);
 }
 

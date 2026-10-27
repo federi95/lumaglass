@@ -3991,5 +3991,16 @@
     "ru": "При включённом доке названия скрыты. После отключения вернётся прежняя настройка.",
     "pl": "Dock ukrywa nazwy. Po jego wyłączeniu wraca poprzednie ustawienie.",
     "fr": "Le dock masque les noms. Le désactiver rétablit votre choix précédent."
+  },
+  "inputXboxPreset": {
+    "en": "Use Xbox Series X",
+    "de": "Xbox Series X verwenden",
+    "zh": "使用 Xbox Series X",
+    "es": "Usar Xbox Series X",
+    "pt": "Usar Xbox Series X",
+    "it": "Usa Xbox Series X",
+    "ru": "Использовать Xbox Series X",
+    "pl": "Użyj Xbox Series X",
+    "fr": "Utiliser Xbox Series X"
   }
 }
