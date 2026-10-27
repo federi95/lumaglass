@@ -60,23 +60,85 @@ function load(name) {
     throw error;
   }
 }
-function luna(method, payload) {
+function callFixed(uri, payload, observation) {
   var reply = spawn(
     '/usr/bin/luna-send',
-    [
-      '-n',
-      '1',
-      '-w',
-      '1500',
-      'luna://com.webos.settingsservice/' + method,
-      JSON.stringify(payload)
-    ],
-    { encoding: 'utf8', timeout: 1800, maxBuffer: 65536, stdio: ['ignore', 'pipe', 'ignore'] }
+    ['-n', '1', '-w', observation ? '700' : '1500', 'luna://' + uri, JSON.stringify(payload)],
+    {
+      encoding: 'utf8',
+      timeout: observation ? 900 : 1800,
+      maxBuffer: 65536,
+      stdio: ['ignore', 'pipe', 'ignore']
+    }
   );
   if (reply.error || reply.status !== 0) throw Error('Service unavailable');
   var data = JSON.parse(reply.stdout);
   if (data.returnValue !== true) throw Error('Service refused');
   return data;
+}
+function luna(method, payload) {
+  return callFixed('com.webos.settingsservice/' + method, payload);
+}
+var sleepValues = ['off', '10', '30', '60', '90', '120'];
+function optional(uri, payload) {
+  try {
+    return callFixed(uri, payload, true);
+  } catch (error) {
+    void error;
+    return null;
+  }
+}
+function audio() {
+  var data = optional('com.webos.audio/getVolume', {});
+  if (!data) data = optional('com.webos.service.audio/master/getVolume', {});
+  var status = data && (data.volumeStatus || data);
+  return {
+    volume:
+      status && typeof status.volume === 'number' && status.volume >= 0 && status.volume <= 100
+        ? status.volume
+        : null,
+    muted:
+      status && typeof status.muted === 'boolean'
+        ? status.muted
+        : status && typeof status.mute === 'boolean'
+          ? status.mute
+          : null
+  };
+}
+function sleepIndex() {
+  var data = luna('getSystemSettings', {
+    category: 'time',
+    keys: ['sleepTimer'],
+    subscribe: false
+  });
+  var value = data.settings && data.settings.sleepTimer;
+  var index = sleepValues.indexOf(String(value));
+  return index >= 0 ? index : null;
+}
+function activePower() {
+  var data = optional('com.webos.service.tvpower/power/getPowerState', {});
+  return !!(data && ['active', 'screen off'].indexOf(String(data.state).toLowerCase()) >= 0);
+}
+function quickStatus() {
+  var network = optional('com.webos.service.connectionmanager/getStatus', {});
+  result.network =
+    network && network.wifi && network.wifi.state === 'connected'
+      ? 'wifi'
+      : network && network.wired && network.wired.state === 'connected'
+        ? 'wired'
+        : network && network.isInternetConnectionAvailable === false
+          ? 'offline'
+          : 'unknown';
+  var sound = audio();
+  result.volume = sound.volume;
+  result.muted = sound.muted;
+  result.power_active = activePower();
+  try {
+    result.sleep_index = sleepIndex();
+  } catch (error) {
+    void error;
+    result.sleep_index = null;
+  }
 }
 function read(index) {
   var category = index === 0 ? 'option' : 'general';
@@ -101,7 +163,7 @@ try {
     command.expiresAt > Date.now() + 10000
   )
     throw Error('Expired intent');
-  if (command.kind === 'blockerStatus') {
+  if (command.kind === 'blockerStatus' || command.kind === 'quickStatus') {
     result.blocker = blocker.run('status').blocker;
     if (fs.existsSync(root)) checked(root, true);
     var journal = fs.existsSync(root) ? load('privacy.json') : {};
@@ -109,13 +171,42 @@ try {
       return Object.prototype.hasOwnProperty.call(journal, key);
     });
     result.verified = true;
+    if (command.kind === 'quickStatus') quickStatus();
   } else {
     if (!fs.existsSync(root)) fs.mkdirSync(root, 448);
     checked(root, true);
     acquire();
     locked = true;
     var saved = load('privacy.json');
-    if (command.kind === 'privacySet' || command.kind === 'privacyRestore') {
+    if (command.kind === 'standby') {
+      if (!activePower()) throw Error('Power state unavailable');
+      callFixed('com.webos.service.tvpower/power/powerOff', { reason: 'remoteKey' });
+      // An acknowledgement cannot prove standby; never retry this mutation.
+      result.accepted = true;
+    } else if (command.kind === 'audioMute') {
+      var soundBefore = audio();
+      if (
+        typeof command.expected !== 'boolean' ||
+        typeof command.value !== 'boolean' ||
+        soundBefore.muted !== command.expected
+      )
+        throw Error('Audio state changed');
+      callFixed('com.webos.audio/setMuted', { muted: command.value });
+      result.verified = audio().muted === command.value;
+    } else if (command.kind === 'sleepTimer') {
+      if (
+        command.expected !== sleepIndex() ||
+        !Number.isInteger(command.value) ||
+        command.value < 0 ||
+        command.value >= sleepValues.length
+      )
+        throw Error('Unsupported sleep timer');
+      luna('setSystemSettings', {
+        category: 'time',
+        settings: { sleepTimer: sleepValues[command.value] }
+      });
+      result.verified = sleepIndex() === command.value;
+    } else if (command.kind === 'privacySet' || command.kind === 'privacyRestore') {
       if (command.index !== 0 && command.index !== 1) throw Error('Invalid setting');
       var current = read(command.index);
       var wanted;

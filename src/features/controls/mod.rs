@@ -4,6 +4,16 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Command {
+    QuickStatus,
+    Standby,
+    AudioMute {
+        expected: bool,
+        value: bool,
+    },
+    SleepTimer {
+        expected: usize,
+        value: usize,
+    },
     PrivacySet {
         index: usize,
         expected: bool,
@@ -19,6 +29,10 @@ pub enum Command {
 impl Command {
     pub fn key(self) -> &'static str {
         match self {
+            Self::QuickStatus => "infoRefresh",
+            Self::Standby => "ccStandby",
+            Self::AudioMute { .. } => "ccAudio",
+            Self::SleepTimer { .. } => "ccSleepTimer",
             Self::PrivacySet { .. } => "controlPrivacyChange",
             Self::PrivacyRestore { .. } => "controlRestore",
             Self::BlockerStatus => "infoRefresh",
@@ -34,6 +48,12 @@ impl Command {
 #[derive(Default, Deserialize)]
 #[serde(default)]
 pub struct Report {
+    pub accepted: bool,
+    pub network: String,
+    pub volume: Option<u8>,
+    pub muted: Option<bool>,
+    pub power_active: bool,
+    pub sleep_index: Option<usize>,
     pub schema: u8,
     pub verified: bool,
     pub blocker: String,
