@@ -17,6 +17,9 @@ optional two-row Home favorites, greeting/date personalization, section ordering
 and initial focus; long Home greetings scale to fit. This fork establishes the
 Lumaglass identity, modular layout, local development setup and license notices.
 Appearance settings configure card density, accent color and wallpaper dimming/blur.
+Optional clear [Liquid Glass](docs/liquid-glass.md) styles the tab bar, clock/avatar,
+quick controls and favorites dock. The dock is an alternative to two-row favorites.
+The avatar opens a local profile with editable name and avatar style.
 Opt-in [remote shortcuts](docs/remote-shortcuts.md) assign navigation actions to
 the four color buttons, with desktop F1–F4 aliases and session reception indicators.
 Settings → System → TV information adds read-only device information and Home

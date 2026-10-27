@@ -41,7 +41,7 @@ state, not a fabricated success. Start the local saver with automatic timeout Of
 read-only status refresh is pending, and ensure its wake gesture is consumed. Confirm that these entry points do not
 intercept Home while another application is active.
 
-Verify that the avatar opens its preferences, never quick controls. Compare glass On/Off, text contrast, slider padding, endpoint labels and pointer snapping. Confirm that Back exits the timer detail before the full panel. Measure input latency and frame times on the TV; this revision has not been visually exercised or benchmarked.
+Verify that the avatar opens the local profile on the current page. Edit/clear its name and avatar, finish text input by Done/Back/system dismissal, and confirm return focus. A static Home greeting must remain unchanged. Compare glass On/Off, text contrast, slider padding, endpoint labels and pointer snapping. Confirm that Back exits the timer detail before the full panel. Measure input latency and frame times on the TV; this revision has not been visually exercised or benchmarked.
 
 ## Optical glass
 
@@ -55,3 +55,14 @@ At experimental 4K, confirm target texel memory stays at or below 15.82 MiB and
 accept the deliberately HD optical backdrop while foreground text remains 4K.
 Verify orientation, letterboxing, resized windows, modal fades, Recents, allocation
 failure fallback and input latency on TV. These checks have not been executed.
+
+## Favorites dock and interaction states
+
+Enable the dock in Home personalization and check a short list is centered, a long
+list scrolls inside its tray, and all densities/captions preserve padding. Use
+remote reveal, wheel, pointer, app options and reordering at both ends. Enable two
+rows and confirm the dock switches off; enable the dock again and confirm one row
+and zero horizontal scroll. Restart to check persistence, compare glass On/Off,
+and check inputs above/below the lower dock remain reachable. Verify hover, active
+tab, remote focus and press are distinguishable without moving hit areas; compare
+reduced motion. These checks remain pending.

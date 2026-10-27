@@ -15,7 +15,11 @@ normals replace the upstream five height-field evaluations. Three backdrop textu
 samples produce the optical color; offsets, including dispersion, stay within the
 14 logical pixel cache margin. No continuous ripples or physics timer is added.
 The selected tab uses its existing position/width animation, so its lens moves
-with the selection. Existing reduced-motion behavior is preserved.
+with the selection. The tab track, active pill, separate hover pill, combined
+clock/avatar capsule, dedicated Control Center button and optional favorites dock
+use the same clear chrome. Selected, focused/hovered and pressed controls have
+distinct tint, rim and shadow states. Control hit areas stay fixed; focused app
+artwork lifts inside its slot unless reduced motion is enabled.
 
 Tint opacity and layer opacity are independent: a clear lens samples the content
 beneath it while panel and Recents fades can still reach exactly zero. Labels,
@@ -30,9 +34,10 @@ overhead and existing artwork buffers. Smaller windows/driver limits use smaller
 16:9 targets. Text and icons continue rendering at the original drawable density.
 
 The base target captures lower content before the first glass surface. The
-control-center target captures the dimmed parent interface and its backplate,
-before the center's own title, tile labels and controls. The outer backplate keeps
-the analytic material; its interactive tiles and slider use the optical target.
+control-center target captures the actual parent interface with a 16% dimming
+scrim, before the center's own title, tile labels and controls. Independent power,
+network/audio and screensaver/timer lenses, four circular shortcuts and the detail
+slider replace the large outer backplate. There is no opaque enclosing panel.
 Header controls return to the base target. Other opaque dialogs use analytic
 controls, avoiding a lens that would incorrectly reveal wallpaper through a solid
 panel. This is a bounded two-layer design, not a recursive glass compositor.
@@ -52,11 +57,12 @@ Snapshot passes are additional work when a backdrop needs refreshing. They are
 scissored to the required region, and do not run continuously over unchanged
 content. At 4K the HD backdrop is intentionally upsampled to bound memory/bandwidth.
 
-The clear treatment respects the user's wallpaper blur preference. Resting tint
-opacity is 0.22–0.34; raised backing is 0.56–0.68; light selected faces retain
-0.86–0.90 to support dark labels. These describe individual surfaces, not the
-final transmission of stacked elements. The control center has a 35% dimming
-backdrop for text separation.
+The clear treatment respects the user's wallpaper blur preference. Chrome resting
+tint opacity is 0.10–0.18; selected chrome uses 0.18–0.20; focus uses 0.24;
+press uses 0.32–0.38. Its labels stay light. Settings retain stronger selected
+faces (0.86–0.90) for dark labels. These describe individual surfaces, not the
+final transmission of stacked elements. The Control Center leaves the parent
+visible and adds a 16% dimming scrim for separation.
 
 ## Fallback and diagnostics
 

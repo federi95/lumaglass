@@ -1,7 +1,9 @@
 # Control center and header
 
 Lumaglass has an original native quick-controls panel inspired by the compact
-right-hand layout and focus treatment of tvOS Control Center. The panel uses the shared [Liquid Glass appearance](liquid-glass.md), the chosen wallpaper and explicit focus outlines. Disabling glass selects opaque surfaces. Optical tiles use a cached GPU backdrop with bounded lens refraction. Backdrop updates are conditional; there is no per-frame blur engine.
+right-hand layout and focus treatment of tvOS Control Center. The floating group
+has a large power tile, network/audio capsules, screensaver/timer capsules and
+four circular shortcuts. There is no large enclosing backplate. The panel uses the shared [Liquid Glass appearance](liquid-glass.md), the chosen wallpaper and explicit focus outlines. Disabling glass selects opaque surfaces. Optical tiles use a cached GPU backdrop with bounded lens refraction. Backdrop updates are conditional; there is no per-frame blur engine.
 
 ## Opening and closing
 
@@ -9,7 +11,7 @@ Select the dedicated control-center button in the header. With a remote, press U
 then OK. In desktop preview, F6 opens or closes the panel. A color button can also
 be assigned to **Control center** in **Settings → General → Remote shortcuts**;
 shortcuts remain disabled by default. Back closes the panel and restores the
-previous focus. Selecting the dedicated button again also closes it. The avatar opens clock/avatar preferences; it never opens the control center.
+previous focus. Selecting the dedicated button again also closes it. The avatar opens a dedicated local profile; it never opens the control center or changes the current Settings section.
 
 These entries work while Lumaglass is active. The LG Home key remains under LG's
 control, including while another app is in front. The Apple TV remote's hold-TV
@@ -40,9 +42,36 @@ commands; hardware-dependent fields report that they do not apply.
 New/default preferences group clock and avatar on the right. Existing saved layout choices remain respected. Moving
 the clock also moves the combined capsule when enabled. Without the capsule the avatar remains a separate profile button. The control-center button has its own icon, target and action.
 
-Initials come from the local greeting name, using at most two letters. Empty
-names use the generic symbol. These controls do not create accounts or alter
-the saved name. Twelve-/24-hour format and optional seconds work in both layouts.
+Initials come from the local profile name, using at most two letters. Empty
+names use the generic symbol. Twelve-/24-hour format and optional seconds work
+in both layouts. The combined capsule and separate avatar button use clear
+chrome, like the tab track and active tab pill.
+
+## Local profile
+
+Selecting the avatar opens **Local profile** over the current page. Edit or clear
+the name and choose Initials/Symbol. Changes stay on this TV in Lumaglass
+preferences; no LG, Apple or online account is created or accessed. The name is
+also used by timed Home greetings. Editing it leaves a custom static greeting
+unchanged. Finishing text entry returns to the profile; Back restores avatar
+focus on the underlying page. Pointer and remote navigation share the controls.
+
+## Favorites dock
+
+**Settings → General → Home personalization → Favorites dock** enables a centered,
+lower Home tray with padded rounded glass, Off by default. Its width follows the
+visible card count and density, up to one full row. Longer favorites lists scroll
+inside the tray; captions, favorite ordering, reordering and remote reveal remain
+available. The dock uses opaque material if Liquid Glass is Off.
+
+Dock and two-row favorites are mutually exclusive. Enabling either turns the
+other off and resets horizontal scrolling without changing favorite IDs/order.
+When loading contradictory saved preferences, the two-row choice takes precedence.
+Turning two rows off does not silently restore a previously disabled dock.
+
+Selected/active chrome, hover/remote focus and presses have distinct tint,
+rim and shadow treatments. App artwork lifts on focus inside stable hit areas;
+reduced motion disables that lift. These states do not add an idle animation loop.
 
 ## Sliders
 
