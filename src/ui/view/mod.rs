@@ -142,6 +142,7 @@ pub struct Scene {
     pub modal: Option<Rect>,
     accent: crate::features::appearance::Accent,
     liquid_glass: bool,
+    modal_chrome: bool,
     glass_layer: Option<crate::render::backdrop::Layer>,
 }
 impl Scene {
@@ -152,6 +153,7 @@ impl Scene {
             modal: None,
             accent,
             liquid_glass,
+            modal_chrome: false,
             glass_layer: Some(crate::render::backdrop::Layer::Base),
         }
     }
@@ -293,7 +295,15 @@ impl Scene {
                 if pressed { 1. } else { 4. },
                 if focused { 0.28 } else { 0.12 },
             );
-            let (top, bottom) = if pressed {
+            let (top, bottom) = if self.modal_chrome {
+                if pressed {
+                    (c(0x182b3e, 0.54), c(0x0c1a2b, 0.64))
+                } else if focused {
+                    (self.accent_color(c(0x9fbcd8, 0.40)), c(0x344e69, 0.52))
+                } else {
+                    (c(0x3e5369, 0.34), c(0x152839, 0.50))
+                }
+            } else if pressed {
                 (c(0x142536, 0.32), c(0x101d2b, 0.38))
             } else if focused {
                 (self.accent_color(c(0xbad4eb, 0.24)), c(0x586d88, 0.24))
@@ -328,6 +338,16 @@ impl Scene {
                 WHITE
             }
         }
+    }
+    /// Reuse the existing modal backdrop target. Inner rows composite analytically
+    /// on the panel, avoiding recursive refraction of the same foreground labels.
+    fn modal_panel(&mut self, rect: Rect, radius: f32) {
+        self.modal = Some(rect);
+        self.draw
+            .push(Draw::Backdrop(crate::render::backdrop::Layer::Panel));
+        self.glass_layer = Some(crate::render::backdrop::Layer::Panel);
+        self.chrome(rect, radius, false, false, false);
+        self.glass_layer = None;
     }
     fn pressed_feedback(&mut self, state: &State, target: &Target, rect: Rect, radius: f32) {
         if state.pressed.as_ref() == Some(target) {
@@ -563,17 +583,27 @@ pub fn scene_with_pill(
     {
         out.controls.clear();
         out.glass_layer = None;
+        let floating = matches!(
+            overlay,
+            Overlay::ControlCenter { .. } | Overlay::Profile | Overlay::Options { .. }
+        );
+        if floating {
+            // Fade the actual parent before capturing it: sharp Settings labels
+            // must not compete with the modal's labels through clear lenses.
+            out.fade(content_start, 0.12, 0.65);
+        }
+        out.modal_chrome = floating;
         let start = out.draw.len();
         out.shape(
             Rect::new(0., 0., 1920., 1080.),
             0.,
             c(
                 0x080b12,
-                if matches!(overlay, Overlay::ControlCenter { .. }) {
+                if floating {
                     if state.preferences.appearance.liquid_glass {
-                        0.16
-                    } else {
                         0.38
+                    } else {
+                        0.50
                     }
                 } else {
                     0.70
@@ -596,6 +626,7 @@ pub fn scene_with_pill(
             Overlay::ControlConfirm { command, .. } => control_dialog(&mut out, state, *command),
             Overlay::ControlCenter { .. } => {
                 control_center::render(&mut out, state, assets);
+                out.modal_chrome = false;
                 out.glass_layer = Some(crate::render::backdrop::Layer::Base);
                 out.draw
                     .push(Draw::Backdrop(crate::render::backdrop::Layer::Base));
@@ -608,6 +639,7 @@ pub fn scene_with_pill(
         if let Some(opened) = state.panel_started {
             out.fade(start, (opened.elapsed().as_secs_f32() / 0.12).min(1.), 1.);
         }
+        out.modal_chrome = false;
     }
     if state.recents_open() || state.recents.visibility > 0. {
         // Crossfade the actual parent interface as well as the dimmed stage.
@@ -1867,7 +1899,11 @@ fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
     out.text(
         row.title,
         Rect::new(x, title_y, title_width, title_height),
-        text(20.8, 550, -0.02).leading(1.4),
+        if row.description.is_some() {
+            text(20.8, 550, -0.02).leading(1.4)
+        } else {
+            assets.fit_line(row.title, text(20.8, 550, -0.02), title_width)
+        },
         color,
         false,
     );
@@ -1926,7 +1962,7 @@ fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
             },
         );
     }
-    out.control(row.target, row.rect, true);
+    out.control(row.target, row.rect, state.overlay.is_none());
 }
 
 fn weather_settings(out: &mut Scene, state: &State, assets: &Assets) {
@@ -3939,15 +3975,7 @@ fn options(
         560.,
         354.2 + extra + added,
     );
-    out.modal = Some(panel);
-    out.shadow(panel, 27.2, 120., 25., 0.47);
-    out.draw.push(Draw::RoundedGradient(
-        panel,
-        27.2,
-        c(0x34383b, 0.96),
-        c(0x24282d, 0.988),
-    ));
-    out.border(panel, 27.2, 1., c(0xffffff, 0.12));
+    out.modal_panel(panel, 32.);
     out.text(
         title,
         Rect::new(717.8, panel.y + 36.2, 432., 42. + extra),
@@ -3963,12 +3991,14 @@ fn options(
         false,
     );
     let close = Rect::new(1168.6, panel.y + 39.4, 33.6, 33.6);
-    out.shape(close, 16.8, c(0xffffff, 0.035));
-    out.border(close, 16.8, 1., c(0xffffff, 0.07));
-    out.icon(assets, "close", close.inset(7.6), WHITE);
-    if state.focus == Target::CloseDialog {
-        out.border(close.inset(1.), 15.8, 2., out.accent_color(WHITE));
-    }
+    let close_color = out.chrome(
+        close,
+        16.8,
+        state.focus == Target::CloseDialog,
+        false,
+        state.pressed.as_ref() == Some(&Target::CloseDialog),
+    );
+    out.icon(assets, "close", close.inset(7.6), close_color);
     out.control(Target::CloseDialog, close, false);
     let favorite = state
         .preferences
@@ -4012,40 +4042,29 @@ fn options(
             484.4,
             67.2,
         );
-        let focused = state.focus == Target::Option(index);
-        out.shape(rect, 12., c(0xffffff, if focused { 0.07 } else { 0.016 }));
-        out.border(
-            rect,
-            12.,
-            if focused { 2. } else { 1. },
-            if focused {
-                out.accent_color(c(0xf0f0f0, 0.95))
-            } else {
-                c(0xffffff, 0.05)
-            },
-        );
-        out.icon(
+        row(
+            out,
+            state,
             assets,
-            if index == 0 {
-                if favorite { "heart-filled" } else { "heart" }
-            } else if index == 2 {
-                "close"
-            } else if hidden {
-                "eye"
-            } else {
-                "eye-off"
+            Row {
+                target: Target::Option(index),
+                rect,
+                title: label,
+                icon: Some(if index == 0 {
+                    if favorite { "heart-filled" } else { "heart" }
+                } else if index == 2 {
+                    "close"
+                } else if hidden {
+                    "eye"
+                } else {
+                    "eye-off"
+                }),
+                value: None,
+                description: None,
+                selected: false,
+                chevron: false,
             },
-            Rect::new(rect.x + 18.6, rect.y + 22.8, 21.6, 21.6),
-            if focused { WHITE } else { c(0xe4e4e4, 0.61) },
         );
-        out.text(
-            label,
-            Rect::new(rect.x + 56.2, rect.y + 22., rect.w - 74., 25.),
-            text(17.6, 500, -0.015),
-            WHITE,
-            false,
-        );
-        out.control(Target::Option(index), rect, false);
     }
     let line_y = panel.y + panel.h - 53.2;
     out.shape(Rect::new(717.8, line_y, 484.4, 1.), 0., c(0xffffff, 0.04));

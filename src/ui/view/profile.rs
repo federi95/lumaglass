@@ -3,10 +3,8 @@ use super::*;
 
 pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     let language = state.preferences.language;
-    let panel = Rect::new(640., 200., 640., 680.);
-    out.modal = Some(panel);
-    out.shadow(panel, 40., 40., 10., 0.30);
-    out.material(panel, 40., false, true);
+    let panel = Rect::new(596., 192., 728., 688.);
+    out.modal_panel(panel, 40.);
     let avatar = Rect::new(916., 240., 88., 88.);
     out.shape(avatar, 44., out.accent_color(c(0xc9b6ff, 1.)));
     let initials = crate::features::header::initials(&state.preferences.greeting_name);
@@ -52,55 +50,32 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     .into_iter()
     .enumerate()
     {
-        let rect = Rect::new(676., 496. + index as f32 * 96., 568., 76.);
-        let color = out.chrome(
-            rect,
-            38.,
-            state.focus == target,
-            false,
-            state.pressed.as_ref() == Some(&target),
-        );
-        out.icon(
-            assets,
-            icon,
-            Rect::new(rect.x + 24., rect.y + 25., 26., 26.),
-            color,
-        );
-        out.text(
-            language.t(key),
-            Rect::new(
-                rect.x + 70.,
-                rect.y + 25.,
-                if target == Target::ProfileAvatar {
-                    260.
+        let value = (target == Target::ProfileAvatar).then(|| {
+            language.t(
+                if state.preferences.header.avatar == crate::features::header::Avatar::Initials {
+                    "avatarInitials"
                 } else {
-                    450.
+                    "avatarSymbol"
                 },
-                30.,
-            ),
-            text(20., 500, 0.),
-            color,
-            false,
+            )
+        });
+        row(
+            out,
+            state,
+            assets,
+            Row {
+                target: target.clone(),
+                rect: Rect::new(628., 496. + index as f32 * 96., 664., 76.),
+                title: language.t(key),
+                icon: Some(icon),
+                value,
+                description: None,
+                selected: false,
+                chevron: target == Target::ProfileName,
+            },
         );
-        if target == Target::ProfileAvatar {
-            out.text(
-                language.t(
-                    if state.preferences.header.avatar == crate::features::header::Avatar::Initials
-                    {
-                        "avatarInitials"
-                    } else {
-                        "avatarSymbol"
-                    },
-                ),
-                Rect::new(rect.x + 354., rect.y + 27., 188., 26.),
-                text(16., 400, 0.).right(),
-                color,
-                false,
-            );
-        }
-        out.control(target, rect, false);
     }
-    let close = Rect::new(1200., 224., 48., 48.);
+    let close = Rect::new(1244., 216., 48., 48.);
     let color = out.chrome(
         close,
         24.,

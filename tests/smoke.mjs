@@ -256,7 +256,9 @@ try {
   assert.equal(profiled.render.profile.presented, 24);
   assert.ok(profiled.render.profile.pacing.samples > 0);
   assert.ok(profiled.render.profile.cpu_submission.mean_ms >= 0);
-  const greetingEditor = 'settings,down,enter,down,down,down,down,enter,enter';
+  const greetingPage =
+    'settings,down,enter,down,down,down,down,enter,down,down,down,down,down,enter';
+  const greetingEditor = `${greetingPage},enter`;
   for (const name of ['Ana', 'Bob']) {
     const named = await scenario(
       `greeting-${name}`,
@@ -271,10 +273,7 @@ try {
       'Keyboard completion must save without waiting for another SDL input event',
     );
   }
-  const greeting = await scenario(
-    'greeting-settings',
-    'settings,down,enter,down,down,down,down,enter,down',
-  );
+  const greeting = await scenario('greeting-settings', `${greetingPage},down`);
   assert.equal(greeting.subpage, 'Greeting');
   assert.equal(greeting.focus, 'GreetingNameClear');
   assert.ok(greeting.ui_text.includes('Clear name'));

@@ -217,7 +217,7 @@ fn surface(
 ) -> Color {
     let mut color = out.chrome(rect, radius, focused, false, pressed);
     if !enabled {
-        color[3] *= 0.60;
+        color[3] *= 0.78;
     }
     color
 }
