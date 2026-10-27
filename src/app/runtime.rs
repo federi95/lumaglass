@@ -1161,7 +1161,7 @@ fn run() -> Result<(), String> {
                 && focused
                 && state.overlay.is_none()
                 && !state.display_trial
-                && !state.controls.loading
+                && (!state.controls.loading || state.screensaver.manual)
                 && state.moving.is_none()
                 && !state.launching
                 && press.is_none()

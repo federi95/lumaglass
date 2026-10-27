@@ -37,6 +37,6 @@ and unmute with readback, including external audio output. With a safe viewing
 session, confirm one standby request and inspect actual power state after wake.
 For the native sleep timer verify an available short slot, cancel through Off, and
 confirm LG's own timer UI agrees. Missing permissions must produce unavailable
-state, not a fabricated success. Start the local saver with automatic timeout Off
-and ensure its wake gesture is consumed. Confirm that these entry points do not
+state, not a fabricated success. Start the local saver with automatic timeout Off, including while the panel’s
+read-only status refresh is pending, and ensure its wake gesture is consumed. Confirm that these entry points do not
 intercept Home while another application is active.
