@@ -73,6 +73,8 @@ pub struct Preferences {
     #[serde(deserialize_with = "fallback")]
     pub inputs_first: bool,
     #[serde(deserialize_with = "fallback")]
+    pub favorites_dock: bool,
+    #[serde(deserialize_with = "fallback")]
     pub greeting_first: bool,
     #[serde(deserialize_with = "fallback")]
     pub startup_focus: StartupFocus,
@@ -89,6 +91,7 @@ impl Default for Preferences {
             show_weekday: true,
             show_inputs: true,
             inputs_first: false,
+            favorites_dock: false,
             greeting_first: false,
             startup_focus: StartupFocus::Auto,
         }
@@ -150,9 +153,11 @@ pub enum Setting {
     GreetingFirst,
     InputsFirst,
     StartupFocus,
+    FavoritesDock,
 }
 impl Setting {
-    pub const ALL: [Self; 11] = [
+    pub const ALL: [Self; 12] = [
+        Self::FavoritesDock,
         Self::ShowGreeting,
         Self::GreetingMode,
         Self::GreetingText,
@@ -167,6 +172,7 @@ impl Setting {
     ];
     pub fn key(self) -> &'static str {
         match self {
+            Self::FavoritesDock => "homeFavoritesDock",
             Self::ShowGreeting => "homeShowGreeting",
             Self::GreetingMode => "homeGreetingMode",
             Self::GreetingText => "homeGreetingText",

@@ -4,8 +4,8 @@ use crate::{
     model::{App, BACKGROUNDS, CATEGORIES, Input, InputMode},
     renderer::{Color, Draw, TextStyle, WHITE},
     state::{
-        Control, HOME_FADE_LEFT, HOME_FADE_RIGHT, HOME_STRIP_LEFT, HOME_STRIP_RIGHT, KEYS, Overlay,
-        Page, Rect, SYSTEM_SECTION, State, Subpage, Target, TextField, WEATHER_SECTION,
+        Control, HOME_FADE_LEFT, HOME_FADE_RIGHT, KEYS, Overlay, Page, Rect, SYSTEM_SECTION, State,
+        Subpage, Target, TextField, WEATHER_SECTION,
     },
     weather::{self, Unit},
 };
@@ -1220,6 +1220,9 @@ fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
             top += height + 44.9;
         }
     }
+    if state.dock_enabled() {
+        top = top.max(688.);
+    }
     let height = home_favorites(out, state, assets, top);
     if !home.inputs_first {
         home_inputs(out, state, assets, top + height + 44.9);
@@ -1249,6 +1252,8 @@ fn home_favorites(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> 
     let apps = state.apps();
     let names = state.preferences.show_home_names;
     let layout = state.home_layout(apps.len());
+    let dock = state.dock_enabled() && !apps.is_empty();
+    let (strip_left, strip_right) = state.home_strip();
     let mut grid_height = cards.height;
     if state.loading && state.inventory.apps.is_empty() {
         for index in 0..cards.columns {
@@ -1302,21 +1307,41 @@ fn home_favorites(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> 
     if !apps.is_empty() {
         grid_height += layout.rows.saturating_sub(1) as f32 * row_pitch;
     }
+    if dock {
+        let tray = Rect::new(
+            strip_left - 32.,
+            top + 46.3 - s,
+            strip_right - strip_left + 64.,
+            grid_height + 40.,
+        );
+        out.chrome(tray, 36., false, false, false);
+    }
     // Like Apple TV's rows, the favourites run to the screen edge: the next tile shows cut off
     // at the right (and a scrolled-away one at the left), so it is clear the row continues.
     out.draw.push(Draw::Clip(Some(state.favorites_viewport())));
     // Soft edges: out to the right from the end of the sixth tile, and in from the left once
     // the row has scrolled.
     let left = if state.home_scroll > 0. {
-        [HOME_FADE_LEFT, HOME_STRIP_LEFT]
+        [
+            if dock {
+                strip_left - 24.
+            } else {
+                HOME_FADE_LEFT
+            },
+            strip_left,
+        ]
     } else {
         [0., 0.]
     };
     out.draw.push(Draw::EdgeFadeX(Some([
         left[0],
         left[1],
-        HOME_STRIP_RIGHT,
-        HOME_FADE_RIGHT,
+        strip_right,
+        if dock {
+            strip_right + 24.
+        } else {
+            HOME_FADE_RIGHT
+        },
     ])));
     for (index, app) in apps.iter().enumerate() {
         let (column, row) = layout.cell(index);
@@ -1326,7 +1351,7 @@ fn home_favorites(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> 
             assets,
             app,
             Rect::new(
-                84. + column as f32 * cards.pitch - state.home_scroll,
+                strip_left + column as f32 * cards.pitch - state.home_scroll,
                 top + 66.3 + row as f32 * row_pitch - s,
                 cards.width,
                 cards.height,
@@ -1337,7 +1362,7 @@ fn home_favorites(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> 
     }
     out.draw.push(Draw::EdgeFadeX(None));
     out.draw.push(Draw::Clip(Some(state.content_viewport())));
-    66.3 + grid_height
+    66.3 + grid_height + if dock { 20. } else { 0. }
 }
 
 fn home_inputs(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> f32 {
@@ -3327,6 +3352,7 @@ fn home_settings(out: &mut Scene, state: &State, assets: &Assets) {
     for option in Setting::ALL {
         let enabled = |flag| language.t(if flag { "stateOn" } else { "stateOff" });
         let value = match option {
+            Setting::FavoritesDock => enabled(state.dock_enabled()),
             Setting::ShowGreeting => enabled(home.show_greeting),
             Setting::GreetingMode => language.t(if home.greeting_mode == GreetingMode::Timed {
                 "homeTimed"
@@ -3360,22 +3386,28 @@ fn home_settings(out: &mut Scene, state: &State, assets: &Assets) {
             y += crate::features::sliders::HEIGHT + 12.;
             continue;
         }
+        let height = if option == Setting::FavoritesDock {
+            112.
+        } else {
+            72.
+        };
         row(
             out,
             state,
             assets,
             Row {
                 target: Target::HomeOption(option),
-                rect: Rect::new(640., y, 1120., 72.),
+                rect: Rect::new(640., y, 1120., height),
                 title: language.t(option.key()),
                 icon: None,
                 value: (!value.is_empty()).then_some(value),
-                description: None,
+                description: (option == Setting::FavoritesDock)
+                    .then_some(language.t("homeFavoritesDockHint")),
                 selected: false,
                 chevron: matches!(option, Setting::GreetingText | Setting::StartupFocus),
             },
         );
-        y += 84.;
+        y += height + 12.;
     }
 }
 

@@ -493,8 +493,36 @@ impl State {
         Rect::new(64., 108.8, 1792., bottom - 108.8)
     }
 
+    pub fn dock_enabled(&self) -> bool {
+        self.preferences.home.favorites_dock && !self.preferences.two_row_home_favorites
+    }
+
+    /// Shared dock/strip limits for drawing, remote reveal, hit testing and wheel scrolling.
+    pub fn home_strip(&self) -> (f32, f32) {
+        if !self.dock_enabled() {
+            return (HOME_STRIP_LEFT, HOME_STRIP_RIGHT);
+        }
+        let cards = self.home_cards();
+        let count = self.apps().len().clamp(1, cards.columns);
+        let width = (count - 1) as f32 * cards.pitch + cards.width;
+        let left = (1920. - width) / 2.;
+        (left, left + width)
+    }
+
     pub fn favorites_viewport(&self) -> Rect {
         let content = self.content_viewport();
+        if self.dock_enabled() {
+            // Culling is called per card: keep it independent of the app inventory.
+            // Short docks cannot scroll, so their wider viewport has no extra hit targets.
+            let cards = self.home_cards();
+            let width = (cards.columns - 1) as f32 * cards.pitch + cards.width;
+            return Rect::new(
+                (1920. - width) / 2. - 24.,
+                content.y,
+                width + 48.,
+                content.h,
+            );
+        }
         let left = if self.home_scroll > 0. {
             HOME_FADE_LEFT
         } else {
@@ -567,7 +595,8 @@ impl State {
             (self.home_layout(count).columns - 1) as f32 * self.home_cards().pitch
                 + self.home_cards().width
         };
-        let max = (content - (HOME_STRIP_RIGHT - HOME_STRIP_LEFT)).max(0.);
+        let (left, right) = self.home_strip();
+        let max = (content - (right - left)).max(0.);
         let next = (self.home_scroll + delta).clamp(0., max);
         if next != self.home_scroll {
             self.home_scroll = next;
@@ -1270,10 +1299,11 @@ impl State {
         let previous_home = self.home_scroll;
         if let Some(control) = controls.iter().find(|c| c.target == self.focus) {
             if self.page == Page::Home && matches!(self.focus, Target::App(_)) {
-                if control.rect.x < HOME_STRIP_LEFT {
-                    self.home_scroll += control.rect.x - HOME_STRIP_LEFT;
-                } else if control.rect.x + control.rect.w > HOME_STRIP_RIGHT {
-                    self.home_scroll += control.rect.x + control.rect.w - HOME_STRIP_RIGHT;
+                let (left, right) = self.home_strip();
+                if control.rect.x < left {
+                    self.home_scroll += control.rect.x - left;
+                } else if control.rect.x + control.rect.w > right {
+                    self.home_scroll += control.rect.x + control.rect.w - right;
                 }
             }
             if matches!(
@@ -2110,14 +2140,15 @@ impl State {
             return vec![];
         };
         let (x, y) = current.rect.center();
+        let (strip_left, strip_right) = self.home_strip();
         let next = controls
             .iter()
             .filter(|candidate| candidate.target != self.focus)
             .filter(|candidate| {
                 self.page != Page::Home
                     || !matches!(candidate.target, Target::App(_))
-                    || (candidate.rect.x >= HOME_STRIP_LEFT - 0.1
-                        && candidate.rect.x + candidate.rect.w <= HOME_STRIP_RIGHT + 0.1)
+                    || (candidate.rect.x >= strip_left - 0.1
+                        && candidate.rect.x + candidate.rect.w <= strip_right + 0.1)
             })
             .filter_map(|candidate| {
                 // Header controls never steal an Up route from the active tab.
@@ -2777,6 +2808,13 @@ impl State {
                 }
                 let home = &mut self.preferences.home;
                 match option {
+                    HomeOption::FavoritesDock => {
+                        home.favorites_dock = !home.favorites_dock;
+                        if home.favorites_dock {
+                            self.preferences.two_row_home_favorites = false;
+                        }
+                        self.home_scroll = 0.;
+                    }
                     HomeOption::ShowGreeting => home.show_greeting = !home.show_greeting,
                     HomeOption::GreetingMode => {
                         home.greeting_mode = if home.greeting_mode == GreetingMode::Timed {
@@ -3099,6 +3137,9 @@ impl State {
                     10 => {
                         self.preferences.two_row_home_favorites =
                             !self.preferences.two_row_home_favorites;
+                        if self.preferences.two_row_home_favorites {
+                            self.preferences.home.favorites_dock = false;
+                        }
                         self.home_scroll = 0.;
                     }
                     11 => {

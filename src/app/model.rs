@@ -225,6 +225,9 @@ impl Preferences {
 
     pub fn sanitize(&mut self) {
         self.home.sanitize();
+        if self.two_row_home_favorites {
+            self.home.favorites_dock = false;
+        }
         if !BACKGROUNDS.iter().any(|(id, _)| *id == self.background) {
             self.background = "dunes".into();
         }

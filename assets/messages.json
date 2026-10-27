@@ -3893,6 +3893,28 @@
     "ru": "← → Изменить · Выберите таймер для других параметров",
     "zh": "← → 调整 · 选择睡眠定时器以查看更多选项"
   },
+  "homeFavoritesDock": {
+    "en": "Favorites dock",
+    "de": "Favoriten-Dock",
+    "zh": "收藏程序坞",
+    "es": "Dock de favoritos",
+    "pt": "Dock de favoritos",
+    "it": "Dock dei preferiti",
+    "ru": "Док избранного",
+    "pl": "Dock ulubionych",
+    "fr": "Dock des favoris"
+  },
+  "homeFavoritesDockHint": {
+    "en": "A glass tray for one row. Enabling two rows turns the dock off.",
+    "de": "Eine Glasleiste für eine Reihe. Zwei Reihen deaktivieren das Dock.",
+    "zh": "单行玻璃托盘。启用两行时将关闭程序坞。",
+    "es": "Una bandeja de cristal de una fila. Dos filas desactivan el dock.",
+    "pt": "Uma bandeja de vidro com uma linha. Duas linhas desativam o dock.",
+    "it": "Un contenitore in vetro per una riga. La seconda riga disattiva il dock.",
+    "ru": "Стеклянная панель в один ряд. При включении второго ряда док отключается.",
+    "pl": "Szklana taca na jeden rząd. Włączenie dwóch rzędów wyłącza dock.",
+    "fr": "Un plateau en verre sur une rangée. Deux rangées désactivent le dock."
+  },
   "profileLocal": {
     "en": "Local profile",
     "de": "Lokales Profil",

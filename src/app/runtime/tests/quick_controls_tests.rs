@@ -216,3 +216,70 @@ fn profile_name_returns_from_each_keyboard_route_without_editing_a_static_greeti
         assert_eq!(state.page, crate::state::Page::Home);
     }
 }
+
+#[test]
+fn favorites_dock_and_second_row_are_exclusive_and_keep_favorite_order() {
+    use crate::{features::home::Setting as HomeSetting, state::Subpage};
+    let mut state = ready();
+    let favorites = state.preferences.favorites(&state.inventory.apps);
+    state.open(2);
+    state.subpage = Some(Subpage::Home);
+    state.focus = Target::HomeOption(HomeSetting::FavoritesDock);
+    assert_eq!(state.activate(), vec![Effect::Save]);
+    assert!(state.dock_enabled());
+    state.subpage = None;
+    state.focus = Target::Setting(10);
+    assert_eq!(state.activate(), vec![Effect::Save]);
+    assert!(state.preferences.two_row_home_favorites);
+    assert!(!state.preferences.home.favorites_dock);
+    state.subpage = Some(Subpage::Home);
+    state.focus = Target::HomeOption(HomeSetting::FavoritesDock);
+    state.activate();
+    assert!(!state.preferences.two_row_home_favorites);
+    let mut restored: Preferences =
+        serde_json::from_slice(&serde_json::to_vec(&state.preferences).unwrap()).unwrap();
+    restored.sanitize();
+    assert!(restored.home.favorites_dock);
+    assert_eq!(restored.favorites(&state.inventory.apps), favorites);
+    restored.two_row_home_favorites = true;
+    restored.sanitize();
+    assert!(!restored.home.favorites_dock);
+}
+
+#[test]
+fn favorites_dock_centers_short_rows_and_reveals_scrolled_cards_with_matching_hit_targets() {
+    let mut state = ready();
+    state.preferences.home.favorites_dock = true;
+    state.preferences.favorites = Some(vec!["netflix".into(), "youtube.leanback.v4".into()]);
+    let (left, right) = state.home_strip();
+    assert!(((left + right) / 2. - 960.).abs() < 0.1);
+    assert!(right - left < 1000.);
+    let controls = controls(&state);
+    let first = controls
+        .iter()
+        .find(|c| c.target == Target::App("netflix".into()))
+        .unwrap();
+    assert!((first.rect.x - left).abs() < 0.1);
+    assert_eq!(
+        state.hit_test(&controls, first.rect.center().0, first.rect.center().1),
+        Some(first.target.clone())
+    );
+    state.scroll_favorites(10000.);
+    assert_eq!(state.home_scroll, 0.);
+    state.preferences.favorites = Some(
+        state
+            .inventory
+            .apps
+            .iter()
+            .map(|app| app.id.clone())
+            .collect(),
+    );
+    state.scroll_favorites(10000.);
+    let last = state.apps().last().unwrap().id.clone();
+    state.focus = Target::App(last);
+    state.reveal_focus(&super::controls(&state));
+    let controls = super::controls(&state);
+    let focused = controls.iter().find(|c| c.target == state.focus).unwrap();
+    let (left, right) = state.home_strip();
+    assert!(focused.rect.x >= left - 0.1 && focused.rect.x + focused.rect.w <= right + 0.1);
+}
