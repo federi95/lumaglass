@@ -87,10 +87,12 @@ test('the real release command combines changesets and synchronizes every file',
   await fs.mkdir(path.join(directory, '.changeset'));
   for (const filename of [
     'tools/release/sync-version.mjs',
+    'tools/lib/project.mjs',
     '.changeset/config.json',
     'pnpm-workspace.yaml',
     '.oxfmtrc.json',
   ]) {
+    await fs.mkdir(path.dirname(path.join(directory, filename)), { recursive: true });
     await fs.copyFile(path.join(root, filename), path.join(directory, filename));
   }
   await fs.symlink(path.join(root, 'node_modules'), path.join(directory, 'node_modules'), 'dir');
