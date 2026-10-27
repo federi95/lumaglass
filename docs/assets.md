@@ -128,3 +128,7 @@ geometric symbols under the repository's MIT license. They are not extracted
 from Apple SF Symbols or tvOS. The [control center guide](control-center.md)
 records design and protocol references; Apple screenshots and avatars are not
 included in the package.
+
+### Optical shader
+
+The optical section of `src/render/shaders/paint.frag` is adapted from ziuus/liquid-glass under MIT, Copyright (c) 2026 ziuus. Its pinned source, changes and complete notice are recorded in [NOTICE](../NOTICE.md) and `assets/licenses/ziuus-liquid-glass.txt`. This is code provenance rather than Apple artwork.

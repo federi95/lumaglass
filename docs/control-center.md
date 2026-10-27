@@ -1,7 +1,7 @@
 # Control center and header
 
 Lumaglass has an original native quick-controls panel inspired by the compact
-right-hand layout and focus treatment of tvOS Control Center. The panel uses the shared [Liquid Glass appearance](liquid-glass.md), the chosen wallpaper and explicit focus outlines. Disabling glass selects opaque surfaces. It does not perform a full-screen blur or refraction on every frame.
+right-hand layout and focus treatment of tvOS Control Center. The panel uses the shared [Liquid Glass appearance](liquid-glass.md), the chosen wallpaper and explicit focus outlines. Disabling glass selects opaque surfaces. Optical tiles use a cached GPU backdrop with bounded lens refraction. Backdrop updates are conditional; there is no per-frame blur engine.
 
 ## Opening and closing
 

@@ -42,3 +42,16 @@ read-only status refresh is pending, and ensure its wake gesture is consumed. Co
 intercept Home while another application is active.
 
 Verify that the avatar opens its preferences, never quick controls. Compare glass On/Off, text contrast, slider padding, endpoint labels and pointer snapping. Confirm that Back exits the timer detail before the full panel. Measure input latency and frame times on the TV; this revision has not been visually exercised or benchmarked.
+
+## Optical glass
+
+Check refraction on a detailed wallpaper, the moving selected-tab lens, sliders
+and control-center tiles. Labels must remain sharp without reflected duplicates.
+Compare glass Off and the supported optical/fallback paths. Verify stationary
+backdrops report zero `glass_background_refreshes` while foreground clock/labels
+change outside their coverage; wallpaper or relevant lower-content changes must
+refresh the affected cache. Check no stale lens pixels with partial redraw.
+At experimental 4K, confirm target texel memory stays at or below 15.82 MiB and
+accept the deliberately HD optical backdrop while foreground text remains 4K.
+Verify orientation, letterboxing, resized windows, modal fades, Recents, allocation
+failure fallback and input latency on TV. These checks have not been executed.

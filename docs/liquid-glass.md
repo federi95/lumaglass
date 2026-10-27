@@ -1,86 +1,96 @@
 # Liquid Glass appearance
 
-**Settings → General → Appearance → Liquid Glass** enables the glass treatment.
-It defaults to On, including when an older appearance block has no value for this
-new option. Off selects opaque controls. Saved explicit choices remain respected.
+**Settings → General → Appearance → Liquid Glass** enables the treatment, On by
+default. Off selects opaque controls and releases the optical backdrop caches.
+Saved explicit choices remain respected. The native Rust/OpenGL renderer keeps
+its SDL window, OpenGL ES 2.0 path, existing controls and remote navigation.
 
-This is an original, lightweight interpretation of Apple's material language for
-Lumaglass's Rust/OpenGL renderer. It is not Apple's platform implementation.
-Translucent surfaces, a vertical tint, directional edge reflections and a small
-specular rim distinguish navigation, settings controls and the control center.
-App logos, photos and other content retain their existing artwork.
+## Optical effect
 
-## Rendering budget
+The optical section of the shader is a selective port from
+[ziuus/liquid-glass](https://github.com/ziuus/liquid-glass/tree/c75d171e0626c78f4bdb5030191d2af6795cd892).
+It adds local lens magnification, index-of-refraction edge displacement, subtle
+RGB dispersion and directional/Fresnel edge highlights. Analytic rounded-rectangle
+normals replace the upstream five height-field evaluations. Three backdrop texture
+samples produce the optical color; offsets, including dispersion, stay within the
+14 logical pixel cache margin. No continuous ripples or physics timer is added.
+The selected tab uses its existing position/width animation, so its lens moves
+with the selection. Existing reduced-motion behavior is preserved.
 
-Each glass surface uses one rounded paint quad: six vertices in the existing
-paint batch. Focus outlines and optional shadows remain separate batched primitives. Its fill, gradient and illuminated rim share one shader pass. The
-material flag lives in the existing vertex data, so it does not require another
-shader program, a texture or a uniform update per control. Adjacent compatible
-surfaces continue to batch. Compared with the preceding fill-plus-border design,
-a resting material can replace two paint quads with one.
+Tint opacity and layer opacity are independent: a clear lens samples the content
+beneath it while panel and Recents fades can still reach exactly zero. Labels,
+icons and focus outlines are drawn afterwards at the main drawable resolution;
+they are not included in their own lens backdrop.
 
-Lighting is analytic and fixed. The material adds no clock, continuous shimmer,
-screen capture, framebuffer readback, offscreen render target, multipass blur or
-runtime tessellation. The signed distance already needed by rounded controls is
-reused for the rim. Glass follows the existing partial-damage bounds, clipping,
-opacity and reduced-motion handling. An unchanged material does not schedule
-redraws by itself.
+## Backdrop cache and rendering budget
 
-The clear treatment respects the user's wallpaper blur setting; opening the
-control center does not force a softer image. Personal-photo decoding stays on
-the wallpaper worker. No Apple images, shaders or SDK code are bundled;
-[asset provenance](assets.md) records the original symbols.
+There are at most two RGBA8 GPU targets, each capped at 1920×1080 even when the
+main UI draws at 4K. The maximum texel payload is 15.82 MiB total, excluding driver
+overhead and existing artwork buffers. Smaller windows/driver limits use smaller
+16:9 targets. Text and icons continue rendering at the original drawable density.
 
-## Clear tuning
+The base target captures lower content before the first glass surface. The
+control-center target captures the dimmed parent interface and its backplate,
+before the center's own title, tile labels and controls. The outer backplate keeps
+the analytic material; its interactive tiles and slider use the optical target.
+Header controls return to the base target. Other opaque dialogs use analytic
+controls, avoiding a lens that would incorrectly reveal wallpaper through a solid
+panel. This is a bounded two-layer design, not a recursive glass compositor.
 
-Resting controls now use 0.22–0.34 tint opacity instead of 0.64–0.82. Raised
-backplates use 0.56–0.68 instead of 0.94–0.96; clock/navigation use this stronger
-backing to preserve text legibility. Focused control-center tiles use 0.32–0.48
-instead of 0.70–0.90. Light focused selections retain 0.86–0.90 opacity so their
-dark labels remain distinct. These values describe individual surfaces, not a
-promised final transmission percentage: overlapping materials compose together.
+Targets are rerendered entirely on the GPU when their relevant lower content,
+coverage or resolution changes. No `grim`, CPU pixel readback, Vulkan, wgpu,
+WGSL runtime or multipass blur engine is used. Keys exclude foreground labels
+and lower content outside the lens coverage. Navigation-lens motion within the
+existing captured coverage can reuse its backdrop. Regions include an outward-rounded sampling
+margin to absorb small geometry changes, and the shader clamps reads inside valid pixels. When a backdrop changes,
+partial redraw also includes the affected lenses to prevent stale refraction.
 
-The control center uses a 35% dimming backdrop with clear glass. Its secondary
-text and slider labels are brighter, and the existing rim reflection is stronger.
-These are constant/color changes in the existing path, with no extra render
-passes, texture allocations or new dependencies. This increases translucency; it
-does not add physical backdrop refraction.
+Each material is still one six-vertex paint quad; its lens sampling and rim share
+one paint pass. Compatible quads batch when their texture, clipping, fade and
+backdrop layer match. Focus outlines and shadows remain separate primitives.
+Snapshot passes are additional work when a backdrop needs refreshing. They are
+scissored to the required region, and do not run continuously over unchanged
+content. At 4K the HD backdrop is intentionally upsampled to bound memory/bandwidth.
 
-The same bounded shader path supports the existing OpenGL ES 2 renderer and its
-fragment precision selection. No new GPU extension or blur buffers are required.
-This controls the implementation's cost, but does not establish a frame-rate
-guarantee across LG TVs. TV frame timings, 1080p/experimental 4K behavior and input
-latency remain pending hardware verification; no tests or CI were run for this
-revision at the owner's request.
+The clear treatment respects the user's wallpaper blur preference. Resting tint
+opacity is 0.22–0.34; raised backing is 0.56–0.68; light selected faces retain
+0.86–0.90 to support dark labels. These describe individual surfaces, not the
+final transmission of stacked elements. The control center has a 35% dimming
+backdrop for text separation.
 
-## References
+## Fallback and diagnostics
+
+Optics require a fragment high-precision path and a complete RGBA8 framebuffer.
+The renderer retries compilation with the analytic shader if optical compilation
+fails. Unsupported precision, failed/capped framebuffer allocation or disabling
+glass uses the lightweight material without optical targets. An allocation failure
+is not retried on every frame at the same size. No new GPU extension is required.
+
+Rendering diagnostics include:
+
+- `optical_glass_supported`: optical shader path compiled and precision supported.
+- `glass_background_bytes`: allocated RGBA target texel bytes.
+- `glass_background_refreshes`: targets refreshed during this frame.
+- `glass_background_ms`: CPU preparation/submission time, not a GPU timestamp.
+
+No tests, graphical preview or CI were run for this revision, as requested.
+Compilation and packaging do not establish visual correctness, a TV frame-rate
+guarantee or driver compatibility. Those require the pending hardware checks.
+
+## Provenance and references
+
+The source revision, adapted formulas and modifications are recorded in
+[NOTICE](../NOTICE.md). The complete original **Copyright (c) 2026 ziuus** MIT
+license is included in `assets/licenses/ziuus-liquid-glass.txt` and required in the
+IPK. Native cache/layer integration is original Lumaglass code. Apple SDK code,
+artwork and private implementations are not bundled.
 
 [Apple's materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials)
-separates navigation/control materials from content and recommends restrained use.
-[Adopting Liquid Glass](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass)
-describes focus-led treatment on tvOS and adapting transparency and motion.
-These are design references; Lumaglass uses its own optimized implementation.
+and [adoption guide](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass)
+inform functional layering and focus. This is an adaptation, not a promise of
+pixel-identical Apple rendering.
 
-## liquid-rust assessment
-
-Reviewed [liquid-rust 0.2.3](https://github.com/al1h3n/liquid-rust/tree/0a2b2f579a33e78346cc52b47ccabc2a395682a7)
-as a reference for a more complete optical effect. Its
-[manifest](https://github.com/al1h3n/liquid-rust/blob/0a2b2f579a33e78346cc52b47ccabc2a395682a7/Cargo.toml)
-declares Rust 1.99 and wgpu 30. Lumaglass currently uses a Rust 1.93 development/CI
-toolchain and creates an OpenGL ES 2.0 context on TV. The
-[wgpu GL backend](https://wgpu.rs/doc/wgpu/enum.Backend.html#variant.Gl)
-requires at least OpenGL ES 3.0. Actual TV driver capabilities, formats and
-surface integration would need verification before adopting that stack.
-
-The library samples a content texture, copies it to a target, and builds/reuses a
-blur pyramid; its renderer uses RGBA16Float pyramid textures and additional
-backdrops for overlapping glass layers. It offers genuine refraction and more
-complete effects than Lumaglass's analytic rim. Caching and idle suspension are
-useful optimizations, but the published RTX 3060 Ti timing does not establish
-performance on LG TV GPUs. No library benchmark, build, installation or hardware
-probe was run here.
-
-Direct integration is deferred. A selective GLSL implementation of optical ideas
-would be a separate engineering change; reusing library code would also require
-preserving the applicable MIT/Apache notices. This revision only adjusts the
-original Lumaglass material and does not incorporate its code.
+The previously evaluated [liquid-rust](https://github.com/al1h3n/liquid-rust/tree/0a2b2f579a33e78346cc52b47ccabc2a395682a7)
+uses wgpu 30 and declares Rust 1.99; it is not integrated. No code from that library
+is included. ziuus's complete Vulkan/wgpu engine, Wayland capture, media widgets,
+RK4 physics and blur subsystem are also not imported.
