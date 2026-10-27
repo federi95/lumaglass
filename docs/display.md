@@ -26,6 +26,10 @@ own actual parent process; it accepts no target PID. It does not edit LG drivers
 framebuffer or compositor configuration, mount system files, or invoke a shell.
 An unconfirmed normal exit cancels the trial and leaves safe mode for next launch.
 
+CI also exercises the actual watchdog against a disposable parent process and
+checks its safe desktop restart under the virtual display. This does not verify
+LG lifecycle, compositor or panel behavior.
+
 For independent recovery, close Lumaglass and create the safe-mode sidecar beside
 your chosen preferences file (for `preferences.json`, use `preferences.display-1080p`).
 The next launch uses 1080p. Existing Home recovery in tv-integration.md remains
