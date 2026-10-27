@@ -3892,5 +3892,38 @@
     "pl": "← → Zmień · Wybierz timer, aby zobaczyć opcje",
     "ru": "← → Изменить · Выберите таймер для других параметров",
     "zh": "← → 调整 · 选择睡眠定时器以查看更多选项"
+  },
+  "profileLocal": {
+    "en": "Local profile",
+    "de": "Lokales Profil",
+    "zh": "本地个人资料",
+    "es": "Perfil local",
+    "pt": "Perfil local",
+    "it": "Profilo locale",
+    "ru": "Локальный профиль",
+    "pl": "Profil lokalny",
+    "fr": "Profil local"
+  },
+  "profileLocalHint": {
+    "en": "Personalize your name and avatar on this TV. Changes stay in Lumaglass.",
+    "de": "Name und Avatar auf diesem Fernseher anpassen. Änderungen bleiben in Lumaglass.",
+    "zh": "自定义此电视上的姓名和头像。更改仅保存在 Lumaglass 中。",
+    "es": "Personaliza tu nombre y avatar en este televisor. Los cambios se guardan en Lumaglass.",
+    "pt": "Personalize seu nome e avatar nesta TV. As alterações ficam no Lumaglass.",
+    "it": "Personalizza nome e avatar su questa TV. Le modifiche restano in Lumaglass.",
+    "ru": "Настройте имя и аватар на этом телевизоре. Изменения сохраняются в Lumaglass.",
+    "pl": "Dostosuj nazwę i awatar na tym telewizorze. Zmiany pozostają w Lumaglass.",
+    "fr": "Personnalisez votre nom et avatar sur ce téléviseur. Les modifications restent dans Lumaglass."
+  },
+  "profileName": {
+    "en": "Profile name",
+    "de": "Profilname",
+    "zh": "个人资料名称",
+    "es": "Nombre del perfil",
+    "pt": "Nome do perfil",
+    "it": "Nome del profilo",
+    "ru": "Имя профиля",
+    "pl": "Nazwa profilu",
+    "fr": "Nom du profil"
   }
 }

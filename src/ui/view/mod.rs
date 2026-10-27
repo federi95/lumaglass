@@ -20,6 +20,7 @@ const FACE_HEIGHT: f32 = 154.4;
 const RECENTS_BACKDROP_OPACITY: f32 = 0.86;
 
 mod control_center;
+mod profile;
 mod recents_view;
 mod slider;
 
@@ -556,7 +557,8 @@ pub fn scene_with_pill(
         | Overlay::RemovalConfirm { .. }
         | Overlay::RemovalStatus { .. }
         | Overlay::ControlConfirm { .. }
-        | Overlay::ControlCenter { .. }),
+        | Overlay::ControlCenter { .. }
+        | Overlay::Profile),
     ) = &state.overlay
     {
         out.controls.clear();
@@ -590,6 +592,7 @@ pub fn scene_with_pill(
                     removal_dialog(&mut out, state, &target.id, &state.management.title, false);
                 }
             }
+            Overlay::Profile => profile::render(&mut out, state, assets),
             Overlay::ControlConfirm { command, .. } => control_dialog(&mut out, state, *command),
             Overlay::ControlCenter { .. } => {
                 control_center::render(&mut out, state, assets);
@@ -4138,6 +4141,7 @@ fn keyboard(out: &mut Scene, state: &State, assets: &Assets) {
     out.border(panel, 27.2, 1., c(0xffffff, 0.12));
     out.text(
         match state.keyboard_field {
+            TextField::ProfileName => language.t("profileName"),
             TextField::Location => language.t("cityPostcode"),
             TextField::Name => language.t(
                 if state.preferences.home.greeting_mode

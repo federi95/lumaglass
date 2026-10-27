@@ -40,6 +40,10 @@ pub enum Target {
     ControlCenter,
     CloseControlCenter,
     Profile,
+    ProfileName,
+    ProfileClearName,
+    ProfileAvatar,
+    CloseProfile,
     Quick(crate::features::control_center::Action),
     SleepSlider,
     ClockAvatar,
@@ -145,6 +149,7 @@ pub struct Control {
 
 #[derive(Clone, Debug)]
 pub enum Overlay {
+    Profile,
     ControlCenter {
         restore: Target,
     },
@@ -197,6 +202,7 @@ pub enum Subpage {
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 pub enum TextField {
+    ProfileName,
     PhotoFolder,
     PhotoUrl,
     Apps,
@@ -1424,6 +1430,23 @@ impl State {
             };
             return self.set_slider(&self.focus.clone(), next);
         }
+        if matches!(self.overlay, Some(Overlay::Profile)) {
+            let rows = [
+                Target::CloseProfile,
+                Target::ProfileName,
+                Target::ProfileAvatar,
+                Target::ProfileClearName,
+            ];
+            if let Some(index) = rows.iter().position(|target| target == &self.focus) {
+                let next = match direction {
+                    Direction::Up => index.saturating_sub(1),
+                    Direction::Down => (index + 1).min(rows.len() - 1),
+                    Direction::Left | Direction::Right => index,
+                };
+                self.focus(rows[next].clone(), controls);
+            }
+            return vec![];
+        }
         if self.overlay.is_none() {
             if matches!(self.focus, Target::Nav(_)) && matches!(direction, Direction::Up) {
                 self.focus(Target::ControlCenter, controls);
@@ -2208,8 +2231,13 @@ impl State {
                 self.dirty = true;
                 return;
             }
-            if self.keyboard_field == TextField::Name {
-                let limit: usize = if self.preferences.home.greeting_mode == GreetingMode::Static {
+            if matches!(
+                self.keyboard_field,
+                TextField::Name | TextField::ProfileName
+            ) {
+                let limit: usize = if self.keyboard_field == TextField::Name
+                    && self.preferences.home.greeting_mode == GreetingMode::Static
+                {
                     80
                 } else {
                     40
@@ -2257,7 +2285,10 @@ impl State {
                 let mut query = self.weather.query.clone();
                 query.pop();
                 self.weather.edit(query);
-            } else if self.keyboard_field == TextField::Name {
+            } else if matches!(
+                self.keyboard_field,
+                TextField::Name | TextField::ProfileName
+            ) {
                 self.greeting_name_draft.pop();
             } else if self.keyboard_field == TextField::InputName {
                 self.input_name.pop();
@@ -2303,11 +2334,20 @@ impl State {
             }
             return vec![Effect::Save];
         }
-        if self.keyboard_field == TextField::Name {
+        if matches!(
+            self.keyboard_field,
+            TextField::Name | TextField::ProfileName
+        ) {
             let name = std::mem::take(&mut self.greeting_name_draft);
             let name = name.trim();
             // Empty dismissal preserves the saved value; Clear name is explicit.
-            let saved = if self.preferences.home.greeting_mode == GreetingMode::Static {
+            if self.keyboard_field == TextField::ProfileName {
+                self.overlay = Some(Overlay::Profile);
+                self.focus = Target::ProfileName;
+            }
+            let saved = if self.keyboard_field == TextField::Name
+                && self.preferences.home.greeting_mode == GreetingMode::Static
+            {
                 &mut self.preferences.home.custom_greeting
             } else {
                 &mut self.preferences.greeting_name
@@ -2357,7 +2397,10 @@ impl State {
         query.replace_range(start..end, "");
         if self.keyboard_field == TextField::Location {
             self.weather.edit(query);
-        } else if self.keyboard_field == TextField::Name {
+        } else if matches!(
+            self.keyboard_field,
+            TextField::Name | TextField::ProfileName
+        ) {
             self.greeting_name_draft = query;
         } else if self.keyboard_field == TextField::InputName {
             self.input_name = query;
@@ -2371,7 +2414,7 @@ impl State {
     pub fn editing_text(&self) -> &str {
         match self.keyboard_field {
             TextField::Location => &self.weather.query,
-            TextField::Name => &self.greeting_name_draft,
+            TextField::Name | TextField::ProfileName => &self.greeting_name_draft,
             TextField::InputName => &self.input_name,
             TextField::PhotoFolder | TextField::PhotoUrl => &self.photo_draft,
             TextField::Apps => &self.query,
@@ -2382,7 +2425,7 @@ impl State {
         if matches!(field, TextField::PhotoFolder | TextField::PhotoUrl) {
             self.photo_draft.clear();
         }
-        if field == TextField::Name {
+        if matches!(field, TextField::Name | TextField::ProfileName) {
             // SDL-webOS cannot pre-fill the system keyboard's text model.
             self.greeting_name_draft.clear();
         }
@@ -2399,6 +2442,7 @@ impl State {
             self.focus = match field {
                 TextField::Location => Target::WeatherQuery,
                 TextField::Name => Target::GreetingName,
+                TextField::ProfileName => Target::ProfileName,
                 TextField::InputName => Target::InputRename,
                 TextField::PhotoFolder => Target::PhotoFolder,
                 TextField::PhotoUrl => Target::PhotoUrl,
@@ -2431,6 +2475,7 @@ impl State {
             TextField::PhotoUrl => Target::PhotoUrl,
             TextField::Location => Target::WeatherSearch,
             TextField::Name => Target::GreetingName,
+            TextField::ProfileName => Target::ProfileName,
             TextField::InputName => Target::InputRename,
             TextField::Apps => Target::Search,
         }
@@ -2447,11 +2492,36 @@ impl State {
             }
         }
         if self.focus == Target::Profile && self.overlay.is_none() {
-            self.open(2);
-            self.section = 0;
-            self.subpage = Some(Subpage::Clock);
-            self.focus = Target::ClockAvatar;
+            self.overlay = Some(Overlay::Profile);
+            self.focus = Target::ProfileName;
+            self.pointer = false;
+            self.pressed = None;
+            self.panel_started = (!self.preferences.reduced_motion).then(Instant::now);
             self.dirty = true;
+            return vec![];
+        }
+        if matches!(self.overlay, Some(Overlay::Profile)) {
+            match self.focus {
+                Target::CloseProfile => return self.back(),
+                Target::ProfileName => self.open_keyboard(TextField::ProfileName),
+                Target::ProfileClearName => {
+                    self.preferences.greeting_name.clear();
+                    self.dirty = true;
+                    return vec![Effect::Save];
+                }
+                Target::ProfileAvatar => {
+                    use crate::features::header::Avatar;
+                    self.preferences.header.avatar =
+                        if self.preferences.header.avatar == Avatar::Initials {
+                            Avatar::Symbol
+                        } else {
+                            Avatar::Initials
+                        };
+                    self.dirty = true;
+                    return vec![Effect::Save];
+                }
+                _ => {}
+            }
             return vec![];
         }
         if self.focus == Target::CloseControlCenter
@@ -3285,7 +3355,7 @@ impl State {
                 "Clear" => match self.keyboard_field {
                     TextField::PhotoFolder | TextField::PhotoUrl => self.photo_draft.clear(),
                     TextField::Location => self.weather.edit(String::new()),
-                    TextField::Name => self.greeting_name_draft.clear(),
+                    TextField::Name | TextField::ProfileName => self.greeting_name_draft.clear(),
                     TextField::InputName => self.input_name.clear(),
                     TextField::Apps => self.query.clear(),
                 },
@@ -3330,6 +3400,10 @@ impl State {
                     removal: Some(target),
                 });
                 self.focus = Target::Option(2);
+                return vec![];
+            }
+            if matches!(overlay, Overlay::Profile) {
+                self.focus = Target::Profile;
                 return vec![];
             }
             if matches!(overlay, Overlay::Recents { .. }) {

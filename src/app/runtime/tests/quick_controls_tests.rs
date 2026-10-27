@@ -141,8 +141,10 @@ fn profile_and_quick_controls_have_distinct_actions() {
     let mut state = ready();
     state.focus = Target::Profile;
     state.activate();
-    assert_eq!(state.subpage, Some(crate::state::Subpage::Clock));
-    assert!(state.overlay.is_none());
+    assert_eq!(state.page, crate::state::Page::Home);
+    assert!(matches!(state.overlay, Some(Overlay::Profile)));
+    state.back();
+    assert_eq!(state.focus, Target::Profile);
     state.focus = Target::ControlCenter;
     state.activate();
     assert!(matches!(state.overlay, Some(Overlay::ControlCenter { .. })));
@@ -178,4 +180,39 @@ fn old_preferences_enable_glass_and_opaque_mode_removes_glass_commands() {
             .iter()
             .any(|draw| matches!(draw, crate::renderer::Draw::Glass(..)))
     );
+}
+
+#[test]
+fn profile_name_returns_from_each_keyboard_route_without_editing_a_static_greeting() {
+    use crate::{features::home::GreetingMode, state::TextField};
+    for route in 0..3 {
+        let mut state = ready();
+        state.preferences.home.greeting_mode = GreetingMode::Static;
+        state.preferences.home.custom_greeting = "Welcome home".into();
+        state.focus = Target::Profile;
+        state.activate();
+        state.activate();
+        assert_eq!(state.keyboard_field, TextField::ProfileName);
+        state.text("Ada Lovelace");
+        let effects = match route {
+            0 => state.finish_text_input(),
+            1 => state.back(),
+            _ => {
+                let done = crate::state::KEYS
+                    .iter()
+                    .position(|key| *key == "Done")
+                    .unwrap();
+                state.focus = Target::Key(done);
+                state.activate()
+            }
+        };
+        assert_eq!(effects, vec![Effect::Save]);
+        assert_eq!(state.preferences.greeting_name, "Ada Lovelace");
+        assert_eq!(state.preferences.home.custom_greeting, "Welcome home");
+        assert!(matches!(state.overlay, Some(Overlay::Profile)));
+        assert_eq!(state.focus, Target::ProfileName);
+        state.back();
+        assert_eq!(state.focus, Target::Profile);
+        assert_eq!(state.page, crate::state::Page::Home);
+    }
 }
