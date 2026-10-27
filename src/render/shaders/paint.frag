@@ -51,7 +51,7 @@ void main() {
         float rim = 1.0 - smoothstep(0.5, 2.8, -d);
         float light = clamp(0.55 - local.y * 0.32 - local.x * 0.18, 0.0, 1.0);
         float sheen = 0.035 * (1.0 - smoothstep(-1.0, -0.15, local.y));
-        color.rgb = mix(color.rgb, vec3(1.0), rim * (0.10 + light * 0.48) + sheen);
+        color.rgb = mix(color.rgb, vec3(1.0), rim * (0.16 + light * 0.62) + sheen);
         // Preserve opacity exactly: panel/Recents fades must remain linear, including zero.
     }
     gl_FragColor = color * vec4(1.0, 1.0, 1.0, alpha * edge_coverage());

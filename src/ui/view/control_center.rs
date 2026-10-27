@@ -192,7 +192,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         }),
         Rect::new(1220., 824., 584., 38.),
         text(13., 400, 0.),
-        c(0xffffff, 0.64),
+        c(0xffffff, if out.liquid_glass { 0.95 } else { 0.64 }),
         false,
     );
 }
@@ -203,8 +203,8 @@ fn surface(out: &mut Scene, rect: Rect, radius: f32, focused: bool, enabled: boo
         out.draw.push(Draw::Glass(
             rect,
             radius,
-            out.accent_color(c(0x71879a, 0.70)),
-            c(0x2c4050, 0.90),
+            out.accent_color(c(0x71879a, 0.32)),
+            c(0x2c4050, 0.48),
         ));
         out.border(rect, radius, 2., out.accent_color(c(0xffffff, 0.88)));
     } else {
@@ -268,7 +268,7 @@ fn tile(
         large,
     );
     let mut secondary = color;
-    secondary[3] *= 0.74;
+    secondary[3] *= if out.liquid_glass { 0.95 } else { 0.74 };
     out.text(
         subtitle,
         Rect::new(x, rect.y + if large { 155. } else { 57. }, width, 36.),

@@ -210,11 +210,17 @@ impl Scene {
         }
     }
     fn selection_surface(&mut self, rect: Rect, radius: f32) {
-        let top = self.accent_color(c(0xfafafa, 1.));
+        let opacity = if self.liquid_glass { 0.90 } else { 1. };
+        let top = self.accent_color(c(0xfafafa, opacity));
         let bottom = if self.accent == crate::features::appearance::Accent::Neutral {
-            c(0xe5e5e5, 1.)
+            c(0xe5e5e5, if self.liquid_glass { 0.86 } else { 1. })
         } else {
-            [top[0] * 0.92, top[1] * 0.92, top[2] * 0.92, 1.]
+            [
+                top[0] * 0.92,
+                top[1] * 0.92,
+                top[2] * 0.92,
+                if self.liquid_glass { 0.86 } else { 1. },
+            ]
         };
         if self.liquid_glass {
             self.draw.push(Draw::Glass(rect, radius, top, bottom));
@@ -236,9 +242,9 @@ impl Scene {
             self.selection_surface(rect, radius);
         } else if self.liquid_glass {
             let (top, bottom) = if raised {
-                (c(0x34444f, 0.94), c(0x16212b, 0.96))
+                (c(0x34444f, 0.56), c(0x16212b, 0.68))
             } else {
-                (c(0x414d57, 0.64), c(0x1b232c, 0.82))
+                (c(0x414d57, 0.22), c(0x1b232c, 0.34))
             };
             self.draw.push(Draw::Glass(rect, radius, top, bottom));
         } else {
@@ -483,7 +489,7 @@ pub fn scene_with_pill(
                 0x080b12,
                 if matches!(overlay, Overlay::ControlCenter { .. }) {
                     if state.preferences.appearance.liquid_glass {
-                        0.20
+                        0.35
                     } else {
                         0.38
                     }
@@ -554,13 +560,8 @@ pub fn scene_with_pill(
 }
 
 pub(crate) fn wallpaper_blur(state: &State) -> &'static str {
-    if state.preferences.appearance.liquid_glass
-        && matches!(state.overlay, Some(Overlay::ControlCenter { .. }))
-    {
-        crate::features::appearance::Blur::Soft.suffix()
-    } else {
-        state.preferences.appearance.blur.suffix()
-    }
+    // Clear glass keeps the chosen wallpaper sharp unless the user requests blur.
+    state.preferences.appearance.blur.suffix()
 }
 
 fn header_identity(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
@@ -577,7 +578,7 @@ fn header_identity(out: &mut Scene, state: &State, assets: &Assets, now: OffsetD
     let x = if right { 1694. - width } else { 84. };
     let avatar = if state.preferences.header.combined {
         let capsule = Rect::new(x, 52., width, 50.);
-        out.material(capsule, 25., false, false);
+        out.material(capsule, 25., false, out.liquid_glass);
         if focused {
             out.border(capsule, 25., 2., out.accent_color(c(0xffffff, 0.9)));
         }
@@ -658,7 +659,7 @@ fn header(
     header_identity(out, state, assets, now);
     let layout = navigation(assets, language);
     let nav = layout.surface;
-    out.material(nav, 48., false, false);
+    out.material(nav, 48., false, out.liquid_glass);
     let pill = Rect::new(pill_x, 52.3, pill_width, 49.);
     out.selection_surface(pill, 32.);
     if matches!(state.focus, Target::Nav(_)) && !state.pointer {

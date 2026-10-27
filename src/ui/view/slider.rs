@@ -20,7 +20,7 @@ pub(super) fn draw(
     let muted = if bright {
         c(0x20242a, 0.72)
     } else {
-        c(0xffffff, 0.64)
+        c(0xffffff, if out.liquid_glass { 0.86 } else { 0.64 })
     };
     out.material(rect, 40., bright, false);
     if focused && !bright {
