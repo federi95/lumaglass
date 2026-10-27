@@ -1160,14 +1160,10 @@ fn system_category_owns_refresh_and_quit_and_restores_sidebar_focus() {
     state.direction(Direction::Right, &controls(&state));
     assert_eq!(state.focus, Target::Setting(3));
     assert_eq!(state.activate(), vec![Effect::Reload]);
-    state.direction(Direction::Down, &controls(&state));
-    assert_eq!(state.focus, Target::Setting(7));
-    state.direction(Direction::Down, &controls(&state));
-    assert_eq!(state.focus, Target::Setting(8));
-    state.direction(Direction::Down, &controls(&state));
-    assert_eq!(state.focus, Target::Setting(9));
-    state.direction(Direction::Down, &controls(&state));
-    assert_eq!(state.focus, Target::Setting(5));
+    for setting in [7, 8, 21, 9, 14, 15, 16, 5] {
+        state.direction(Direction::Down, &controls(&state));
+        assert_eq!(state.focus, Target::Setting(setting));
+    }
     assert_eq!(state.activate(), vec![Effect::Quit]);
     state.back();
     assert_eq!(state.focus, Target::Sidebar(crate::state::SYSTEM_SECTION));
