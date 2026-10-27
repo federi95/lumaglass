@@ -2445,11 +2445,12 @@ impl State {
                     .unwrap_or_default();
             }
             Target::PrivacyRefresh => {
-                return self
-                    .privacy
-                    .request()
-                    .map(|generation| vec![Effect::Privacy { generation }])
-                    .unwrap_or_default();
+                let mut effects =
+                    self.control_request(crate::features::controls::Command::BlockerStatus);
+                if let Some(generation) = self.privacy.request() {
+                    effects.push(Effect::Privacy { generation });
+                }
+                return effects;
             }
             Target::Setting(index) => {
                 match index {

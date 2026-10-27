@@ -60,6 +60,25 @@ fn privacy_confirmation_defaults_to_cancel_and_sends_one_exact_intent() {
 }
 
 #[test]
+fn privacy_refresh_also_reads_restore_metadata_after_an_uncertain_operation() {
+    let mut state = ready();
+    state.webos = true;
+    state.open(2);
+    state.subpage = Some(Subpage::Privacy);
+    state.focus = Target::PrivacyRefresh;
+    assert!(matches!(
+        state.activate().as_slice(),
+        [
+            Effect::Control {
+                command: Command::BlockerStatus,
+                ..
+            },
+            Effect::Privacy { .. }
+        ]
+    ));
+}
+
+#[test]
 fn video_trials_block_launches_recents_and_shortcuts_and_back_requests_safe_mode() {
     let mut state = ready();
     state.display_trial = true;

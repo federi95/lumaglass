@@ -100,6 +100,12 @@ impl Session {
             | Event::KeyUp {
                 keycode: Some(_), ..
             }
+            | Event::KeyDown {
+                scancode: Some(_), ..
+            }
+            | Event::KeyUp {
+                scancode: Some(_), ..
+            }
             | Event::MouseButtonDown { .. }
             | Event::MouseButtonUp { .. }
             | Event::MouseWheel { .. }
@@ -148,6 +154,38 @@ impl Session {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn unknown_keycodes_still_wake_for_physical_scancodes_but_not_cursor_notifications() {
+        use sdl2::{
+            event::Event,
+            keyboard::{Mod, Scancode},
+        };
+        let now = Instant::now();
+        let mut s = Session {
+            active: true,
+            ..Session::default()
+        };
+        let notification = Event::KeyDown {
+            timestamp: 0,
+            window_id: 1,
+            keycode: None,
+            scancode: None,
+            keymod: Mod::NOMOD,
+            repeat: false,
+        };
+        assert!(!s.consume_event(&notification, now));
+        assert!(s.active);
+        let physical = Event::KeyDown {
+            timestamp: 0,
+            window_id: 1,
+            keycode: None,
+            scancode: Some(Scancode::A),
+            keymod: Mod::NOMOD,
+            repeat: false,
+        };
+        assert!(s.consume_event(&physical, now));
+        assert!(!s.active);
+    }
     #[test]
     fn waking_key_is_consumed_through_repeats_and_release() {
         use sdl2::{
