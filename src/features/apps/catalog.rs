@@ -466,3 +466,6 @@ impl State {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;
