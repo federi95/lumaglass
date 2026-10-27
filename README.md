@@ -81,6 +81,8 @@ integration, rendering, compatibility, releases and licensing.
 The [screenshots and video](docs/media/README.md) are inherited Luma captures;
 they document the design baseline and retain the upstream branding in their pixels.
 
+[Control center, clock/avatar and sliders](docs/control-center.md) documents the native quick controls and header personalization.
+
 ## License and acknowledgments
 
 Application code is MIT-licensed. The original
@@ -93,5 +95,3 @@ their applicable terms; the application license does not relicense third-party a
 The IPK includes the original license, project notices, asset provenance,
 third-party license texts and a bundle of notices from the exact locked Rust crates.
 See [licensing](docs/licensing.md) for how these are maintained.
-
-[Control center, clock/avatar and sliders](docs/control-center.md) documents the native quick controls and header personalization.

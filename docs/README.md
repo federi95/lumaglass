@@ -28,3 +28,5 @@ the current implementation; the project excludes a web dashboard and MQTT bridge
 
 Upstream project provenance and complete notice locations are in
 [NOTICE.md](../NOTICE.md).
+
+- [Control center and header](control-center.md): quick controls, value sliders and clock/avatar layout.

@@ -76,6 +76,19 @@ try {
   const quick = await scenario('control-center', 'control-center');
   assert.equal(quick.modal, true);
   assert.deepEqual(quick.focus, { Quick: 'Standby' });
+  for (const [name, top] of [
+    ['network', 241],
+    ['audio', 350],
+  ]) {
+    const icon = await sharp(path.join(out, 'control-center.png'))
+      .extract({ left: 1534, top, width: 30, height: 30 })
+      .stats();
+    assert.ok(
+      icon.channels.slice(0, 3).every((channel) => channel.max > 180),
+      `${name} icon must remain readable on its dark, unfocused tile`,
+    );
+  }
+
   for (const value of ['Control center', 'Network', 'Audio', 'Sleep timer', 'Screensaver'])
     assert.ok(quick.ui_text.includes(value));
   const dismissed = await scenario('control-center-dismissed', 'control-center,back');
