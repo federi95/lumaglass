@@ -2253,7 +2253,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 (
                     20,
                     "saverStyle",
-                    "image",
+                    "grid",
                     Some(language.t(if state.preferences.screensaver.photos {
                         "saverPhotos"
                     } else {
@@ -2334,7 +2334,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                     target: Target::Setting(17),
                     rect: Rect::new(640., 950. - s, 1120., 72.),
                     title: language.t("myImages"),
-                    icon: Some("image"),
+                    icon: Some("grid"),
                     value: None,
                     description: None,
                     selected: false,
