@@ -3,8 +3,12 @@ use super::*;
 
 pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     let language = state.preferences.language;
-    let panel = Rect::new(596., 192., 728., 688.);
-    out.modal_panel(panel, 40.);
+    // The group owns a modal hit area, without drawing an enclosing container.
+    // Each row is its own clear optical lens, like the Control Center capsules.
+    out.modal = Some(Rect::new(596., 192., 728., 688.));
+    out.draw
+        .push(Draw::Backdrop(crate::render::backdrop::Layer::Panel));
+    out.glass_layer = Some(crate::render::backdrop::Layer::Panel);
     let avatar = Rect::new(916., 240., 88., 88.);
     out.shape(avatar, 44., out.accent_color(c(0xc9b6ff, 1.)));
     let initials = crate::features::header::initials(&state.preferences.greeting_name);

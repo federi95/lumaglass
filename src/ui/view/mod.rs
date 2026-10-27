@@ -592,7 +592,9 @@ pub fn scene_with_pill(
             // must not compete with the modal's labels through clear lenses.
             out.fade(content_start, 0.12, 0.65);
         }
-        out.modal_chrome = floating;
+        // The parent is already subdued. Keep Control Center/profile lenses as
+        // clear as the header; only an enclosing app-options panel needs dense tint.
+        out.modal_chrome = matches!(overlay, Overlay::Options { .. });
         let start = out.draw.len();
         out.shape(
             Rect::new(0., 0., 1920., 1080.),
@@ -1855,17 +1857,32 @@ struct Row<'a> {
 fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
     let focused = state.focus == row.target;
     let enabled = state.target_enabled(&row.target);
-    let bright = focused && enabled;
-    let radius = if row.description.is_some() { 20. } else { 48. };
-    out.material(row.rect, radius, bright, false);
-    if focused {
-        out.border(row.rect, radius, 2., out.accent_color(c(0xffffff, 0.90)));
-    }
-    out.pressed_feedback(state, &row.target, row.rect, radius);
-    let color = if bright {
-        c(0x2c2c2c, 1.)
+    let floating = matches!(state.overlay, Some(Overlay::Profile));
+    let bright = focused && enabled && !(floating && out.liquid_glass);
+    let radius = if row.description.is_some() {
+        20.
     } else {
-        c(0xeeeeee, 0.73)
+        row.rect.h / 2.
+    };
+    let color = if floating {
+        out.chrome(
+            row.rect,
+            radius,
+            focused && enabled,
+            false,
+            state.pressed.as_ref() == Some(&row.target),
+        )
+    } else {
+        out.material(row.rect, radius, bright, false);
+        if focused {
+            out.border(row.rect, radius, 2., out.accent_color(c(0xffffff, 0.90)));
+        }
+        out.pressed_feedback(state, &row.target, row.rect, radius);
+        if bright {
+            c(0x2c2c2c, 1.)
+        } else {
+            c(0xeeeeee, 0.73)
+        }
     };
     let color = if enabled { color } else { c(0xffffff, 0.45) };
     let mut x = row.rect.x + 24.2;
@@ -1874,7 +1891,9 @@ fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
             assets,
             icon,
             Rect::new(x, row.rect.y + (row.rect.h - 23.2) / 2., 23.2, 23.2),
-            if bright {
+            if floating {
+                color
+            } else if bright {
                 c(0x444444, 1.)
             } else if row.selected {
                 out.accent_color(c(0xe4e4e4, 0.61))
@@ -1935,7 +1954,9 @@ fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
                 24.,
             ),
             text(18.4, 450, 0.).right(),
-            if bright {
+            if floating {
+                color
+            } else if bright {
                 c(0x444444, 1.)
             } else {
                 c(0xeeeeee, 0.73)
@@ -1953,7 +1974,9 @@ fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
                 18.4,
                 18.4,
             ),
-            if bright {
+            if floating {
+                color
+            } else if bright {
                 c(0x444444, 1.)
             } else if row.selected {
                 out.accent_color(c(0xe4e4e4, 0.61))
