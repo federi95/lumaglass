@@ -243,6 +243,7 @@ fn effects(
 ) -> bool {
     for effect in effects {
         match effect {
+            Effect::AppCatalog { generation } => platform.send(Request::AppCatalog { generation }),
             Effect::Manage {
                 generation,
                 command,
@@ -987,6 +988,9 @@ fn run() -> Result<(), String> {
         state.dirty |= assets.artwork.poll();
         while let Ok(response) = platform.receiver.try_recv() {
             match response {
+                Response::AppCatalog { generation, result } => {
+                    state.catalog_accept(generation, result)
+                }
                 Response::Controlled {
                     generation,
                     command,

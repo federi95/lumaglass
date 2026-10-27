@@ -19,6 +19,7 @@ const MAIN_TOP: f32 = 108.8;
 const FACE_HEIGHT: f32 = 154.4;
 const RECENTS_BACKDROP_OPACITY: f32 = 0.86;
 
+mod app_management;
 mod control_center;
 mod profile;
 mod recents_view;
@@ -2332,6 +2333,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 Some(Subpage::TextRendering) => language.t("textRendering"),
                 Some(Subpage::SystemInfo) => language.t("tvInformation"),
                 Some(Subpage::Privacy) => language.t("privacy"),
+                Some(Subpage::AppManagement | Subpage::ManagedApp(_)) => language.t("catalogTitle"),
                 None => "",
             };
             let parent_width = assets.width(label, text(20.8, 550, -0.02)) + 2.;
@@ -2353,7 +2355,13 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             if clock_path.is_some()
                 || matches!(
                     state.subpage,
-                    Some(Subpage::Home | Subpage::StartupFocus | Subpage::Shortcuts)
+                    Some(
+                        Subpage::Home
+                            | Subpage::StartupFocus
+                            | Subpage::Shortcuts
+                            | Subpage::AppManagement
+                            | Subpage::ManagedApp(_)
+                    )
                 )
             {
                 sub_style.size *= (sub_width / assets.width(sub, sub_style)).min(1.);
@@ -2410,6 +2418,8 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 | Subpage::Clock
                 | Subpage::SystemInfo
                 | Subpage::Privacy
+                | Subpage::AppManagement
+                | Subpage::ManagedApp(_)
         ) {
             match subpage {
                 Subpage::WeatherLocation => location_settings(out, state, assets),
@@ -2425,6 +2435,9 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 Subpage::Clock => clock_settings(out, state, assets),
                 Subpage::SystemInfo => system_information(out, state, assets),
                 Subpage::Privacy => privacy_information(out, state, assets),
+                Subpage::AppManagement | Subpage::ManagedApp(_) => {
+                    app_management::render(out, state, assets)
+                }
                 _ => unreachable!(),
             }
             if let Some(opened) = state.panel_started {
@@ -2489,7 +2502,9 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             | Subpage::Greeting
             | Subpage::AppNames
             | Subpage::Clock
-            | Subpage::SystemInfo => {
+            | Subpage::SystemInfo
+            | Subpage::AppManagement
+            | Subpage::ManagedApp(_) => {
                 unreachable!()
             }
             Subpage::Privacy => {
@@ -2725,6 +2740,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 (8, language.t("tvInformation"), "tv", None, true),
                 (21, language.t("displayResolution"), "tv", None, true),
                 (9, language.t("privacy"), "settings", None, true),
+                (22, language.t("catalogTitle"), "grid", None, true),
                 (
                     14,
                     language.t("blockerRefresh"),

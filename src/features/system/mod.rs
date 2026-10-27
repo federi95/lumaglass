@@ -20,7 +20,7 @@ impl Access {
             Self::Unknown => "infoUnknown",
         }
     }
-    fn parse(value: &Value) -> Self {
+    pub(crate) fn parse(value: &Value) -> Self {
         match value.as_str() {
             Some("available") => Self::Available,
             Some("denied") => Self::Denied,

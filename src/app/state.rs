@@ -37,6 +37,17 @@ pub enum Page {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum Target {
+    CatalogRefresh,
+    CatalogFilter,
+    CatalogPrevious,
+    CatalogNext,
+    CatalogUndo,
+    CatalogRestoreAll,
+    CatalogApp(String),
+    CatalogBack,
+    CatalogToggle,
+    CatalogLgHome,
+    CatalogRemove,
     ControlCenter,
     CloseControlCenter,
     Profile,
@@ -180,6 +191,8 @@ pub enum Overlay {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum Subpage {
+    AppManagement,
+    ManagedApp(String),
     Display,
     Rotation,
     Wallpapers,
@@ -222,6 +235,9 @@ pub enum Direction {
 
 #[derive(Debug, PartialEq)]
 pub enum Effect {
+    AppCatalog {
+        generation: u64,
+    },
     Control {
         generation: u64,
         command: crate::features::controls::Command,
@@ -302,6 +318,7 @@ pub struct State {
     pub system: crate::features::system::Information,
     pub privacy: crate::features::privacy::Privacy,
     pub management: management::Management,
+    pub catalog: crate::features::apps::catalog::Catalog,
     pub inventory_generation: u64,
     pub removed_apps: std::collections::HashSet<String>,
     pub webos: bool,
@@ -354,6 +371,7 @@ impl State {
             system: crate::features::system::Information::default(),
             privacy: crate::features::privacy::Privacy::default(),
             management: management::Management::default(),
+            catalog: crate::features::apps::catalog::Catalog::default(),
             inventory_generation: 0,
             removed_apps: std::collections::HashSet::new(),
             webos: false,
@@ -501,6 +519,22 @@ impl State {
     /// Disabled rows remain focusable so the reason can be read, but cannot mutate.
     pub fn target_enabled(&self, target: &Target) -> bool {
         match target {
+            Target::CatalogLgHome => false,
+            Target::CatalogUndo => self.catalog.can_undo(),
+            Target::CatalogRestoreAll => !self.preferences.hidden.is_empty(),
+            Target::CatalogPrevious => self.catalog.page > 0,
+            Target::CatalogNext => self.catalog.page + 1 < self.catalog_pages(),
+            Target::CatalogToggle => {
+                if let Some(Subpage::ManagedApp(id)) = &self.subpage {
+                    self.preferences.hidden.contains(id) || self.catalog_can_hide(id)
+                } else {
+                    false
+                }
+            }
+            Target::CatalogRemove => {
+                (self.catalog_removal().is_some() && !self.management.active())
+                    || self.catalog_removal_status()
+            }
             Target::HomeOption(HomeOption::FavoritesDock) => {
                 !self.preferences.two_row_home_favorites
             }
@@ -1209,6 +1243,7 @@ impl State {
 
     /// Called only after a valid complete inventory proved the selected app absent.
     pub fn complete_removal(&mut self, id: &str) -> Vec<Effect> {
+        self.catalog_invalidate_removed(id);
         self.inventory.apps.retain(|app| app.id != id);
         if let Some(favorites) = &mut self.preferences.favorites {
             favorites.retain(|item| item != id);
@@ -1248,6 +1283,34 @@ impl State {
     }
 
     pub fn reconcile_focus(&mut self) {
+        if matches!(
+            self.focus,
+            Target::CatalogBack
+                | Target::CatalogToggle
+                | Target::CatalogRemove
+                | Target::CatalogLgHome
+        ) && !matches!(self.subpage, Some(Subpage::ManagedApp(_)))
+        {
+            self.focus = Target::CatalogRefresh;
+        }
+        if let Some(Subpage::ManagedApp(id)) = &self.subpage
+            && self.catalog_entry(id).is_none()
+        {
+            self.subpage = Some(Subpage::AppManagement);
+            self.focus = Target::CatalogRefresh;
+            self.scroll = 0.;
+        }
+        if let Target::CatalogApp(id) = &self.focus
+            && !self
+                .catalog_entries()
+                .into_iter()
+                .skip(self.catalog.page * crate::features::apps::catalog::PAGE_SIZE)
+                .take(crate::features::apps::catalog::PAGE_SIZE)
+                .any(|app| &app.id == id)
+        {
+            self.focus = Target::CatalogFilter;
+            self.scroll = 0.;
+        }
         if let Target::StartupFocus(choice) = &self.focus
             && !self
                 .startup_choices()
@@ -1420,6 +1483,10 @@ impl State {
     }
 
     fn close_subpage(&mut self) {
+        if matches!(self.subpage, Some(Subpage::ManagedApp(_))) {
+            self.catalog_back();
+            return;
+        }
         if self.subpage == Some(Subpage::WeatherLocation) {
             self.weather.cancel_search();
         }
@@ -1459,6 +1526,8 @@ impl State {
             Some(Subpage::TextRendering) => Target::Setting(7),
             Some(Subpage::SystemInfo) => Target::Setting(8),
             Some(Subpage::Privacy) => Target::Setting(9),
+            Some(Subpage::AppManagement) => Target::Setting(22),
+            Some(Subpage::ManagedApp(_)) => unreachable!(),
             None => Target::Sidebar(self.section),
         };
         self.scroll = 0.;
@@ -1700,6 +1769,64 @@ impl State {
                 self.focus(Target::StartupFocus(StartupFocus::Auto), controls);
                 return vec![];
             }
+        }
+        if self.overlay.is_none()
+            && matches!(
+                self.subpage,
+                Some(Subpage::AppManagement | Subpage::ManagedApp(_))
+            )
+        {
+            let rows = self.catalog_rows();
+            if self.focus == Target::Nav(2) && matches!(direction, Direction::Down) {
+                self.focus(rows[0].clone(), controls);
+                return vec![];
+            }
+            if let Some(index) = rows.iter().position(|target| target == &self.focus) {
+                match direction {
+                    Direction::Left if self.focus == Target::CatalogNext => {
+                        self.focus(Target::CatalogPrevious, controls)
+                    }
+                    Direction::Left if self.focus == Target::CatalogRestoreAll => {
+                        self.focus(Target::CatalogUndo, controls)
+                    }
+                    Direction::Left => self.close_subpage(),
+                    Direction::Right if self.focus == Target::CatalogPrevious => {
+                        self.focus(Target::CatalogNext, controls)
+                    }
+                    Direction::Right if self.focus == Target::CatalogUndo => {
+                        self.focus(Target::CatalogRestoreAll, controls)
+                    }
+                    Direction::Down if self.focus == Target::CatalogPrevious => {
+                        self.focus(Target::CatalogUndo, controls)
+                    }
+                    Direction::Down if self.focus == Target::CatalogNext => {
+                        self.focus(Target::CatalogRestoreAll, controls)
+                    }
+                    Direction::Up if self.focus == Target::CatalogNext => {
+                        self.focus(Target::CatalogFilter, controls)
+                    }
+                    Direction::Up if self.focus == Target::CatalogUndo => {
+                        self.focus(Target::CatalogPrevious, controls)
+                    }
+                    Direction::Up if self.focus == Target::CatalogRestoreAll => {
+                        self.focus(Target::CatalogNext, controls)
+                    }
+                    Direction::Down if self.focus == Target::CatalogUndo && rows.len() > 6 => {
+                        self.focus(rows[6].clone(), controls)
+                    }
+
+                    Direction::Up if index == 0 => self.focus(Target::Nav(2), controls),
+                    Direction::Up => self.focus(rows[index - 1].clone(), controls),
+                    Direction::Down if index + 1 < rows.len() => {
+                        self.focus(rows[index + 1].clone(), controls)
+                    }
+                    Direction::Right if matches!(self.focus, Target::CatalogApp(_)) => {
+                        return self.catalog_action();
+                    }
+                    _ => {}
+                }
+            }
+            return vec![];
         }
         let privacy_page = self.subpage == Some(Subpage::Privacy);
         if (self.subpage == Some(Subpage::SystemInfo) || privacy_page) && self.overlay.is_none() {
@@ -1986,7 +2113,7 @@ impl State {
             }
             if matches!(
                 self.focus,
-                Target::Setting(0 | 1 | 4 | 6 | 7 | 8 | 9 | 11..=21)
+                Target::Setting(0 | 1 | 4 | 6 | 7 | 8 | 9 | 11..=22)
                     | Target::InputMode(_)
                     | Target::WeatherLocation
                     | Target::WeatherTemperature
@@ -2552,6 +2679,22 @@ impl State {
         if !self.target_enabled(&self.focus) {
             return vec![];
         }
+        if self.overlay.is_none()
+            && matches!(
+                self.subpage,
+                Some(Subpage::AppManagement | Subpage::ManagedApp(_))
+            )
+            && !matches!(
+                self.focus,
+                Target::Nav(_)
+                    | Target::Profile
+                    | Target::ControlCenter
+                    | Target::TvSettings
+                    | Target::Sidebar(_)
+            )
+        {
+            return self.catalog_action();
+        }
         if self.display_trial && !matches!(self.focus, Target::DisplayHD | Target::DisplayKeep) {
             return vec![];
         }
@@ -3100,6 +3243,7 @@ impl State {
             }
             Target::Setting(index) => {
                 match index {
+                    22 => return self.open_app_catalog(),
                     21 => {
                         self.subpage = Some(Subpage::Display);
                         self.focus = Target::DisplayHD;
@@ -3275,7 +3419,12 @@ impl State {
             }
             Target::Choice(index) => {
                 match self.subpage.clone() {
-                    Some(Subpage::SystemInfo | Subpage::Privacy) => return vec![],
+                    Some(
+                        Subpage::SystemInfo
+                        | Subpage::Privacy
+                        | Subpage::AppManagement
+                        | Subpage::ManagedApp(_),
+                    ) => return vec![],
                     Some(Subpage::ClockFormat) => self.preferences.hour_24 = index == 1,
                     Some(Subpage::TimeFormat) => self.preferences.show_seconds = index == 1,
                     Some(Subpage::Input(id)) => {

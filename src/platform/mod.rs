@@ -143,6 +143,9 @@ pub fn redirect_to_home() -> Result<bool, String> {
 }
 
 pub enum Request {
+    AppCatalog {
+        generation: u64,
+    },
     Control {
         generation: u64,
         command: crate::features::controls::Command,
@@ -171,6 +174,10 @@ pub enum Request {
     },
 }
 pub enum Response {
+    AppCatalog {
+        generation: u64,
+        result: Result<crate::features::apps::catalog::Report, String>,
+    },
     Controlled {
         generation: u64,
         command: crate::features::controls::Command,
@@ -202,6 +209,7 @@ pub enum Response {
 }
 
 enum ObservationRequest {
+    AppCatalog(u64),
     Control(u64, crate::features::controls::Command),
     System(u64),
     Privacy(u64),
@@ -264,10 +272,21 @@ impl Platform {
         // Information queries never wait in front of interactive app launches.
         let notifications = responses.clone();
         let information_responses = responses.clone();
+        let catalog_inventory = desktop_inventory.clone();
         let (information, jobs) = mpsc::sync_channel(2);
         thread::spawn(move || {
             for job in jobs {
                 let response = match job {
+                    ObservationRequest::AppCatalog(generation) => Response::AppCatalog {
+                        generation,
+                        result: if webos {
+                            app_catalog()
+                        } else {
+                            Ok(crate::features::apps::catalog::Report::preview(
+                                &catalog_inventory.lock().unwrap(),
+                            ))
+                        },
+                    },
                     ObservationRequest::Control(generation, command) => Response::Controlled {
                         generation,
                         command,
@@ -308,6 +327,10 @@ impl Platform {
             };
             while let Ok(request) = requests.recv() {
                 let response = match request {
+                    Request::AppCatalog { generation } => Response::AppCatalog {
+                        generation,
+                        result: Err("Wrong observation worker".into()),
+                    },
                     Request::Control {
                         generation,
                         command,
@@ -433,6 +456,7 @@ impl Platform {
             return;
         }
         let job = match request {
+            Request::AppCatalog { generation } => ObservationRequest::AppCatalog(generation),
             Request::Control {
                 generation,
                 command,
@@ -450,6 +474,10 @@ impl Platform {
             };
             let error = "Observation worker unavailable".to_owned();
             let response = match job {
+                ObservationRequest::AppCatalog(generation) => Response::AppCatalog {
+                    generation,
+                    result: Err(error),
+                },
                 ObservationRequest::Control(generation, command) => Response::Controlled {
                     generation,
                     command,
@@ -535,6 +563,14 @@ fn control_command(
         json!({"command":command}),
     )?;
     serde_json::from_value(command_reply(&envelope)?).map_err(|_| "Invalid control response".into())
+}
+
+fn app_catalog() -> Result<crate::features::apps::catalog::Report, String> {
+    let reply = fixed_observation_helper(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tv/read-app-catalog.cjs"
+    )))?;
+    crate::features::apps::catalog::Report::from_reply(&reply)
 }
 
 fn privacy_information() -> Result<crate::features::privacy::Report, String> {
