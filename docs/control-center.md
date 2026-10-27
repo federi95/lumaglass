@@ -4,8 +4,9 @@ Lumaglass has an original native quick-controls panel inspired by the compact
 right-hand layout and focus treatment of tvOS Control Center. The floating group
 has a large power tile, network/audio capsules, screensaver/timer capsules and
 four circular shortcuts. There is no large enclosing backplate. The parent page
-is attenuated before backdrop capture, with a stronger contrast scrim and denser
-modal tint so its rows/text cannot compete with quick controls. The panel uses the shared [Liquid Glass appearance](liquid-glass.md), the chosen wallpaper and explicit focus outlines. Disabling glass selects opaque surfaces. Optical tiles use a cached GPU backdrop with bounded lens refraction. Backdrop updates are conditional; there is no per-frame blur engine.
+is attenuated before backdrop capture, with a contrast scrim so its rows/text
+cannot compete with quick controls. The controls themselves keep the clear,
+lightly tinted glass used by the header. The panel uses the shared [Liquid Glass appearance](liquid-glass.md), the chosen wallpaper and explicit focus outlines. Disabling glass selects opaque surfaces. Optical tiles use a cached GPU backdrop with bounded lens refraction. Backdrop updates are conditional; there is no per-frame blur engine.
 
 ## Opening and closing
 
@@ -57,8 +58,10 @@ preferences; no LG, Apple or online account is created or accessed. The name is
 also used by timed Home greetings. Editing it leaves a custom static greeting
 unchanged. Finishing text entry returns to the profile; Back restores avatar
 focus on the underlying page. Pointer and remote navigation share the controls.
-The profile and app-options menus share an optical outer panel, standard pill
-rows, typography, padding and focus feedback with the current interface.
+The profile has no enclosing container: avatar, name and independent optical
+pill rows float over the subdued parent, using the same clear glass as quick
+controls. Typography, row padding, focus and opaque fallback stay shared with the
+current interface. App-options menus retain their enclosing optical panel.
 
 ## Favorites dock
 

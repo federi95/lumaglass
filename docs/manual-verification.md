@@ -76,3 +76,9 @@ readable. Check profile and app-options panels for consistent rows, text sizing,
 opaque fallback and restoration of the current page. Verify the Xbox Series X
 preset on a discovered input, its icon, local persistence and Clear name; confirm
 that no port or connection state is fabricated. These checks remain pending.
+
+Compare the clearer Control Center and floating profile over both detailed
+wallpapers and Settings. Parent labels must remain subdued by the existing scrim,
+while the profile has no outer container and each capsule refracts only the parent
+backdrop. Check focus, pressed/opaque fallback, keyboard return and modal hit
+areas. No new runtime visual check has been performed.

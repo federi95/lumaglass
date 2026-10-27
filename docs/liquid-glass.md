@@ -40,8 +40,9 @@ foreground commands use 12% opacity and 65% brightness, so sharp background
 Settings rows no longer compete with the center's own labels. Independent power,
 network/audio and screensaver/timer lenses, four circular shortcuts and the detail
 slider replace the large outer backplate. There is no opaque enclosing panel.
-The profile and app-options menus reuse the same second target for their outer
-optical panel; their inner standard rows use analytic material over the panel.
+The profile reuses the second target for its independent clear pill controls,
+without an enclosing panel. App-options menus use it for the outer optical panel;
+their inner standard rows composite analytic material over that panel.
 Header controls return to the base target. Other opaque dialogs use analytic
 controls, avoiding a lens that would incorrectly reveal wallpaper through a solid
 panel. This is a bounded two-layer design, not a recursive glass compositor.
@@ -66,9 +67,10 @@ tint opacity is 0.10–0.18; selected chrome uses 0.18–0.20; focus uses 0.24;
 press uses 0.32–0.38. Its labels stay light. Settings retain stronger selected
 faces (0.86–0.90) for dark labels. These describe individual surfaces, not the
 final transmission of stacked elements. The Control Center leaves the parent
-visible as a subdued context and adds a 38% dimming scrim for separation. Floating
-modal controls use denser 0.34–0.50 resting tint and 0.40–0.52 focus tint; the clear
-header and dock keep their lighter treatment. This adds no extra GPU target or
+visible as a subdued context and adds a 38% dimming scrim for separation.
+Control Center/profile controls now keep the same 0.10–0.18 resting tint and 0.24
+focus tint as clear header chrome. App-options panels retain denser 0.34–0.50
+resting tint and 0.40–0.52 focus tint. This adds no extra GPU target or
 idle animation loop.
 
 ## Fallback and diagnostics
