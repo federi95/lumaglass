@@ -21,6 +21,23 @@ fn privacy_confirmation_defaults_to_cancel_and_sends_one_exact_intent() {
     state.focus = Target::PrivacyField(0);
     assert!(state.activate().is_empty());
     assert_eq!(state.focus, Target::CloseDialog);
+    let dialog = scene(&state);
+    let cancel = dialog
+        .draw
+        .iter()
+        .find_map(|draw| match draw {
+            crate::renderer::Draw::Text(label, _, _, color, _)
+                if label == state.preferences.language.t("cancel") =>
+            {
+                Some(color)
+            }
+            _ => None,
+        })
+        .unwrap();
+    assert!(
+        cancel[..3].iter().all(|channel| *channel < 0.3),
+        "Focused Cancel must remain readable on a light selection"
+    );
     assert!(state.back().is_empty());
     assert_eq!(state.focus, Target::PrivacyField(0));
     state.activate();

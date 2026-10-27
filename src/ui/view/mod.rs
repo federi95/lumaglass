@@ -2869,7 +2869,17 @@ fn control_dialog(out: &mut Scene, state: &State, command: crate::features::cont
     for (index, (target, key)) in buttons.into_iter().enumerate() {
         let rect = Rect::new(590., 610. + index as f32 * 52., 740., 44.);
         out.pill(rect, state.focus == target, false);
-        out.text(language.t(key), rect, text(18., 500, 0.), WHITE, true);
+        out.text(
+            language.t(key),
+            Rect::new(rect.x, rect.y + 11., rect.w, 22.),
+            text(18., 500, 0.),
+            if state.focus == target {
+                c(0x2c2c2c, 1.)
+            } else {
+                WHITE
+            },
+            true,
+        );
         out.control(target, rect, false);
     }
 }
