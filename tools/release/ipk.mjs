@@ -98,6 +98,7 @@ export function normalizeAndVerifyPackage(bytes, manifest) {
     'home.sh',
     'home.cjs',
     'home-mounts.cjs',
+    'blocker.cjs',
     'splash.png',
     'lib/libSDL2-2.0.so.0',
     'licenses/sdl2.txt',
