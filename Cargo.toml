@@ -14,12 +14,12 @@ resolver = "3"
 
 [features]
 default = []
-webos = ["dep:libc"]
+webos = []
 
 [dependencies]
 gl = "0.14"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
-libc = { version = "0.2", optional = true }
+libc = "0.2"
 lumaglass-vector-geometry = { path = "crates/vector-geometry" }
 sdl2 = { version = "0.38", features = ["use-pkgconfig"] }
 serde = { version = "1", features = ["derive"] }
