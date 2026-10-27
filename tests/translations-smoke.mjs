@@ -103,6 +103,30 @@ const picker = 'settings,down,enter,down,down,down,enter';
 const location = 'settings,down,down,down,enter,down,enter';
 try {
   await run('cargo', ['build', '--locked', '--package', 'lumaglass']);
+  for (const language of ['en', 'it', 'de', 'fr', 'es', 'pt', 'pl', 'ru', 'zh']) {
+    await fs.writeFile(
+      preferences,
+      JSON.stringify({
+        language,
+        reduced_motion: true,
+        greeting_name: 'Ada Lovelace',
+        header: { combined: true, side: language === 'it' ? 'left' : 'right' },
+      }),
+    );
+    const center = await scenario(`${language}-control-center`, 'control-center');
+    for (const key of [
+      'controlCenter',
+      'ccNetwork',
+      'ccAudio',
+      'ccScreensaver',
+      'ccSleepTimer',
+      'ccSliderHint',
+    ])
+      contains(center, key, language);
+    assert.ok(center.ui_text.includes('AL'), 'Initials must use the unchanged local greeting name');
+    assert.equal(center.preferences.greeting_name, 'Ada Lovelace');
+  }
+
   await fs.writeFile(
     preferences,
     JSON.stringify({ language: 'en', show_home_names: true, reduced_motion: true }),
