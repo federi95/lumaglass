@@ -23,7 +23,14 @@ var PROTECTED = [
   'com.webos.app.firstuse',
   'com.webos.app.eula',
   'com.webos.app.container',
-  'com.webos.app.inputcommon'
+  'com.webos.app.inputcommon',
+  'com.webos.app.webapphost',
+  'webapphost',
+  'container',
+  'inputcommon',
+  'firstuse',
+  'eula',
+  'airplay'
 ];
 
 function validId(id) {

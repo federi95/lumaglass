@@ -29,6 +29,13 @@ pub fn protected(id: &str) -> bool {
             | "com.webos.app.eula"
             | "com.webos.app.container"
             | "com.webos.app.inputcommon"
+            | "com.webos.app.webapphost"
+            | "webapphost"
+            | "container"
+            | "inputcommon"
+            | "firstuse"
+            | "eula"
+            | "airplay"
     )
 }
 
