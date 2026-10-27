@@ -1,6 +1,7 @@
 use crate::features::appearance::Setting as AppearanceOption;
 use crate::features::apps::management::{self, Command as ManagementCommand, RemovalTarget, Route};
 use crate::features::home::{GreetingMode, Setting as HomeOption, StartupFocus};
+use crate::features::shortcuts::{self, Action as ShortcutAction, Button as ShortcutButton};
 use crate::i18n::Language;
 use crate::model::{
     App, BACKGROUNDS, CATEGORIES, INPUT_NAME_LIMIT, InputMode, Inventory, Preferences,
@@ -58,6 +59,9 @@ pub enum Target {
     GreetingNameClear,
     HomeOption(HomeOption),
     AppearanceOption(AppearanceOption),
+    ShortcutsEnabled,
+    ShortcutBinding(ShortcutButton),
+    ShortcutsReset,
     StartupFocus(StartupFocus),
     AppNamesHome,
     AppNamesApps,
@@ -139,6 +143,7 @@ pub enum Overlay {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum Subpage {
+    Shortcuts,
     Appearance,
     Home,
     StartupFocus,
@@ -242,6 +247,7 @@ pub struct State {
     pub inventory_generation: u64,
     pub removed_apps: std::collections::HashSet<String>,
     pub webos: bool,
+    pub shortcut_session: shortcuts::Session,
 }
 
 impl State {
@@ -282,6 +288,7 @@ impl State {
             inventory_generation: 0,
             removed_apps: std::collections::HashSet::new(),
             webos: false,
+            shortcut_session: shortcuts::Session::default(),
         }
     }
 
@@ -513,6 +520,81 @@ impl State {
 
     pub fn apps_cards(&self) -> crate::features::appearance::Cards {
         self.preferences.appearance.density.apps()
+    }
+
+    pub fn shortcut_down(
+        &mut self,
+        button: ShortcutButton,
+        repeat: bool,
+        active: bool,
+    ) -> Option<Vec<Effect>> {
+        let observed = self.shortcut_session.observed(button);
+        let fresh = self.shortcut_session.down(button, repeat, active);
+        self.dirty |= observed != self.shortcut_session.observed(button);
+        if !fresh
+            || !active
+            || !self.preferences.shortcuts.enabled
+            || self.overlay.is_some()
+            || self.moving.is_some()
+            || self.launching
+            || self.subpage == Some(Subpage::Shortcuts)
+        {
+            return None;
+        }
+        let action = self.preferences.shortcuts.get(button);
+        if action == ShortcutAction::None {
+            return None;
+        }
+        self.pointer = false;
+        self.pressed = None;
+        self.dirty = true;
+        match action {
+            ShortcutAction::Search => {
+                self.open(1);
+                self.open_keyboard(TextField::Apps);
+            }
+            ShortcutAction::Favorites => {
+                self.home_scroll = 0.;
+                self.open(0);
+                self.focus = self
+                    .apps()
+                    .first()
+                    .map_or(Target::Browse, |app| Target::App(app.id.clone()));
+            }
+            ShortcutAction::Inputs => {
+                let input = self
+                    .inventory
+                    .inputs
+                    .iter()
+                    .find(|input| self.home_input_visible(input))
+                    .map(|input| input.id.clone());
+                if let Some(id) = input {
+                    self.open(0);
+                    self.focus = Target::Input(id);
+                } else {
+                    self.notify(self.preferences.language.t("shortcutNoInputs"));
+                }
+            }
+            ShortcutAction::Apps => {
+                self.open(1);
+                self.focus = self.first_content();
+            }
+            ShortcutAction::Settings => {
+                self.open(2);
+                self.section = 0;
+                self.focus = Target::Sidebar(0);
+            }
+            ShortcutAction::Recents => return Some(self.open_recents()),
+            ShortcutAction::None => {}
+        }
+        Some(vec![])
+    }
+
+    pub fn shortcut_controls() -> Vec<Target> {
+        let mut rows = vec![Target::ShortcutsEnabled];
+        rows.extend(ShortcutButton::ALL.into_iter().map(Target::ShortcutBinding));
+        rows.push(Target::ShortcutsReset);
+        rows
     }
 
     pub fn greeting_text(&self) -> &str {
@@ -834,6 +916,7 @@ impl State {
             Some(Subpage::Greeting) => Target::Setting(6),
             Some(Subpage::Home) => Target::Setting(11),
             Some(Subpage::Appearance) => Target::Setting(12),
+            Some(Subpage::Shortcuts) => Target::Setting(13),
             Some(Subpage::StartupFocus) => {
                 self.subpage = Some(Subpage::Home);
                 Target::HomeOption(HomeOption::StartupFocus)
@@ -863,6 +946,25 @@ impl State {
     pub fn direction(&mut self, direction: Direction, controls: &[Control]) -> Vec<Effect> {
         self.pointer = false;
         self.dirty = true;
+        if self.overlay.is_none() && self.subpage == Some(Subpage::Shortcuts) {
+            let rows = Self::shortcut_controls();
+            if self.focus == Target::Nav(2) && matches!(direction, Direction::Down) {
+                self.focus(rows[0].clone(), controls);
+                return vec![];
+            }
+            if let Some(index) = rows.iter().position(|row| row == &self.focus) {
+                match direction {
+                    Direction::Up if index == 0 => self.focus(Target::Nav(2), controls),
+                    Direction::Up => self.focus(rows[index - 1].clone(), controls),
+                    Direction::Down if index + 1 < rows.len() => {
+                        self.focus(rows[index + 1].clone(), controls)
+                    }
+                    Direction::Left => self.close_subpage(),
+                    _ => {}
+                }
+                return vec![];
+            }
+        }
         if self.overlay.is_none() && self.subpage == Some(Subpage::Appearance) {
             if self.focus == Target::Nav(2) && matches!(direction, Direction::Down) {
                 self.focus(Target::AppearanceOption(AppearanceOption::ALL[0]), controls);
@@ -1175,7 +1277,7 @@ impl State {
             }
             if matches!(
                 self.focus,
-                Target::Setting(0 | 1 | 4 | 6 | 7 | 8 | 9 | 11 | 12)
+                Target::Setting(0 | 1 | 4 | 6 | 7 | 8 | 9 | 11 | 12 | 13)
                     | Target::InputMode(_)
                     | Target::WeatherLocation
                     | Target::WeatherTemperature
@@ -1684,6 +1786,22 @@ impl State {
         }
         self.dirty = true;
         match self.focus.clone() {
+            Target::ShortcutsEnabled | Target::ShortcutsReset | Target::ShortcutBinding(_) => {
+                if self.subpage != Some(Subpage::Shortcuts) || self.overlay.is_some() {
+                    return vec![];
+                }
+                match self.focus {
+                    Target::ShortcutsEnabled => {
+                        self.preferences.shortcuts.enabled = !self.preferences.shortcuts.enabled
+                    }
+                    Target::ShortcutBinding(button) => self.preferences.shortcuts.cycle(button),
+                    Target::ShortcutsReset => {
+                        self.preferences.shortcuts = shortcuts::Preferences::default()
+                    }
+                    _ => {}
+                }
+                return vec![Effect::Save];
+            }
             Target::AppearanceOption(option) => {
                 if self.subpage != Some(Subpage::Appearance) || self.overlay.is_some() {
                     return vec![];
@@ -2015,6 +2133,15 @@ impl State {
                         }
                         return vec![];
                     }
+                    13 => {
+                        self.subpage = Some(Subpage::Shortcuts);
+                        self.focus = Target::ShortcutsEnabled;
+                        self.scroll = 0.;
+                        if !self.preferences.reduced_motion {
+                            self.panel_started = Some(Instant::now());
+                        }
+                        return vec![];
+                    }
                     4 => {
                         self.subpage = Some(Subpage::Language);
                         self.focus = Target::Choice(self.preferences.language.index());
@@ -2105,7 +2232,8 @@ impl State {
                         }
                     }
                     Some(
-                        Subpage::Appearance
+                        Subpage::Shortcuts
+                        | Subpage::Appearance
                         | Subpage::Home
                         | Subpage::StartupFocus
                         | Subpage::WeatherLocation

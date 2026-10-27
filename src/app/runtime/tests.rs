@@ -8,6 +8,7 @@ use serde_json::json;
 use std::{collections::BTreeMap, path::PathBuf};
 
 mod recent_tests;
+mod shortcut_tests;
 
 #[test]
 fn wallpaper_effects_cover_only_the_background_and_follow_crossfade_images() {

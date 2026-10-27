@@ -17,6 +17,8 @@ optional two-row Home favorites, greeting/date personalization, section ordering
 and initial focus; long Home greetings scale to fit. This fork establishes the
 Lumaglass identity, modular layout, local development setup and license notices.
 Appearance settings configure card density, accent color and wallpaper dimming/blur.
+Opt-in [remote shortcuts](docs/remote-shortcuts.md) assign navigation actions to
+the four color buttons, with desktop F1–F4 aliases and session reception indicators.
 Settings → System → TV information adds read-only device information and Home
 replacement observations. Preference writes run on a worker with durable atomic
 replacement; the clock refreshes its timezone offset and SDK archives are SHA-256 checked.

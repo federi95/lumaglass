@@ -1908,6 +1908,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 Some(Subpage::Greeting) => language.t("greeting"),
                 Some(Subpage::Home) => language.t("homeLabel"),
                 Some(Subpage::Appearance) => language.t("appearance"),
+                Some(Subpage::Shortcuts) => language.t("remoteShortcuts"),
                 Some(Subpage::StartupFocus) => language.t("homeStartupFocus"),
                 Some(Subpage::Clock) => language.t("clock"),
                 Some(Subpage::ClockFormat | Subpage::TimeFormat) => clock_path.as_deref().unwrap(),
@@ -1944,7 +1945,10 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             let sub_width = rect.w - 24.2 - parent_width - 28. - 24.2;
             let mut sub_style = text(20.8, 550, -0.02);
             if clock_path.is_some()
-                || matches!(state.subpage, Some(Subpage::Home | Subpage::StartupFocus))
+                || matches!(
+                    state.subpage,
+                    Some(Subpage::Home | Subpage::StartupFocus | Subpage::Shortcuts)
+                )
             {
                 sub_style.size *= (sub_width / assets.width(sub, sub_style)).min(1.);
             }
@@ -1990,6 +1994,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             Subpage::WeatherLocation
                 | Subpage::Home
                 | Subpage::Appearance
+                | Subpage::Shortcuts
                 | Subpage::StartupFocus
                 | Subpage::Greeting
                 | Subpage::AppNames
@@ -2002,6 +2007,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 Subpage::Greeting => greeting_settings(out, state, assets),
                 Subpage::Home => home_settings(out, state, assets),
                 Subpage::Appearance => appearance_settings(out, state, assets),
+                Subpage::Shortcuts => shortcut_settings(out, state, assets),
                 Subpage::StartupFocus => startup_focus_settings(out, state, assets),
                 Subpage::AppNames => app_name_settings(out, state, assets),
                 Subpage::Clock => clock_settings(out, state, assets),
@@ -2063,6 +2069,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             Subpage::WeatherLocation
             | Subpage::Home
             | Subpage::Appearance
+            | Subpage::Shortcuts
             | Subpage::StartupFocus
             | Subpage::Greeting
             | Subpage::AppNames
@@ -2161,6 +2168,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 ),
                 (11, "homePersonalization", "settings", None, true),
                 (12, "appearance", "grid", None, true),
+                (13, "remoteShortcuts", "settings", None, true),
             ]
             .into_iter()
             .enumerate()
@@ -2494,6 +2502,85 @@ fn system_information(out: &mut Scene, state: &State, assets: &Assets) {
             },
         );
     }
+}
+
+fn shortcut_settings(out: &mut Scene, state: &State, assets: &Assets) {
+    use crate::features::shortcuts::Button;
+    let language = state.preferences.language;
+    row(
+        out,
+        state,
+        assets,
+        Row {
+            target: Target::ShortcutsEnabled,
+            rect: Rect::new(640., 164.8 - state.scroll, 1120., 90.7),
+            title: language.t("shortcutsEnabled"),
+            icon: None,
+            value: Some(language.t(if state.preferences.shortcuts.enabled {
+                "stateOn"
+            } else {
+                "stateOff"
+            })),
+            description: Some(language.t(if state.webos {
+                "shortcutScope"
+            } else {
+                "shortcutDesktopHint"
+            })),
+            selected: false,
+            chevron: false,
+        },
+    );
+    for button in Button::ALL {
+        let title = if state.webos {
+            language.t(button.key()).to_owned()
+        } else {
+            format!("{} / F{}", language.t(button.key()), button.index() + 1)
+        };
+        let status = if state.shortcut_session.observed(button) {
+            if state.webos {
+                "shortcutReceived"
+            } else {
+                "shortcutPreviewReceived"
+            }
+        } else {
+            "shortcutNotReceived"
+        };
+        row(
+            out,
+            state,
+            assets,
+            Row {
+                target: Target::ShortcutBinding(button),
+                rect: Rect::new(
+                    640.,
+                    267.5 + button.index() as f32 * 102.7 - state.scroll,
+                    1120.,
+                    90.7,
+                ),
+                title: &title,
+                icon: None,
+                value: Some(language.t(state.preferences.shortcuts.get(button).key())),
+                description: Some(language.t(status)),
+                selected: false,
+                chevron: false,
+            },
+        );
+    }
+    row(
+        out,
+        state,
+        assets,
+        Row {
+            target: Target::ShortcutsReset,
+            rect: Rect::new(640., 678.3 - state.scroll, 1120., 72.),
+            title: language.t("shortcutsReset"),
+            icon: Some("refresh"),
+            value: None,
+            description: None,
+            selected: false,
+            chevron: false,
+        },
+    );
 }
 
 fn appearance_settings(out: &mut Scene, state: &State, assets: &Assets) {

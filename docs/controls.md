@@ -7,6 +7,11 @@ date format and weekday, section visibility/order and startup focus. Use OK to
 toggle/cycle values, or open an arrow-marked editor. See
 [Home personalization](home-personalization.md) for defaults and fallback rules.
 
+**Settings → General → Remote shortcuts** configures the four color buttons
+(F1–F4 in desktop preview). Shortcuts start off; OK cycles bindings and Reset
+restores the disabled preset. The page reports received buttons without leaving
+Settings. See [remote shortcuts](remote-shortcuts.md) for actions and input scope.
+
 **Settings → General → Two-row Home favorites** switches between the default
 single row and an optional two-row layout immediately. Favorite order is kept
 left to right across the first row, then the second. With at least two favorites,
@@ -50,6 +55,7 @@ It does not execute the test suites. A desktop display is required; on headless 
 | Menu / M / right-click        | App options                                                   |
 | Pointer / wheel               | Hover, click, hold and scrolling                              |
 | F5                            | Refresh inventory                                             |
+| Color buttons / desktop F1–F4 | Configured navigation when shortcuts are enabled              |
 
 Backspace deletes while editing. Native Back uses SDL's webOS-specific keycode. Back dismisses
 the keyboard first; Weather Location then returns to its parent Location row, HDMI choices to
@@ -90,10 +96,11 @@ it. Preferences are saved when the keyboard closes, including automatic system-k
 Back from either subpage restores its General row. Input name removal also uses **Clear name**.
 Choice checkmarks identify saved values, while the bright row fill identifies only the current focus.
 
-Home favorites form one horizontal strip, never a second row. Left/Right follows saved order,
-including reorder mode, and reveals complete cards. Up returns to Home navigation; Down enters
-the nearest input in the first row. The strip position survives page changes. Wheel movement over
-favorites scrolls horizontally; elsewhere it scrolls vertically. Pointer hover/down never moves
+Home favorites use one row by default, or two when enabled. Left/Right follows saved order
+within a row and reveals complete cards; Up/Down moves between favorite rows before
+the neighboring visible section, following the configured section order. The strip
+position survives page changes. Wheel movement over favorites scrolls horizontally;
+elsewhere it scrolls vertically. Pointer hover/down never moves
 the clicked control. Apps Up/Down follows the selected card density's grid order, including offscreen rows,
 and only the first row's Up route reaches the category toolbar. Scrolling Apps content fades into
 the existing wallpaper at the header/footer, with one alpha mask for surfaces, shadows, rings,

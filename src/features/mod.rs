@@ -3,5 +3,6 @@ pub(crate) mod appearance;
 pub(crate) mod apps;
 pub(crate) mod home;
 pub(crate) mod privacy;
+pub(crate) mod shortcuts;
 pub(crate) mod system;
 pub(crate) mod weather;

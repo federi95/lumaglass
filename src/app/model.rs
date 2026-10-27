@@ -102,6 +102,8 @@ pub struct Preferences {
     pub home: crate::features::home::Preferences,
     #[serde(deserialize_with = "crate::features::appearance::deserialize")]
     pub appearance: crate::features::appearance::Preferences,
+    #[serde(deserialize_with = "crate::features::shortcuts::deserialize")]
+    pub shortcuts: crate::features::shortcuts::Preferences,
     pub show_app_names: bool,
     pub hour_24: bool,
     pub reduced_motion: bool,
@@ -134,6 +136,7 @@ impl Default for Preferences {
             two_row_home_favorites: false,
             home: crate::features::home::Preferences::default(),
             appearance: crate::features::appearance::Preferences::default(),
+            shortcuts: crate::features::shortcuts::Preferences::default(),
             show_app_names: true,
             hour_24: false,
             reduced_motion: false,

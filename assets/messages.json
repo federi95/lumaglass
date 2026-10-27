@@ -2869,5 +2869,170 @@
     "ru": "Сильное",
     "pl": "Silne",
     "fr": "Intense"
+  },
+  "remoteShortcuts": {
+    "en": "Remote shortcuts",
+    "de": "Fernbedienungskürzel",
+    "zh": "遥控器快捷键",
+    "es": "Atajos del mando",
+    "pt": "Atalhos do controle",
+    "it": "Scorciatoie telecomando",
+    "ru": "Кнопки быстрого доступа",
+    "pl": "Skróty pilota",
+    "fr": "Raccourcis de la télécommande"
+  },
+  "shortcutsEnabled": {
+    "en": "Enable shortcuts",
+    "de": "Tastenkürzel aktivieren",
+    "zh": "启用快捷键",
+    "es": "Activar atajos",
+    "pt": "Ativar atalhos",
+    "it": "Abilita scorciatoie",
+    "ru": "Включить быстрые действия",
+    "pl": "Włącz skróty",
+    "fr": "Activer les raccourcis"
+  },
+  "shortcutScope": {
+    "en": "Focused launcher only. Press color keys here to check reception.",
+    "de": "Nur im aktiven Launcher. Farbtasten hier zum Prüfen drücken.",
+    "zh": "仅在启动器获得焦点时生效。在此按颜色键检查接收情况。",
+    "es": "Solo con el launcher activo. Pulsa aquí los colores para comprobar la recepción.",
+    "pt": "Só no launcher ativo. Pressione as cores aqui para verificar a recepção.",
+    "it": "Solo nel launcher attivo. Premi qui i colori per verificarne la ricezione.",
+    "ru": "Только в активном лаунчере. Нажмите здесь цветные кнопки для проверки.",
+    "pl": "Tylko w aktywnym launcherze. Naciśnij tutaj kolory, aby sprawdzić odbiór.",
+    "fr": "Uniquement dans le lanceur actif. Appuyez ici sur les couleurs pour vérifier la réception."
+  },
+  "shortcutDesktopHint": {
+    "en": "Desktop preview: F1–F4 simulate colors; TV reception remains unverified.",
+    "de": "Desktop-Vorschau: F1–F4 simulieren Farben; TV-Empfang ist ungeprüft.",
+    "zh": "桌面预览：F1–F4 模拟颜色键；尚未验证电视接收。",
+    "es": "Vista de escritorio: F1–F4 simulan colores; recepción en TV sin verificar.",
+    "pt": "Prévia no computador: F1–F4 simulam cores; recepção na TV não verificada.",
+    "it": "Anteprima desktop: F1–F4 simulano i colori; ricezione sulla TV non verificata.",
+    "ru": "На компьютере F1–F4 имитируют цвета; приём на ТВ не проверен.",
+    "pl": "Podgląd na komputerze: F1–F4 symulują kolory; odbiór na TV niezweryfikowany.",
+    "fr": "Aperçu ordinateur : F1–F4 simulent les couleurs ; réception TV non vérifiée."
+  },
+  "shortcutRed": {
+    "en": "Red button",
+    "de": "Rote Taste",
+    "zh": "红色键",
+    "es": "Botón rojo",
+    "pt": "Botão vermelho",
+    "it": "Tasto rosso",
+    "ru": "Красная кнопка",
+    "pl": "Czerwony przycisk",
+    "fr": "Bouton rouge"
+  },
+  "shortcutGreen": {
+    "en": "Green button",
+    "de": "Grüne Taste",
+    "zh": "绿色键",
+    "es": "Botón verde",
+    "pt": "Botão verde",
+    "it": "Tasto verde",
+    "ru": "Зелёная кнопка",
+    "pl": "Zielony przycisk",
+    "fr": "Bouton vert"
+  },
+  "shortcutYellow": {
+    "en": "Yellow button",
+    "de": "Gelbe Taste",
+    "zh": "黄色键",
+    "es": "Botón amarillo",
+    "pt": "Botão amarelo",
+    "it": "Tasto giallo",
+    "ru": "Жёлтая кнопка",
+    "pl": "Żółty przycisk",
+    "fr": "Bouton jaune"
+  },
+  "shortcutBlue": {
+    "en": "Blue button",
+    "de": "Blaue Taste",
+    "zh": "蓝色键",
+    "es": "Botón azul",
+    "pt": "Botão azul",
+    "it": "Tasto blu",
+    "ru": "Синяя кнопка",
+    "pl": "Niebieski przycisk",
+    "fr": "Bouton bleu"
+  },
+  "shortcutReceived": {
+    "en": "Received in this session",
+    "de": "In dieser Sitzung empfangen",
+    "zh": "本次会话已接收",
+    "es": "Recibido en esta sesión",
+    "pt": "Recebido nesta sessão",
+    "it": "Ricevuto in questa sessione",
+    "ru": "Получена в этом сеансе",
+    "pl": "Odebrano w tej sesji",
+    "fr": "Reçu pendant cette session"
+  },
+  "shortcutPreviewReceived": {
+    "en": "Desktop alias received",
+    "de": "Desktop-Ersatztaste empfangen",
+    "zh": "已接收桌面模拟键",
+    "es": "Alias de escritorio recibido",
+    "pt": "Atalho de simulação recebido",
+    "it": "Alias desktop ricevuto",
+    "ru": "Получен аналог с клавиатуры",
+    "pl": "Odebrano klawisz podglądu",
+    "fr": "Touche de simulation reçue"
+  },
+  "shortcutNotReceived": {
+    "en": "Not received in this session",
+    "de": "In dieser Sitzung nicht empfangen",
+    "zh": "本次会话尚未接收",
+    "es": "No recibido en esta sesión",
+    "pt": "Não recebido nesta sessão",
+    "it": "Non ricevuto in questa sessione",
+    "ru": "Не получена в этом сеансе",
+    "pl": "Nie odebrano w tej sesji",
+    "fr": "Non reçu pendant cette session"
+  },
+  "shortcutsReset": {
+    "en": "Reset and disable shortcuts",
+    "de": "Kürzel zurücksetzen und deaktivieren",
+    "zh": "重置并停用快捷键",
+    "es": "Restablecer y desactivar atajos",
+    "pt": "Redefinir e desativar atalhos",
+    "it": "Ripristina e disabilita scorciatoie",
+    "ru": "Сбросить и отключить действия",
+    "pl": "Przywróć i wyłącz skróty",
+    "fr": "Réinitialiser et désactiver les raccourcis"
+  },
+  "shortcutSearch": {
+    "en": "Search",
+    "de": "Suchen",
+    "zh": "搜索",
+    "es": "Buscar",
+    "pt": "Buscar",
+    "it": "Ricerca",
+    "ru": "Поиск",
+    "pl": "Szukaj",
+    "fr": "Rechercher"
+  },
+  "shortcutRecents": {
+    "en": "Recent apps",
+    "de": "Letzte Apps",
+    "zh": "最近的应用",
+    "es": "Apps recientes",
+    "pt": "Apps recentes",
+    "it": "App recenti",
+    "ru": "Недавние приложения",
+    "pl": "Ostatnie aplikacje",
+    "fr": "Applications récentes"
+  },
+  "shortcutNoInputs": {
+    "en": "No Home input is visible. Check Home and per-input visibility settings.",
+    "de": "Kein Eingang auf Home sichtbar. Home- und Eingangseinstellungen prüfen.",
+    "zh": "主页上没有可见输入源。请检查主页及各输入源的显示设置。",
+    "es": "No hay entradas visibles en Home. Revisa la visibilidad de Home y cada entrada.",
+    "pt": "Nenhuma entrada visível na Home. Verifique a visibilidade da Home e das entradas.",
+    "it": "Nessun ingresso visibile nella Home. Controlla la visibilità Home e dei singoli ingressi.",
+    "ru": "На Home нет видимых входов. Проверьте настройки Home и отдельных входов.",
+    "pl": "Brak widocznych wejść na Home. Sprawdź ustawienia Home i poszczególnych wejść.",
+    "fr": "Aucune entrée visible sur Home. Vérifiez les réglages de Home et de chaque entrée."
   }
 }

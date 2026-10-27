@@ -14,6 +14,7 @@ src/features/apps/          artwork, branding, recent apps and preview inventory
 src/features/privacy/       fixed privacy observations and transient request state
 src/features/home/          local Home customization and validated preferences
 src/features/appearance/    shared card geometry and local visual preferences
+src/features/shortcuts/     local navigation bindings and held-button state
 src/features/weather/       forecast scheduling, HTTP worker and cache
 src/features/system/        typed read-only TV observations and request state
 src/platform/               inventory/actions, SDL input and installation lookup
@@ -28,6 +29,13 @@ assets/                     original artwork, fonts, translations and notices
 
 The root module aliases preserve existing internal names during the mechanical
 move. Rendering algorithms remain inherited from Luma.
+
+Shortcut input is normalized before SDL's closed scancode enum conversion. The
+runtime checks window focus, visibility and modifiers; application state blocks
+modal/editing/launching contexts and suppresses duplicate presses until release.
+Only navigation is bound; opening Recent apps uses its existing history worker.
+See [remote shortcuts](remote-shortcuts.md) for mappings and hardware limitations.
+
 New feature modules are added when they have an implementation; empty privacy,
 blocker or system-service scaffolding is not shipped. A separate service crate
 is deferred until a second executable actually needs shared code.

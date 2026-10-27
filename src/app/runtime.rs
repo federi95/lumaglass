@@ -7,7 +7,7 @@ use platform::{Platform, Request, Response};
 use raster::Size;
 use sdl2::{
     event::{Event, WindowEvent},
-    keyboard::Keycode,
+    keyboard::{Keycode, Mod},
     mouse::MouseButton,
     video::GLProfile,
 };
@@ -1067,8 +1067,20 @@ fn run() -> Result<(), String> {
             if script_owns_input && external_input {
                 continue;
             }
-            // Remote keys only reach the focused surface.
-            if matches!(event, Event::KeyDown { .. } | Event::KeyUp { .. }) {
+            // Evaluate shortcut scope before a key event can confirm focus again.
+            let shortcut_active = visible && focused;
+            // Conventional remote keys confirm focus on webOS. Color shortcuts
+            // must not turn a stale post-FocusLost event into a focus grant.
+            if let Event::KeyDown {
+                window_id, keycode, ..
+            }
+            | Event::KeyUp {
+                window_id, keycode, ..
+            } = &event
+                && *window_id == window.id()
+                && (focused
+                    || keycode.is_none_or(|key| sdl_events::shortcut_button(key, webos).is_none()))
+            {
                 focused = true;
                 foreground.confirmed();
             }
@@ -1121,6 +1133,7 @@ fn run() -> Result<(), String> {
                         focused = false;
                         press = None;
                         back_button.cancel();
+                        state.shortcut_session.cancel();
                         if matches!(state.overlay, Some(Overlay::SystemKeyboard)) {
                             pending = state.finish_text_input();
                         }
@@ -1130,6 +1143,7 @@ fn run() -> Result<(), String> {
                         focused = false;
                         press = None;
                         back_button.cancel();
+                        state.shortcut_session.cancel();
                     }
                     WindowEvent::Shown | WindowEvent::Restored | WindowEvent::FocusGained => {
                         if let Some(clock) = &mut clock {
@@ -1163,6 +1177,8 @@ fn run() -> Result<(), String> {
                 Event::KeyDown {
                     keycode: Some(key),
                     repeat,
+                    window_id,
+                    keymod,
                     ..
                 } => {
                     let native_hold = webos && i32::from(key) == sdl_events::WEBOS_EXIT_KEYCODE;
@@ -1170,6 +1186,25 @@ fn run() -> Result<(), String> {
                         back_button.cancel();
                     }
                     match key {
+                        key if window_id == window.id()
+                            && sdl_events::shortcut_button(key, webos).is_some() =>
+                        {
+                            let button = sdl_events::shortcut_button(key, webos).unwrap();
+                            let modifiers = Mod::LSHIFTMOD
+                                | Mod::RSHIFTMOD
+                                | Mod::LCTRLMOD
+                                | Mod::RCTRLMOD
+                                | Mod::LALTMOD
+                                | Mod::RALTMOD
+                                | Mod::LGUIMOD
+                                | Mod::RGUIMOD
+                                | Mod::MODEMOD;
+                            let active = shortcut_active && !keymod.intersects(modifiers);
+                            if let Some(effects) = state.shortcut_down(button, repeat, active) {
+                                press = None;
+                                pending = effects;
+                            }
+                        }
                         _ if native_hold => {
                             if !repeat && back_button.native_hold(Instant::now()) {
                                 press = None;
@@ -1225,6 +1260,17 @@ fn run() -> Result<(), String> {
                         }
                         Keycode::F5 if !repeat => pending.push(Effect::Reload),
                         _ => {}
+                    }
+                }
+                Event::KeyUp {
+                    keycode: Some(key),
+                    window_id,
+                    ..
+                } if sdl_events::shortcut_button(key, webos).is_some() => {
+                    if window_id == window.id() {
+                        state
+                            .shortcut_session
+                            .release(sdl_events::shortcut_button(key, webos).unwrap());
                     }
                 }
                 Event::KeyUp {
