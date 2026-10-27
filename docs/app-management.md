@@ -1,8 +1,60 @@
-# App visibility and uninstallation
+# App management, visibility and uninstallation
 
 **Hide in Lumaglass** changes only the launcher's local preferences. The Hidden
 filter can show those apps again. It does not edit LG manifests, mount files or
 hide tiles in LG Home.
+
+## Native app catalog
+
+**Settings → System → App management** reads the unfiltered app inventory returned
+by LG's app manager, including system and invisible entries omitted from the
+normal launcher grid. It does not scan arbitrary filesystem locations or invent
+missing TV apps. Access, root observation and SDK version are kept separate;
+permission denied, unavailable and unknown values remain explicit. A readable
+inventory is not proof of permission to mutate a TV service.
+
+Use All apps, System apps and Hidden filters, then open an app to inspect its ID,
+classification, protected state, reported system visibility and available actions.
+The catalog reads on entry or Refresh, on the bounded observation worker, separate
+from app launches and removal verification. Replies are capped at 1,000 entries,
+require unique valid IDs and the LG Home anchor, and preserve unknown boolean
+metadata. The view shows 20 entries per page and skips drawing offscreen rows.
+A failed refresh retains the old report for inspection but does not authorize a
+new hide or uninstall from stale metadata.
+
+## Reversible local visibility
+
+**Hide in Lumaglass** and **Show in Lumaglass** use the existing atomic preference
+writer. They do not stop an app, disable services, free its background memory or
+change its LG Home tile. Favorites and app order are preserved. The catalog only
+creates new hides for non-protected apps present in the launcher inventory;
+previously hidden entries can be shown again, including protected or missing IDs.
+
+**Show all in Lumaglass** clears only Lumaglass's own Hidden preferences. It works
+even when the catalog cannot be read, so local recovery does not require a working
+TV service. **Undo local visibility change** restores the last catalog action
+within this launcher session. It changes only entries whose values still match
+the action's result and never re-hides protected identities. Changes made later
+through other controls are preserved when they conflict. Undo history is not
+persisted; the saved visibility choices and Show all remain available after restart.
+It does not undo uninstallation.
+
+## LG Home and system debloating
+
+**Hide in LG Home** is shown as unavailable. No firmware adapter for this operation
+is verified or enabled in Lumaglass, including for the QNED756RA/webOS 25 target.
+The SDK number or root access alone cannot unlock it. This milestone adds the
+catalog and capability boundaries; it does not implement system-app deletion,
+service disabling, manifest overlays or a system-wide debloating preset.
+
+The current [Glasshouse app adapter](https://github.com/rorygallagher2024/glasshouse/blob/d6905c4d84d5282e3a95ebe611c0493f88ac164c/server/lib/apps.js)
+warns about picture, audio and HDMI failures around tile hiding on recent webOS,
+and gates the operation behind an explicit setting. Its manifest bind mounts and
+SAM restarts are not ported. Lumaglass performs neither these mutations nor repairs
+to another launcher's existing overrides. Hardware investigation and a separately
+verified reversible adapter are required before changing LG Home visibility.
+
+## Confirmed uninstallation
 
 **Uninstall app** appears in an app's options only when the inventory explicitly
 reports `removable: true` and `systemApp: false`, with a recognised developer or
@@ -43,7 +95,9 @@ preferences intact.
 
 ## Desktop preview and current limits
 
-Kodi is the one explicit desktop simulation target. Its removal changes only
+Desktop catalog data is explicitly marked as example inventory and reads no TV
+services. Local visibility changes still use the selected desktop preferences.
+Kodi is the one explicit desktop uninstall simulation target. Its removal changes only
 the preview's in-memory inventory; every dialog labels this as a simulation.
 Restarting the preview restores its sample inventory. No desktop management
 action calls TV services. Extra scroll-preview cards cannot be uninstalled.
@@ -54,5 +108,8 @@ from [Glasshouse's app adapter](https://github.com/rorygallagher2024/glasshouse/
 they are not a cross-firmware support guarantee. System-app deletion, forced
 filesystem cleanup and LG Home tile hiding are outside this implementation.
 
-Regression cases are included but have not been executed. Desktop/ARM builds,
-lint and package inspection do not establish deletion behavior on a TV.
+New regression cases cover complete catalog validation, unknown/denied values,
+stale generations, local visibility restoration, protected identities and removal
+focus restoration. They have been compiled, not executed. Desktop/ARM builds,
+lint and package inspection do not establish TV compatibility or deletion behavior.
+Tests, graphical preview, CI and publication remain suspended for this revision.

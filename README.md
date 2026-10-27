@@ -28,7 +28,10 @@ replacement; the clock refreshes its timezone offset and SDK archives are SHA-25
 Settings → System → Privacy reads Live Plus, limit-ad-tracking and selected
 consent records. Consent records remain read-only; supported boolean setting changes
 use explicit confirmation and verification. Unknown and denied values stay explicit.
-App options add a confirmed uninstall path for explicitly removable non-system
+**Settings → System → App management** adds an unfiltered reported app catalog,
+capability details, local visibility changes, Show all and session Undo. LG Home
+tile hiding remains unavailable until a firmware adapter is verified.
+App options and the management catalog add a confirmed uninstall path for explicitly removable non-system
 apps, with protected identities and inventory verification. Hide in Lumaglass
 remains a separate local preference. TV behavior still needs hardware verification.
 Confirmed Live Plus/limit-ad-tracking changes and an optional reversible LG hosts

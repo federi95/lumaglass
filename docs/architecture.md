@@ -10,7 +10,8 @@ src/app/                    application model, state and SDL runtime
 src/ui/                     native scene composition and translations
 src/render/                 GLES renderer, shaders, vector/font geometry and damage
 src/features/apps/          artwork, branding, recent apps and preview inventory
-                            and typed, verified app-removal state
+                            and typed, verified app-removal state, full catalog
+                            observations and reversible local visibility changes
 src/features/privacy/       fixed privacy observations and transient request state
 src/features/home/          local Home customization and validated preferences
 src/features/appearance/    shared card geometry and local visual preferences
@@ -204,3 +205,24 @@ Portuguese, Italian, Russian, Polish and French, including TV information labels
 App/device names and saved city names remain real data. No geolocation,
 runtime font/translation services or telemetry are used. Weather attribution: Open-Meteo,
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+## App catalog and local visibility
+
+`src/features/apps/catalog.rs` keeps reported metadata separate from launcher-grid
+filtering. `tv/read-app-catalog.cjs` is an original embedded, read-only Node 8 helper
+with two fixed LS2 reads, bounded output/time and no filesystem or service mutation.
+The existing observation queue transports its replies independently of launches
+and removal verification. SDK/root observations do not grant future permissions.
+
+The native catalog page is bounded to 20 entries, culls offscreen drawing and uses
+its own return focus/scroll state. An unavailable or stale report cannot authorize
+a new hide or removal. Local visibility uses `Preferences.hidden`, the existing
+atomic writer and an in-memory patch for the last catalog action; conflicting later
+values and protected identities are not overwritten by Undo. Restore all remains
+available without inventory access. Confirmed uninstallation reuses the established
+worker, metadata validation and confirmation flow. Verified removals invalidate
+late catalog generations, remove their entries/undo patches and repair focus.
+
+There is no enabled adapter for LG manifest tile hiding, SAM restart, service
+disabling or system-package deletion. These are explicit unavailable capabilities,
+not unchecked raw commands exposed to settings. See [app management](app-management.md).

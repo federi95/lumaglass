@@ -48,6 +48,17 @@ Lumaglass uses explicit removable/non-system metadata, a pinned installation
 target, one preselected request and subsequent read-only inventory verification.
 The complete Glasshouse MIT notice remains distributed with the application.
 
+The additional app-management review used Glasshouse revision
+`d6905c4d84d5282e3a95ebe611c0493f88ac164c`, `server/lib/apps.js`, as a protocol and
+protected-identity reference, including its tile-hiding compatibility caution.
+`src/features/apps/catalog.rs`, `src/ui/view/app_management.rs` and
+`tv/read-app-catalog.cjs` are original Lumaglass implementations. They introduce
+read-only catalog observations and launcher-local visibility restoration, without
+copying Glasshouse's manifest overlays, SAM restart or persistent hidden-tile
+implementation. The protected-ID additions in `src/features/apps/management.rs`
+and `tv/manage-app.cjs` follow that reference. The original Rory Gallagher MIT
+notice remains preserved and included in the package.
+
 ## Liquid Glass optics
 
 The optical section of `src/render/shaders/paint.frag` is adapted from

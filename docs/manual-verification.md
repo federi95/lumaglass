@@ -82,3 +82,21 @@ wallpapers and Settings. Parent labels must remain subdued by the existing scrim
 while the profile has no outer container and each capsule refracts only the parent
 backdrop. Check focus, pressed/opaque fallback, keyboard return and modal hit
 areas. No new runtime visual check has been performed.
+
+## App catalog and reversible local visibility
+
+Open System → App management on the TV and record SDK, root observation and actual
+inventory access separately. Check system/invisible entries and unknown flags
+against read-only system observations; never infer mutation rights from a readable
+list. Check page/filter navigation, long names, protected entries and both pointer
+and remote focus. Hide one non-essential launcher entry locally, restart, show it
+again, and verify favorites/order and LG Home are unaffected. Exercise Show all
+and session Undo, including a conflicting later visibility choice. Catalog read
+failure must keep Show all available and block actions relying on stale metadata.
+
+LG Home hiding must stay unavailable; this revision must not mount app manifests,
+restart SAM, disable services or change other launchers. If testing the established
+uninstall path later, use one explicitly disposable user app, verify identity and
+Cancel as the initial choice, then check confirmed absence and catalog/focus update.
+Do not treat a request acknowledgment as successful removal. These checks and
+the new regression suites have not been executed.
