@@ -1250,7 +1250,7 @@ fn home_favorites(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> 
         );
     }
     let apps = state.apps();
-    let names = state.preferences.show_home_names;
+    let names = state.home_names_visible();
     let layout = state.home_layout(apps.len());
     let dock = state.dock_enabled() && !apps.is_empty();
     let (strip_left, strip_right) = state.home_strip();
@@ -1822,7 +1822,8 @@ struct Row<'a> {
 }
 fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
     let focused = state.focus == row.target;
-    let bright = focused;
+    let enabled = state.target_enabled(&row.target);
+    let bright = focused && enabled;
     let radius = if row.description.is_some() { 20. } else { 48. };
     out.material(row.rect, radius, bright, false);
     if focused {
@@ -1834,6 +1835,7 @@ fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
     } else {
         c(0xeeeeee, 0.73)
     };
+    let color = if enabled { color } else { c(0xffffff, 0.45) };
     let mut x = row.rect.x + 24.2;
     if let Some(icon) = row.icon {
         out.icon(
@@ -2492,34 +2494,6 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                     false,
                 ),
                 (4, "language", "language", Some(language.name()), true),
-                (
-                    6,
-                    "greeting",
-                    "type",
-                    Some(
-                        if state.preferences.home.greeting_mode
-                            == crate::features::home::GreetingMode::Static
-                        {
-                            language.t("homeStatic")
-                        } else if state.greeting_text().trim().is_empty() {
-                            language.t("stateOff")
-                        } else {
-                            state.greeting_text()
-                        },
-                    ),
-                    true,
-                ),
-                (
-                    10,
-                    "twoRowFavorites",
-                    "grid",
-                    Some(language.t(if state.preferences.two_row_home_favorites {
-                        "stateOn"
-                    } else {
-                        "stateOff"
-                    })),
-                    false,
-                ),
                 (11, "homePersonalization", "settings", None, true),
                 (12, "appearance", "grid", None, true),
                 (13, "remoteShortcuts", "settings", None, true),
@@ -3350,8 +3324,31 @@ fn home_settings(out: &mut Scene, state: &State, assets: &Assets) {
     let home = &state.preferences.home;
     let mut y = 164.8 - state.scroll;
     for option in Setting::ALL {
+        let group = match option {
+            Setting::TwoRows => Some("favorites"),
+            Setting::ShowGreeting => Some("greeting"),
+            Setting::ShowDate => Some("homeDateGroup"),
+            Setting::ShowInputs => Some("inputs"),
+            Setting::StartupFocus => Some("homeStartupFocus"),
+            _ => None,
+        };
+        if let Some(key) = group {
+            if option != Setting::TwoRows {
+                y += 20.;
+            }
+            out.text(
+                language.t(key),
+                Rect::new(664., y, 1040., 26.),
+                text(17., 550, 0.),
+                c(0xffffff, 0.88),
+                false,
+            );
+            y += 38.;
+        }
         let enabled = |flag| language.t(if flag { "stateOn" } else { "stateOff" });
         let value = match option {
+            Setting::TwoRows => enabled(state.preferences.two_row_home_favorites),
+            Setting::FavoriteNames => enabled(state.home_names_visible()),
             Setting::FavoritesDock => enabled(state.dock_enabled()),
             Setting::ShowGreeting => enabled(home.show_greeting),
             Setting::GreetingMode => language.t(if home.greeting_mode == GreetingMode::Timed {
@@ -3386,11 +3383,16 @@ fn home_settings(out: &mut Scene, state: &State, assets: &Assets) {
             y += crate::features::sliders::HEIGHT + 12.;
             continue;
         }
-        let height = if option == Setting::FavoritesDock {
-            112.
-        } else {
-            72.
+        let hint = match option {
+            Setting::FavoritesDock => Some(if state.preferences.two_row_home_favorites {
+                "homeDockLocked"
+            } else {
+                "homeFavoritesDockHint"
+            }),
+            Setting::FavoriteNames if state.dock_enabled() => Some("homeNamesDockHint"),
+            _ => None,
         };
+        let height = if hint.is_some() { 112. } else { 72. };
         row(
             out,
             state,
@@ -3401,8 +3403,7 @@ fn home_settings(out: &mut Scene, state: &State, assets: &Assets) {
                 title: language.t(option.key()),
                 icon: None,
                 value: (!value.is_empty()).then_some(value),
-                description: (option == Setting::FavoritesDock)
-                    .then_some(language.t("homeFavoritesDockHint")),
+                description: hint.map(|key| language.t(key)),
                 selected: false,
                 chevron: matches!(option, Setting::GreetingText | Setting::StartupFocus),
             },
@@ -3604,11 +3605,12 @@ fn clock_settings(out: &mut Scene, state: &State, assets: &Assets) {
 
 fn app_name_settings(out: &mut Scene, state: &State, assets: &Assets) {
     let language = state.preferences.language;
-    for (index, (target, title, enabled)) in [
+    let mut y = 164.8 - state.scroll;
+    for (target, title, enabled) in [
         (
             Target::AppNamesHome,
             "showOnHome",
-            state.preferences.show_home_names,
+            state.home_names_visible(),
         ),
         (
             Target::AppNamesApps,
@@ -3617,23 +3619,25 @@ fn app_name_settings(out: &mut Scene, state: &State, assets: &Assets) {
         ),
     ]
     .into_iter()
-    .enumerate()
     {
+        let locked = target == Target::AppNamesHome && state.dock_enabled();
+        let height = if locked { 112. } else { 72. };
         row(
             out,
             state,
             assets,
             Row {
                 target,
-                rect: Rect::new(640., 164.8 + index as f32 * 84. - state.scroll, 1120., 72.),
+                rect: Rect::new(640., y, 1120., height),
                 title: language.t(title),
                 icon: None,
                 value: Some(language.t(if enabled { "stateOn" } else { "stateOff" })),
-                description: None,
+                description: locked.then_some(language.t("homeNamesDockHint")),
                 selected: false,
                 chevron: false,
             },
         );
+        y += height + 12.;
     }
 }
 

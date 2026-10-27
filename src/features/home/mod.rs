@@ -154,25 +154,31 @@ pub enum Setting {
     InputsFirst,
     StartupFocus,
     FavoritesDock,
+    TwoRows,
+    FavoriteNames,
 }
 impl Setting {
-    pub const ALL: [Self; 12] = [
+    pub const ALL: [Self; 14] = [
+        Self::TwoRows,
         Self::FavoritesDock,
+        Self::FavoriteNames,
         Self::ShowGreeting,
         Self::GreetingMode,
         Self::GreetingText,
         Self::GreetingSize,
+        Self::GreetingFirst,
         Self::ShowDate,
         Self::DateFormat,
         Self::ShowWeekday,
         Self::ShowInputs,
-        Self::GreetingFirst,
         Self::InputsFirst,
         Self::StartupFocus,
     ];
     pub fn key(self) -> &'static str {
         match self {
             Self::FavoritesDock => "homeFavoritesDock",
+            Self::TwoRows => "twoRowFavorites",
+            Self::FavoriteNames => "homeFavoriteNames",
             Self::ShowGreeting => "homeShowGreeting",
             Self::GreetingMode => "homeGreetingMode",
             Self::GreetingText => "homeGreetingText",

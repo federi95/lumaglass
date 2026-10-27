@@ -234,8 +234,14 @@ fn favorites_dock_and_second_row_are_exclusive_and_keep_favorite_order() {
     assert!(!state.preferences.home.favorites_dock);
     state.subpage = Some(Subpage::Home);
     state.focus = Target::HomeOption(HomeSetting::FavoritesDock);
+    assert!(state.activate().is_empty());
+    assert!(state.preferences.two_row_home_favorites);
+    assert!(!state.dock_enabled());
+    state.focus = Target::HomeOption(HomeSetting::TwoRows);
     state.activate();
-    assert!(!state.preferences.two_row_home_favorites);
+    state.focus = Target::HomeOption(HomeSetting::FavoritesDock);
+    state.activate();
+    assert!(state.dock_enabled());
     let mut restored: Preferences =
         serde_json::from_slice(&serde_json::to_vec(&state.preferences).unwrap()).unwrap();
     restored.sanitize();

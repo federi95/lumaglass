@@ -3905,15 +3905,15 @@
     "fr": "Dock des favoris"
   },
   "homeFavoritesDockHint": {
-    "en": "A glass tray for one row. Enabling two rows turns the dock off.",
-    "de": "Eine Glasleiste für eine Reihe. Zwei Reihen deaktivieren das Dock.",
-    "zh": "单行玻璃托盘。启用两行时将关闭程序坞。",
-    "es": "Una bandeja de cristal de una fila. Dos filas desactivan el dock.",
-    "pt": "Uma bandeja de vidro com uma linha. Duas linhas desativam o dock.",
-    "it": "Un contenitore in vetro per una riga. La seconda riga disattiva il dock.",
-    "ru": "Стеклянная панель в один ряд. При включении второго ряда док отключается.",
-    "pl": "Szklana taca na jeden rząd. Włączenie dwóch rzędów wyłącza dock.",
-    "fr": "Un plateau en verre sur une rangée. Deux rangées désactivent le dock."
+    "en": "A single row of icons without names. Unavailable with two-row favorites.",
+    "de": "Eine Symbolreihe ohne Namen. Bei zwei Favoritenreihen nicht verfügbar.",
+    "zh": "单行图标，不显示名称。双行收藏启用时不可用。",
+    "es": "Una fila de iconos sin nombres. No disponible con dos filas.",
+    "pt": "Uma linha de ícones sem nomes. Indisponível com duas linhas.",
+    "it": "Una riga di icone senza nomi. Non disponibile con i preferiti su due righe.",
+    "ru": "Один ряд значков без названий. Недоступен при двух рядах избранного.",
+    "pl": "Jeden rząd ikon bez nazw. Niedostępny przy dwóch rzędach ulubionych.",
+    "fr": "Une rangée d’icônes sans noms. Indisponible avec deux rangées."
   },
   "profileLocal": {
     "en": "Local profile",
@@ -3947,5 +3947,49 @@
     "ru": "Имя профиля",
     "pl": "Nazwa profilu",
     "fr": "Nom du profil"
+  },
+  "homeFavoriteNames": {
+    "en": "Favorite names",
+    "de": "Namen der Favoriten",
+    "zh": "收藏应用名称",
+    "es": "Nombres de favoritos",
+    "pt": "Nomes dos favoritos",
+    "it": "Nomi dei preferiti",
+    "ru": "Названия избранного",
+    "pl": "Nazwy ulubionych",
+    "fr": "Noms des favoris"
+  },
+  "homeDateGroup": {
+    "en": "Date",
+    "de": "Datum",
+    "zh": "日期",
+    "es": "Fecha",
+    "pt": "Data",
+    "it": "Data",
+    "ru": "Дата",
+    "pl": "Data",
+    "fr": "Date"
+  },
+  "homeDockLocked": {
+    "en": "Turn off two-row favorites to enable the dock.",
+    "de": "Zwei Favoritenreihen ausschalten, um das Dock zu aktivieren.",
+    "zh": "关闭双行收藏后才能启用程序坞。",
+    "es": "Desactiva las dos filas para activar el dock.",
+    "pt": "Desative as duas linhas para ativar o dock.",
+    "it": "Disattiva le due righe dei preferiti per abilitare il dock.",
+    "ru": "Отключите два ряда избранного, чтобы включить док.",
+    "pl": "Wyłącz dwa rzędy ulubionych, aby włączyć dock.",
+    "fr": "Désactivez les deux rangées pour activer le dock."
+  },
+  "homeNamesDockHint": {
+    "en": "Names are hidden while the dock is on. Your previous choice returns when it is off.",
+    "de": "Bei aktivem Dock sind Namen ausgeblendet. Danach gilt wieder Ihre vorherige Auswahl.",
+    "zh": "启用程序坞时隐藏名称。关闭后恢复之前的选择。",
+    "es": "El dock oculta los nombres. Al desactivarlo se restaura tu elección anterior.",
+    "pt": "O dock oculta os nomes. Ao desativá-lo, sua escolha anterior é restaurada.",
+    "it": "Il dock nasconde i nomi. Disattivandolo viene ripristinata la scelta precedente.",
+    "ru": "При включённом доке названия скрыты. После отключения вернётся прежняя настройка.",
+    "pl": "Dock ukrywa nazwy. Po jego wyłączeniu wraca poprzednie ustawienie.",
+    "fr": "Le dock masque les noms. Le désactiver rétablit votre choix précédent."
   }
 }

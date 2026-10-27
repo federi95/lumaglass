@@ -493,6 +493,32 @@ impl State {
         Rect::new(64., 108.8, 1792., bottom - 108.8)
     }
 
+    pub fn home_names_visible(&self) -> bool {
+        self.preferences.show_home_names && !self.dock_enabled()
+    }
+
+    /// Disabled rows remain focusable so the reason can be read, but cannot mutate.
+    pub fn target_enabled(&self, target: &Target) -> bool {
+        match target {
+            Target::HomeOption(HomeOption::FavoritesDock) => {
+                !self.preferences.two_row_home_favorites
+            }
+            Target::HomeOption(HomeOption::FavoriteNames) | Target::AppNamesHome => {
+                !self.dock_enabled()
+            }
+            _ => true,
+        }
+    }
+
+    fn toggle_home_rows(&mut self) {
+        self.preferences.two_row_home_favorites = !self.preferences.two_row_home_favorites;
+        if self.preferences.two_row_home_favorites {
+            self.preferences.home.favorites_dock = false;
+        }
+        self.home_scroll = 0.;
+        self.dirty = true;
+    }
+
     pub fn dock_enabled(&self) -> bool {
         self.preferences.home.favorites_dock && !self.preferences.two_row_home_favorites
     }
@@ -2513,6 +2539,9 @@ impl State {
     }
 
     pub fn activate(&mut self) -> Vec<Effect> {
+        if !self.target_enabled(&self.focus) {
+            return vec![];
+        }
         if self.display_trial && !matches!(self.focus, Target::DisplayHD | Target::DisplayKeep) {
             return vec![];
         }
@@ -2808,11 +2837,12 @@ impl State {
                 }
                 let home = &mut self.preferences.home;
                 match option {
+                    HomeOption::TwoRows => self.toggle_home_rows(),
+                    HomeOption::FavoriteNames => {
+                        self.preferences.show_home_names = !self.preferences.show_home_names;
+                    }
                     HomeOption::FavoritesDock => {
                         home.favorites_dock = !home.favorites_dock;
-                        if home.favorites_dock {
-                            self.preferences.two_row_home_favorites = false;
-                        }
                         self.home_scroll = 0.;
                     }
                     HomeOption::ShowGreeting => home.show_greeting = !home.show_greeting,
@@ -3135,12 +3165,7 @@ impl State {
                     }
                     2 => self.preferences.reduced_motion = !self.preferences.reduced_motion,
                     10 => {
-                        self.preferences.two_row_home_favorites =
-                            !self.preferences.two_row_home_favorites;
-                        if self.preferences.two_row_home_favorites {
-                            self.preferences.home.favorites_dock = false;
-                        }
-                        self.home_scroll = 0.;
+                        self.toggle_home_rows();
                     }
                     11 => {
                         self.subpage = Some(Subpage::Home);
