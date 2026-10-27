@@ -48,6 +48,24 @@ Lumaglass uses explicit removable/non-system metadata, a pinned installation
 target, one preselected request and subsequent read-only inventory verification.
 The complete Glasshouse MIT notice remains distributed with the application.
 
+## Liquid Glass optics
+
+The optical section of `src/render/shaders/paint.frag` is adapted from
+[ziuus/liquid-glass](https://github.com/ziuus/liquid-glass), revision
+`c75d171e0626c78f4bdb5030191d2af6795cd892`, specifically
+`glass-core/src/renderer/glass.wgsl`. The complete MIT notice, including
+**Copyright (c) 2026 ziuus**, is preserved verbatim in
+`assets/licenses/ziuus-liquid-glass.txt` and distributed with the IPK.
+
+Lumaglass ports the lens magnification, index-of-refraction ray offset, chromatic
+dispersion and directional rim/Fresnel ideas to GLSL ES 1.00. It substitutes
+analytic normals for the upstream finite-difference height field, bounds sample
+offsets, uses three backdrop samples and separates tint opacity from layer fading.
+The native cached-backdrop integration is original Lumaglass code. Vulkan, wgpu,
+Wayland capture utilities, media-widget drawing, continuous ripple physics and the
+upstream multipass blur engine are not imported. This port is not Apple's SDK or
+an assurance of pixel-identical Apple rendering or verified TV performance.
+
 ## Artwork, fonts, data and runtime libraries
 
 The MIT license for the application does not replace the licenses of its assets

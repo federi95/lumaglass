@@ -141,6 +141,7 @@ pub struct Scene {
     pub modal: Option<Rect>,
     accent: crate::features::appearance::Accent,
     liquid_glass: bool,
+    glass_layer: Option<crate::render::backdrop::Layer>,
 }
 impl Scene {
     fn new(accent: crate::features::appearance::Accent, liquid_glass: bool) -> Self {
@@ -150,6 +151,7 @@ impl Scene {
             modal: None,
             accent,
             liquid_glass,
+            glass_layer: Some(crate::render::backdrop::Layer::Base),
         }
     }
     fn shape(&mut self, rect: Rect, radius: f32, fill: Color) {
@@ -209,6 +211,18 @@ impl Scene {
             c(self.accent.rgb(), neutral[3])
         }
     }
+    fn glass(&mut self, rect: Rect, radius: f32, top: Color, bottom: Color) {
+        self.draw.push(Draw::Glass(
+            rect,
+            radius,
+            top,
+            bottom,
+            crate::render::backdrop::Effect {
+                opacity: 1.,
+                backdrop: self.glass_layer,
+            },
+        ));
+    }
     fn selection_surface(&mut self, rect: Rect, radius: f32) {
         let opacity = if self.liquid_glass { 0.90 } else { 1. };
         let top = self.accent_color(c(0xfafafa, opacity));
@@ -223,7 +237,7 @@ impl Scene {
             ]
         };
         if self.liquid_glass {
-            self.draw.push(Draw::Glass(rect, radius, top, bottom));
+            self.glass(rect, radius, top, bottom);
         } else {
             self.shape(rect, radius, top);
         }
@@ -246,7 +260,7 @@ impl Scene {
             } else {
                 (c(0x414d57, 0.22), c(0x1b232c, 0.34))
             };
-            self.draw.push(Draw::Glass(rect, radius, top, bottom));
+            self.glass(rect, radius, top, bottom);
         } else {
             self.shape(
                 rect,
@@ -280,9 +294,17 @@ impl Scene {
                 | Draw::Text(_, _, _, color, _)
                 | Draw::TintedImage(_, _, _, _, color)
                 | Draw::AppImage(_, _, color) => apply(color),
-                Draw::RoundedGradient(_, _, a, b) | Draw::Glass(_, _, a, b) => {
+                Draw::RoundedGradient(_, _, a, b) => {
                     apply(a);
                     apply(b);
+                }
+                Draw::Glass(_, _, a, b, effect) => {
+                    for color in [a, b] {
+                        for channel in &mut color[..3] {
+                            *channel *= brightness;
+                        }
+                    }
+                    effect.opacity *= alpha;
                 }
                 Draw::Image(path, rect, radius, contain) => {
                     *draw = Draw::TintedImage(
@@ -293,7 +315,7 @@ impl Scene {
                         [brightness, brightness, brightness, alpha],
                     );
                 }
-                Draw::Clip(_) | Draw::EdgeFade(_) | Draw::EdgeFadeX(_) => {}
+                Draw::Clip(_) | Draw::EdgeFade(_) | Draw::EdgeFadeX(_) | Draw::Backdrop(_) => {}
             }
         }
     }
@@ -478,6 +500,7 @@ pub fn scene_with_pill(
     ) = &state.overlay
     {
         out.controls.clear();
+        out.glass_layer = None;
         if matches!(overlay, Overlay::ControlCenter { .. }) {
             out.fade(content_start, 0.30, 1.);
         }
@@ -513,6 +536,9 @@ pub fn scene_with_pill(
             Overlay::ControlConfirm { command, .. } => control_dialog(&mut out, state, *command),
             Overlay::ControlCenter { .. } => {
                 control_center::render(&mut out, state, assets);
+                out.glass_layer = Some(crate::render::backdrop::Layer::Base);
+                out.draw
+                    .push(Draw::Backdrop(crate::render::backdrop::Layer::Base));
                 header_identity(&mut out, state, assets, now);
                 control_center_button(&mut out, state, assets);
             }

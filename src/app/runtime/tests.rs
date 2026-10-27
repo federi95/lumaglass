@@ -71,7 +71,8 @@ fn accent_palette_recolors_native_selection_surfaces_and_keeps_dark_labels() {
             .draw
             .iter()
             .find_map(|draw| match draw {
-                Draw::RoundedGradient(rect, _, top, bottom) | Draw::Glass(rect, _, top, bottom)
+                Draw::RoundedGradient(rect, _, top, bottom)
+                | Draw::Glass(rect, _, top, bottom, _)
                     if (rect.y - 52.3).abs() < 0.01 && (rect.h - 49.).abs() < 0.01 =>
                 {
                     Some((*top, *bottom))

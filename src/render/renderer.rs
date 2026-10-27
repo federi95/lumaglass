@@ -3,6 +3,7 @@
 use crate::{
     font::Font,
     raster::{Size, Viewport},
+    render::backdrop::{self, Effect, Layer},
     state::Rect,
     vector,
 };
@@ -63,8 +64,10 @@ impl TextStyle {
 pub enum Draw {
     Shape(Rect, f32, f32, Color),
     RoundedGradient(Rect, f32, Color, Color),
-    /// Analytic glass rim and reflection, one batched paint quad; no framebuffer copy.
-    Glass(Rect, f32, Color, Color),
+    /// Optical or analytic glass, one paint quad; cached GPU backdrops are separate.
+    Glass(Rect, f32, Color, Color, Effect),
+    /// Boundary for a cached lower layer, never a CPU screen capture.
+    Backdrop(Layer),
     Shadow(Rect, f32, f32, Color),
     Text(String, Rect, TextStyle, Color, bool),
     Image(String, Rect, f32, bool),
@@ -119,6 +122,7 @@ pub struct GraphicsInfo {
     pub max_texture_size: u32,
     pub max_viewport: [i32; 2],
     pub fragment_highp: bool,
+    pub optical_glass_supported: bool,
 }
 
 #[derive(Clone, Serialize)]
@@ -151,6 +155,10 @@ pub struct RenderStats {
     pub cpu_submission_ms: f64,
     /// Share of the drawable redrawn in the last frame (1 without partial redraw).
     pub redrawn_fraction: f64,
+    pub glass_background_bytes: usize,
+    pub glass_background_refreshes: u32,
+    /// CPU preparation/submission time, not a GPU timestamp.
+    pub glass_background_ms: f64,
 }
 impl RenderStats {
     fn new(target: Size) -> Self {
@@ -181,6 +189,9 @@ impl RenderStats {
             draw_calls: 0,
             cpu_submission_ms: 0.,
             redrawn_fraction: 1.,
+            glass_background_bytes: 0,
+            glass_background_refreshes: 0,
+            glass_background_ms: 0.,
         }
     }
 }
@@ -190,6 +201,7 @@ enum BatchKind {
         texture: GLuint,
         start: usize,
         count: usize,
+        backdrop: Option<Layer>,
     },
     Vector {
         path: String,
@@ -299,7 +311,7 @@ fn profile_skip(command: &Draw) -> bool {
         Draw::Glass(..) => "glass",
         Draw::Shadow(..) => "shadow",
         Draw::Text(..) => "text",
-        Draw::Clip(_) | Draw::EdgeFade(_) | Draw::EdgeFadeX(_) => return false,
+        Draw::Clip(_) | Draw::EdgeFade(_) | Draw::EdgeFadeX(_) | Draw::Backdrop(_) => return false,
     };
     skip.iter().any(|entry| entry == kind || entry == "all")
 }
@@ -348,6 +360,10 @@ pub struct Renderer {
     fade: Option<[f32; 8]>,
     frame: u64,
     stats: RenderStats,
+    backdrops: [backdrop::Cache; 2],
+    paint_backdrop: Option<Layer>,
+    snapshot_pass: bool,
+    optical_uniforms: [GLint; 3],
     pub info: GraphicsInfo,
 }
 
@@ -395,11 +411,31 @@ impl Renderer {
         } else {
             "#version 150\n#define varying in\n#define texture2D texture\nout vec4 out_color;\n#define gl_FragColor out_color\n#define PAINT_PRECISION\n".into()
         };
-        let program = link(
+        let optical_source = |enabled: bool| {
+            fragment_prefix.clone()
+                + &format!("#define GLASS_OPTICS {}\n", u8::from(enabled))
+                + include_str!("shaders/paint.frag")
+        };
+        let paint_attributes = [c"a_position", c"a_uv", c"a_color", c"a_shape", c"a_params"];
+        let (program, optical_glass_supported) = match link(
             &(vertex_prefix.clone() + include_str!("shaders/paint.vert")),
-            &(fragment_prefix.clone() + include_str!("shaders/paint.frag")),
-            &[c"a_position", c"a_uv", c"a_color", c"a_shape", c"a_params"],
-        )?;
+            &optical_source(fragment_highp),
+            &paint_attributes,
+        ) {
+            Ok(program) => (program, fragment_highp),
+            Err(error) if fragment_highp => {
+                eprintln!("Optical glass unavailable; using the analytic material: {error}");
+                (
+                    link(
+                        &(vertex_prefix.clone() + include_str!("shaders/paint.vert")),
+                        &optical_source(false),
+                        &paint_attributes,
+                    )?,
+                    false,
+                )
+            }
+            Err(error) => return Err(error),
+        };
         let vector_program = match link(
             &(vertex_prefix.clone() + include_str!("shaders/vector.vert")),
             &(fragment_prefix.clone() + include_str!("shaders/vector.frag")),
@@ -454,6 +490,16 @@ impl Renderer {
             buffer,
             vao,
             white,
+            backdrops: Default::default(),
+            paint_backdrop: Some(Layer::Base),
+            snapshot_pass: false,
+            optical_uniforms: unsafe {
+                [
+                    gl::GetUniformLocation(program, c"u_optical".as_ptr()),
+                    gl::GetUniformLocation(program, c"u_backdrop".as_ptr()),
+                    gl::GetUniformLocation(program, c"u_backdrop_bounds".as_ptr()),
+                ]
+            },
             font_directory: directory.into(),
             fonts,
             failed_fonts: HashSet::new(),
@@ -475,6 +521,7 @@ impl Renderer {
                 max_texture_size: max_texture_size.max(0) as u32,
                 max_viewport,
                 fragment_highp,
+                optical_glass_supported,
             },
         })
     }
@@ -631,9 +678,11 @@ impl Renderer {
                 && let BatchKind::Paint {
                     texture: previous,
                     count: batch_count,
+                    backdrop,
                     ..
                 } = &mut batch.kind
                 && *previous == texture
+                && *backdrop == self.paint_backdrop
             {
                 *batch_count += count;
                 return;
@@ -644,6 +693,7 @@ impl Renderer {
                 texture,
                 start,
                 count,
+                backdrop: self.paint_backdrop,
             },
             clip: self.clip,
             fade: self.fade,
@@ -1181,6 +1231,7 @@ impl Renderer {
         self.batches.clear();
         self.clip = None;
         self.fade = None;
+        self.paint_backdrop = Some(Layer::Base);
         let mut index = 0;
         while index < commands.len() {
             let command = &commands[index];
@@ -1232,14 +1283,21 @@ impl Renderer {
                     [*top, *bottom],
                     self.white.id,
                 ),
-                Draw::Glass(rect, radius, top, bottom) => self.gradient_quad(
-                    *rect,
-                    [0., 0., 1., 1.],
-                    *radius,
-                    -1024.,
-                    [*top, *bottom],
-                    self.white.id,
-                ),
+                Draw::Glass(rect, radius, top, bottom, effect) => {
+                    let previous = self.paint_backdrop;
+                    self.paint_backdrop = effect.backdrop;
+                    let opacity = effect.opacity.clamp(0., 1.);
+                    self.gradient_quad(
+                        *rect,
+                        [opacity, 0., opacity, 1.],
+                        *radius,
+                        -1024.,
+                        [*top, *bottom],
+                        self.white.id,
+                    );
+                    self.paint_backdrop = previous;
+                }
+                Draw::Backdrop(layer) => self.paint_backdrop = Some(*layer),
                 Draw::Shadow(rect, radius, blur, color) => self.quad(
                     rect.inset(-*blur),
                     [0., 0., 1., 1.],
@@ -1268,7 +1326,142 @@ impl Renderer {
     /// Draws the scene. With `damage` (drawable pixels from `damage_pixels`), only those pixels
     /// are cleared and drawn; commands entirely outside them are skipped, and the rest of the
     /// back buffer keeps its earlier contents.
+    /// Refresh only changed lower layers, then paint the current frame normally.
     pub fn render(&mut self, commands: &[Draw], width: u32, height: u32, damage: Option<[i32; 4]>) {
+        let started = Instant::now();
+        let (refreshes, changed) = self.refresh_backdrops(commands, Size::new(width, height));
+        let preparation_ms = started.elapsed().as_secs_f64() * 1000.;
+        // Refraction can move changed backdrop pixels inside a lens: redraw the lens too.
+        let damage = match (damage, changed) {
+            (Some(d), Some(r)) => {
+                let p = Self::damage_pixels(r, width, height);
+                let x = d[0].min(p[0]);
+                let y = d[1].min(p[1]);
+                Some([
+                    x,
+                    y,
+                    (d[0] + d[2]).max(p[0] + p[2]) - x,
+                    (d[1] + d[3]).max(p[1] + p[3]) - y,
+                ])
+            }
+            (d, _) => d,
+        };
+        self.render_pass(commands, width, height, damage);
+        self.stats.glass_background_bytes = self.backdrops.iter().map(backdrop::Cache::bytes).sum();
+        self.stats.glass_background_refreshes = refreshes;
+        self.stats.glass_background_ms = preparation_ms;
+        self.stats.cpu_submission_ms += preparation_ms;
+    }
+
+    fn refresh_backdrops(&mut self, commands: &[Draw], drawable: Size) -> (u32, Option<Rect>) {
+        if !self.info.optical_glass_supported
+            || !commands
+                .iter()
+                .any(|d| matches!(d, Draw::Glass(..)) && !profile_skip(d))
+        {
+            self.backdrops = Default::default();
+            return (0, None);
+        }
+        let limit = self
+            .info
+            .max_texture_size
+            .min(self.info.max_viewport[0].max(0) as u32)
+            .min(self.info.max_viewport[1].max(0) as u32);
+        let size = backdrop::size(drawable, limit);
+        if size.width < 320 || size.height < 180 {
+            self.backdrops = Default::default();
+            return (0, None);
+        }
+        let mut refreshed = 0;
+        let mut changed: Option<Rect> = None;
+        for layer in [Layer::Base, Layer::Panel] {
+            let index = layer.index();
+            let Some(plan) = backdrop::plan(commands, layer) else {
+                self.backdrops[index] = Default::default();
+                continue;
+            };
+            let dependency = if layer == Layer::Panel {
+                self.backdrops[0].generation
+            } else {
+                0
+            };
+            if self.backdrops[index].matches(&plan, size, dependency) {
+                continue;
+            }
+            if self.backdrops[index].failed_size == Some(size) {
+                continue;
+            }
+            if !self.backdrops[index]
+                .target
+                .as_ref()
+                .is_some_and(|target| target.size == size)
+            {
+                self.backdrops[index].valid = false;
+                self.backdrops[index].target = None;
+                match backdrop::Target::new(size) {
+                    Ok(target) => self.backdrops[index].target = Some(target),
+                    Err(error) => {
+                        eprintln!("{error}; keeping the analytic glass fallback");
+                        self.backdrops[index].failed_size = Some(size);
+                        continue;
+                    }
+                }
+            }
+            self.backdrops[index].valid = false;
+            let framebuffer = self.backdrops[index].target.as_ref().unwrap().framebuffer;
+            let mut previous_framebuffer = 0;
+            // SAFETY: the target has been checked complete and shares the current context.
+            unsafe {
+                gl::GetIntegerv(gl::FRAMEBUFFER_BINDING, &mut previous_framebuffer);
+                gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffer);
+            }
+            let saved_frame = self.frame;
+            let saved_stats = self.stats.clone();
+            self.snapshot_pass = true;
+            self.render_pass(
+                &commands[..plan.end],
+                size.width,
+                size.height,
+                Some(Self::damage_pixels(plan.region, size.width, size.height)),
+            );
+            self.snapshot_pass = false;
+            self.frame = saved_frame;
+            self.stats = saved_stats;
+            unsafe {
+                gl::BindFramebuffer(gl::FRAMEBUFFER, previous_framebuffer as u32);
+            }
+            let cache = &mut self.backdrops[index];
+            cache.key = plan.key;
+            cache.region = plan.region;
+            cache.coverage = plan.coverage;
+            cache.valid = true;
+            cache.dependency = dependency;
+            cache.generation = cache.generation.wrapping_add(1);
+            refreshed += 1;
+            changed = Some(match changed {
+                None => plan.region,
+                Some(r) => {
+                    let x = r.x.min(plan.region.x);
+                    let y = r.y.min(plan.region.y);
+                    Rect::new(
+                        x,
+                        y,
+                        (r.x + r.w).max(plan.region.x + plan.region.w) - x,
+                        (r.y + r.h).max(plan.region.y + plan.region.h) - y,
+                    )
+                }
+            });
+        }
+        (refreshed, changed)
+    }
+
+    fn render_pass(
+        &mut self,
+        commands: &[Draw],
+        width: u32,
+        height: u32,
+        damage: Option<[i32; 4]>,
+    ) {
         let area = damage.map(|pixels| Self::damage_area(pixels, width, height));
         let started = Instant::now();
         self.build(commands, width, height, area);
@@ -1320,6 +1513,7 @@ impl Renderer {
             gl::ActiveTexture(gl::TEXTURE0);
             let mut paint_bound = false;
             let mut current_fade = None;
+            let mut optical_bound: Option<Option<Layer>> = None;
             for batch in &self.batches {
                 if current_fade != Some(batch.fade) {
                     // The same cheap alpha mask applies to shapes, textures,
@@ -1362,6 +1556,7 @@ impl Renderer {
                         texture,
                         start,
                         count,
+                        backdrop,
                     } => {
                         if !paint_bound {
                             gl::UseProgram(self.program);
@@ -1380,6 +1575,36 @@ impl Renderer {
                                 offset += size as usize;
                             }
                             paint_bound = true;
+                        }
+                        if optical_bound != Some(*backdrop) {
+                            let cache = backdrop
+                                .and_then(|layer| self.backdrops.get(layer.index()))
+                                .filter(|c| c.valid);
+                            let (background, enabled, bounds) = if let Some(cache) = cache {
+                                let target = cache.target.as_ref().unwrap();
+                                let r = cache.region;
+                                let dx = 0.5 / target.size.width as f32;
+                                let dy = 0.5 / target.size.height as f32;
+                                (
+                                    target.texture,
+                                    1.,
+                                    [
+                                        r.x / 1920. + dx,
+                                        1. - (r.y + r.h) / 1080. + dy,
+                                        (r.x + r.w) / 1920. - dx,
+                                        1. - r.y / 1080. - dy,
+                                    ],
+                                )
+                            } else {
+                                (self.white.id, 0., [0., 0., 1., 1.])
+                            };
+                            gl::Uniform1f(self.optical_uniforms[0], enabled);
+                            gl::Uniform1i(self.optical_uniforms[1], 1);
+                            gl::Uniform4fv(self.optical_uniforms[2], 1, bounds.as_ptr());
+                            gl::ActiveTexture(gl::TEXTURE1);
+                            gl::BindTexture(gl::TEXTURE_2D, background);
+                            gl::ActiveTexture(gl::TEXTURE0);
+                            optical_bound = Some(*backdrop);
                         }
                         gl::BindTexture(gl::TEXTURE_2D, *texture);
                         gl::DrawArrays(gl::TRIANGLES, *start as i32, *count as i32);
@@ -1416,37 +1641,45 @@ impl Renderer {
             }
             gl::Disable(gl::SCISSOR_TEST);
         }
-        // Keep the current scene, evict old full-resolution wallpapers before memory grows.
-        let mut bytes: usize = self
+        if !self.snapshot_pass {
+            // Keep the current scene, evict old full-resolution wallpapers before memory grows.
+            let mut bytes: usize = self
+                .textures
+                .values()
+                .flatten()
+                .map(|t| t.width as usize * t.height as usize * 4)
+                .sum();
+            if bytes > TEXTURE_BUDGET {
+                let mut old: Vec<_> = self
+                    .textures
+                    .iter()
+                    .filter_map(|(path, t)| {
+                        t.as_ref()
+                            .filter(|t| t.frame != self.frame)
+                            .map(|t| (path.clone(), t.frame))
+                    })
+                    .collect();
+                old.sort_by_key(|(_, frame)| *frame);
+                for (path, _) in old {
+                    if bytes <= TEXTURE_BUDGET {
+                        break;
+                    }
+                    if let Some(Some(t)) = self.textures.remove(&path) {
+                        bytes -= t.width as usize * t.height as usize * 4;
+                    }
+                }
+            }
+            self.trim_text_geometry();
+        }
+        self.stats.vector_meshes = self.vectors.values().flatten().count();
+        self.stats.vector_bytes = self.vectors.values().flatten().map(|mesh| mesh.bytes).sum();
+        self.stats.artwork_bytes = self
             .textures
             .values()
             .flatten()
             .map(|t| t.width as usize * t.height as usize * 4)
-            .sum();
-        if bytes > TEXTURE_BUDGET {
-            let mut old: Vec<_> = self
-                .textures
-                .iter()
-                .filter_map(|(path, t)| {
-                    t.as_ref()
-                        .filter(|t| t.frame != self.frame)
-                        .map(|t| (path.clone(), t.frame))
-                })
-                .collect();
-            old.sort_by_key(|(_, frame)| *frame);
-            for (path, _) in old {
-                if bytes <= TEXTURE_BUDGET {
-                    break;
-                }
-                if let Some(Some(t)) = self.textures.remove(&path) {
-                    bytes -= t.width as usize * t.height as usize * 4;
-                }
-            }
-        }
-        self.trim_text_geometry();
-        self.stats.vector_meshes = self.vectors.values().flatten().count();
-        self.stats.vector_bytes = self.vectors.values().flatten().map(|mesh| mesh.bytes).sum();
-        self.stats.artwork_bytes = bytes + self.stats.vector_bytes;
+            .sum::<usize>()
+            + self.stats.vector_bytes;
         self.stats.draw_calls = self.batches.len();
         self.stats.cpu_submission_ms = started.elapsed().as_secs_f64() * 1000.;
     }

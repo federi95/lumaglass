@@ -10,6 +10,9 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         out.shadow(panel, 40., 24., 8., 0.24);
     }
     out.material(panel, 40., false, true);
+    out.draw
+        .push(Draw::Backdrop(crate::render::backdrop::Layer::Panel));
+    out.glass_layer = Some(crate::render::backdrop::Layer::Panel);
     out.text(
         language.t("controlCenter"),
         Rect::new(1220., 167., 480., 32.),
@@ -200,12 +203,12 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
 /// Text stays light on translucent glass; the opaque focused fallback uses dark text.
 fn surface(out: &mut Scene, rect: Rect, radius: f32, focused: bool, enabled: bool) -> Color {
     if out.liquid_glass && focused {
-        out.draw.push(Draw::Glass(
+        out.glass(
             rect,
             radius,
             out.accent_color(c(0x71879a, 0.32)),
             c(0x2c4050, 0.48),
-        ));
+        );
         out.border(rect, radius, 2., out.accent_color(c(0xffffff, 0.88)));
     } else {
         out.material(rect, radius, focused && enabled, false);

@@ -13,6 +13,15 @@ for the Home takeover approach. No Glasshouse management feature implementation
 is imported by the reorganization. Future code imports must record their
 upstream revision and modifications and retain the applicable notice.
 
+## Optical shader port
+
+The optical section of `src/render/shaders/paint.frag` derives from the MIT-licensed
+ziuus/liquid-glass shader. Its exact revision and porting changes are recorded in
+[NOTICE](../NOTICE.md), and its complete original MIT text is included as
+`assets/licenses/ziuus-liquid-glass.txt`. Packaging requires the notice and checks
+that the upstream copyright is retained. The native backdrop/cache code is
+original Lumaglass work; no wgpu or Vulkan runtime is bundled for this feature.
+
 ## Asset and font terms
 
 [assets.md](assets.md) is the per-asset attribution record, inherited from Luma

@@ -94,7 +94,7 @@ pub fn bounds(command: &Draw) -> Option<Rect> {
             1920.,
             rect.h + 2. * style.size,
         )),
-        Draw::Clip(_) | Draw::EdgeFade(_) | Draw::EdgeFadeX(_) => None,
+        Draw::Clip(_) | Draw::EdgeFade(_) | Draw::EdgeFadeX(_) | Draw::Backdrop(_) => None,
     }
 }
 
@@ -104,10 +104,13 @@ fn same(a: &Draw, b: &Draw) -> bool {
         (Draw::Shape(r1, a1, b1, c1), Draw::Shape(r2, a2, b2, c2)) => {
             rect(r1, r2) && a1 == a2 && b1 == b2 && c1 == c2
         }
-        (Draw::RoundedGradient(r1, a1, t1, b1), Draw::RoundedGradient(r2, a2, t2, b2))
-        | (Draw::Glass(r1, a1, t1, b1), Draw::Glass(r2, a2, t2, b2)) => {
+        (Draw::RoundedGradient(r1, a1, t1, b1), Draw::RoundedGradient(r2, a2, t2, b2)) => {
             rect(r1, r2) && a1 == a2 && t1 == t2 && b1 == b2
         }
+        (Draw::Glass(r1, a1, t1, b1, e1), Draw::Glass(r2, a2, t2, b2, e2)) => {
+            rect(r1, r2) && a1 == a2 && t1 == t2 && b1 == b2 && e1 == e2
+        }
+        (Draw::Backdrop(a), Draw::Backdrop(b)) => a == b,
         (Draw::Shadow(r1, a1, b1, c1), Draw::Shadow(r2, a2, b2, c2)) => {
             rect(r1, r2) && a1 == a2 && b1 == b2 && c1 == c2
         }
@@ -166,3 +169,7 @@ fn union(a: Rect, b: Rect) -> Rect {
 
 #[cfg(test)]
 mod tests;
+
+pub(crate) fn same_commands(a: &[Draw], b: &[Draw]) -> bool {
+    a.len() == b.len() && a.iter().zip(b).all(|(a, b)| same(a, b))
+}

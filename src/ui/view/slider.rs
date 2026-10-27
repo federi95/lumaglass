@@ -111,8 +111,7 @@ pub(super) fn draw(
             out.shadow(thumb, radius, 10., 2., 0.20);
         }
         if out.liquid_glass {
-            out.draw
-                .push(Draw::Glass(thumb, radius, WHITE, c(0xe5ebf0, 1.)));
+            out.glass(thumb, radius, WHITE, c(0xe5ebf0, 1.));
         } else {
             out.shape(thumb, radius, WHITE);
         }

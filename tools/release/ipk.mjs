@@ -88,6 +88,7 @@ export function normalizeAndVerifyPackage(bytes, manifest) {
     'docs/appearance.md',
     'licenses/luma.txt',
     'licenses/glasshouse.txt',
+    'licenses/ziuus-liquid-glass.txt',
     'licenses/simple-icons.txt',
     'licenses/rust-dependencies.txt',
     'licenses/rust-dependencies.json',
@@ -147,10 +148,14 @@ export function normalizeAndVerifyPackage(bytes, manifest) {
   const glasshouseLicense = owned.find((file) =>
     file.name.endsWith('/licenses/glasshouse.txt'),
   )?.data;
+  const opticsLicense = owned.find((file) =>
+    file.name.endsWith('/licenses/ziuus-liquid-glass.txt'),
+  )?.data;
   if (
     !originalLicense?.equals(lumaLicense) ||
     !originalLicense.toString().includes('Copyright (c) 2026 Luma contributors') ||
-    !glasshouseLicense?.toString().includes('Copyright (c) 2026 Rory Gallagher')
+    !glasshouseLicense?.toString().includes('Copyright (c) 2026 Rory Gallagher') ||
+    !opticsLicense?.toString().includes('Copyright (c) 2026 ziuus')
   ) {
     throw new Error('Original project copyright notices must be preserved in the package.');
   }

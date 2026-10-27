@@ -1,4 +1,5 @@
 //! Native rendering, font outlines and presentation diagnostics.
+pub(crate) mod backdrop;
 pub(crate) mod damage;
 pub(crate) mod diagnostics;
 pub(crate) mod egl_damage;

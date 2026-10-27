@@ -198,7 +198,13 @@ fn an_unchanged_frame_names_a_pixel_inside_the_drawable() {
 fn glass_material_changes_are_bounded_and_switching_it_off_invalidates_the_surface() {
     let mut tracker = Tracker::default();
     let rect = Rect::new(500., 400., 320., 156.);
-    let glass = Draw::Glass(rect, 40., [0.3, 0.4, 0.5, 0.7], [0.1, 0.2, 0.3, 0.9]);
+    let glass = Draw::Glass(
+        rect,
+        40.,
+        [0.3, 0.4, 0.5, 0.7],
+        [0.1, 0.2, 0.3, 0.9],
+        crate::render::backdrop::Effect::default(),
+    );
     tracker.push(&[wallpaper(), glass.clone()]);
     tracker.push(&[wallpaper(), glass]);
     let unchanged = area(tracker.damage(1));
