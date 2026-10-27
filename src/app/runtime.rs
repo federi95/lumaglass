@@ -1590,8 +1590,9 @@ fn run() -> Result<(), String> {
                                 .map(|c| c.rect)
                                 && state.slider_allowed(&target)
                                 && state.slider_values(&target).is_some()
-                                && pointer_position(&window, x, y)
-                                    .is_some_and(|(_, y)| y >= rect.y + 44.)
+                                && pointer_position(&window, x, y).is_some_and(|(_, y)| {
+                                    y >= rect.y + crate::features::sliders::TRACK_HIT_TOP
+                                })
                             {
                                 if let Some((x, _)) = pointer_position(&window, x, y) {
                                     pending = state.slider_at(&target, rect, x);

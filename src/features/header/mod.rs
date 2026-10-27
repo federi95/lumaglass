@@ -3,8 +3,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 #[derive(Clone, Copy, Debug, Default, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Side {
-    #[default]
     Left,
+    #[default]
     Right,
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Deserialize, Serialize)]
@@ -14,12 +14,21 @@ pub enum Avatar {
     Initials,
     Symbol,
 }
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Preferences {
     pub combined: bool,
     pub side: Side,
     pub avatar: Avatar,
+}
+impl Default for Preferences {
+    fn default() -> Self {
+        Self {
+            combined: true,
+            side: Side::Right,
+            avatar: Avatar::default(),
+        }
+    }
 }
 pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Preferences, D::Error> {
     Ok(serde_json::from_value(serde_json::Value::deserialize(d)?).unwrap_or_default())

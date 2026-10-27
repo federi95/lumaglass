@@ -75,16 +75,16 @@ try {
   };
   const quick = await scenario('control-center', 'control-center');
   assert.equal(quick.modal, true);
-  assert.deepEqual(quick.focus, { Quick: 'Standby' });
+  assert.deepEqual(quick.focus, { Quick: 'Screensaver' });
   for (const [name, top] of [
-    ['network', 241],
-    ['audio', 350],
+    ['network', 253],
+    ['audio', 362],
   ]) {
     const icon = await sharp(path.join(out, 'control-center.png'))
       .extract({ left: 1534, top, width: 30, height: 30 })
       .stats();
     assert.ok(
-      icon.channels.slice(0, 3).every((channel) => channel.max > 180),
+      icon.channels.slice(0, 3).every((channel) => channel.max > 130 && channel.stdev > 10),
       `${name} icon must remain readable on its dark, unfocused tile`,
     );
   }
@@ -94,13 +94,14 @@ try {
   const dismissed = await scenario('control-center-dismissed', 'control-center,back');
   assert.equal(dismissed.modal, false);
   assert.deepEqual(dismissed.focus, { Nav: 0 });
-  const dimmed = await scenario('control-center-slider', 'control-center,click:1600:696');
+  const dimmed = await scenario('control-center-slider', 'control-center,click:1600:728');
   assert.equal(dimmed.preferences.appearance.dimming, 'medium');
   const sliderBack = await scenario(
     'control-center-slider-back',
-    'control-center,click:1256:696,back',
+    'control-center,click:1300:728,back',
   );
   assert.equal(sliderBack.preferences.appearance.dimming, 'off');
+  await fs.writeFile(preferences, JSON.stringify({ header: { combined: false, side: 'left' } }));
   const headerSaved = await scenario(
     'header-capsule-right',
     'settings,down,enter,down,enter,down,down,enter,down,enter,home',

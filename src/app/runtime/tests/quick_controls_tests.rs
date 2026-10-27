@@ -10,7 +10,8 @@ fn quick_panel_restores_focus_and_never_mutates_on_open() {
     let mut state = ready();
     state.focus = Target::App("netflix".into());
     assert!(state.open_control_center().is_empty());
-    assert_eq!(state.focus, Target::Quick(Action::Standby));
+    assert_eq!(state.focus, Target::Quick(Action::Screensaver));
+    state.focus = Target::Quick(Action::Standby);
     assert!(state.activate().is_empty());
     assert!(matches!(state.overlay, Some(Overlay::ControlCenter { .. })));
     state.back();
@@ -23,6 +24,7 @@ fn quick_panel_restores_focus_and_never_mutates_on_open() {
             ..
         }]
     ));
+    state.focus = Target::Quick(Action::Standby);
     assert!(state.activate().is_empty());
     assert!(matches!(state.overlay, Some(Overlay::ControlCenter { .. })));
 }
@@ -43,7 +45,7 @@ fn sliders_clamp_save_only_changes_and_respect_modal_scope() {
             .direction(Direction::Right, &controls(&state))
             .is_empty()
     );
-    state.direction(Direction::Down, &controls(&state));
+    state.quick_action(Action::Sleep);
     assert_eq!(state.focus, Target::SleepSlider);
     state.controls.report.sleep_index = Some(0);
     assert!(state.set_slider(&Target::SleepSlider, 3).is_empty());
@@ -63,6 +65,7 @@ fn standby_confirmation_defaults_to_cancel_and_timer_is_only_applied_after_confi
     state.open_control_center();
     state.controls.loading = false;
     state.controls.report.power_active = true;
+    state.focus = Target::Quick(Action::Standby);
     state.activate();
     assert_eq!(state.focus, Target::CloseDialog);
     state.back();
@@ -70,7 +73,7 @@ fn standby_confirmation_defaults_to_cancel_and_timer_is_only_applied_after_confi
     state.open_control_center();
     state.controls.loading = false;
     state.controls.report.sleep_index = Some(0);
-    state.focus = Target::SleepSlider;
+    state.quick_action(Action::Sleep);
     state.set_slider(&Target::SleepSlider, 3);
     state.activate();
     assert_eq!(state.focus, Target::CloseDialog);
@@ -92,6 +95,8 @@ fn clock_capsule_side_and_identity_persist_without_changing_user_text() {
     state.open(2);
     state.subpage = Some(crate::state::Subpage::Clock);
     state.preferences.greeting_name = "Ada Lovelace".into();
+    state.preferences.header.combined = false;
+    state.preferences.header.side = Side::Left;
     state.focus = Target::ClockAvatar;
     assert_eq!(state.activate(), vec![Effect::Save]);
     state.direction(Direction::Down, &controls(&state));
@@ -129,4 +134,48 @@ fn manual_screensaver_works_with_idle_timeout_disabled_and_consumes_wake() {
     assert!(state.screensaver.active);
     assert!(state.screensaver.activity(std::time::Instant::now()));
     assert!(!state.screensaver.manual);
+}
+
+#[test]
+fn profile_and_quick_controls_have_distinct_actions() {
+    let mut state = ready();
+    state.focus = Target::Profile;
+    state.activate();
+    assert_eq!(state.subpage, Some(crate::state::Subpage::Clock));
+    assert!(state.overlay.is_none());
+    state.focus = Target::ControlCenter;
+    state.activate();
+    assert!(matches!(state.overlay, Some(Overlay::ControlCenter { .. })));
+    state.quick_action(Action::Sleep);
+    assert!(state.cc_timer);
+    state.back();
+    assert!(!state.cc_timer);
+    assert!(matches!(state.overlay, Some(Overlay::ControlCenter { .. })));
+    state.quick_action(Action::Sleep);
+    state.focus = Target::CloseControlCenter;
+    state.activate();
+    assert!(state.overlay.is_none());
+}
+#[test]
+fn old_preferences_enable_glass_and_opaque_mode_removes_glass_commands() {
+    let prefs: Preferences = serde_json::from_str(r#"{"appearance":{"accent":"blue"}}"#).unwrap();
+    assert!(prefs.appearance.liquid_glass);
+    assert!(prefs.header.combined);
+    let mut state = ready();
+    assert!(
+        scene(&state)
+            .draw
+            .iter()
+            .any(|draw| matches!(draw, crate::renderer::Draw::Glass(..)))
+    );
+    state.open(2);
+    state.subpage = Some(crate::state::Subpage::Appearance);
+    state.focus = Target::AppearanceOption(Setting::LiquidGlass);
+    assert_eq!(state.activate(), vec![Effect::Save]);
+    assert!(
+        !scene(&state)
+            .draw
+            .iter()
+            .any(|draw| matches!(draw, crate::renderer::Draw::Glass(..)))
+    );
 }

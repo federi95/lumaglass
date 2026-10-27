@@ -28,7 +28,10 @@ void main() {
         gl_FragColor = color * vec4(1.0, 1.0, 1.0, edge_coverage());
         return;
     }
-    float blur = max(-v_params.y, 0.0);
+    // -1024 is a constant vertex flag, so neighbouring glass quads still batch.
+    // Fixed analytic lighting: no time uniform, texture blur, derivatives or offscreen pass.
+    bool glass = v_params.y < -1000.0;
+    float blur = glass ? 0.0 : max(-v_params.y, 0.0);
     vec2 half_size = v_shape.zw - vec2(blur);
     float radius = min(v_params.x, min(half_size.x, half_size.y));
     vec2 q = abs(v_shape.xy) - half_size + vec2(radius);
@@ -42,5 +45,14 @@ void main() {
     if (v_params.y > 0.0) {
         alpha *= clamp(0.5 + (d + v_params.y) / u_aa, 0.0, 1.0);
     }
-    gl_FragColor = texture2D(u_texture, v_uv) * v_color * vec4(1.0, 1.0, 1.0, alpha * edge_coverage());
+    vec4 color = texture2D(u_texture, v_uv) * v_color;
+    if (glass) {
+        vec2 local = v_shape.xy / max(half_size, vec2(1.0));
+        float rim = 1.0 - smoothstep(0.5, 2.8, -d);
+        float light = clamp(0.55 - local.y * 0.32 - local.x * 0.18, 0.0, 1.0);
+        float sheen = 0.035 * (1.0 - smoothstep(-1.0, -0.15, local.y));
+        color.rgb = mix(color.rgb, vec3(1.0), rim * (0.10 + light * 0.48) + sheen);
+        // Preserve opacity exactly: panel/Recents fades must remain linear, including zero.
+    }
+    gl_FragColor = color * vec4(1.0, 1.0, 1.0, alpha * edge_coverage());
 }

@@ -120,7 +120,7 @@ try {
       'ccAudio',
       'ccScreensaver',
       'ccSleepTimer',
-      'ccSliderHint',
+      'ccDimmingHint',
     ])
       contains(center, key, language);
     assert.ok(center.ui_text.includes('AL'), 'Initials must use the unchanged local greeting name');

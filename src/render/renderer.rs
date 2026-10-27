@@ -63,6 +63,8 @@ impl TextStyle {
 pub enum Draw {
     Shape(Rect, f32, f32, Color),
     RoundedGradient(Rect, f32, Color, Color),
+    /// Analytic glass rim and reflection, one batched paint quad; no framebuffer copy.
+    Glass(Rect, f32, Color, Color),
     Shadow(Rect, f32, f32, Color),
     Text(String, Rect, TextStyle, Color, bool),
     Image(String, Rect, f32, bool),
@@ -294,6 +296,7 @@ fn profile_skip(command: &Draw) -> bool {
         Draw::AppImage(..) => "app",
         Draw::Shape(..) => "shape",
         Draw::RoundedGradient(..) => "gradient",
+        Draw::Glass(..) => "glass",
         Draw::Shadow(..) => "shadow",
         Draw::Text(..) => "text",
         Draw::Clip(_) | Draw::EdgeFade(_) | Draw::EdgeFadeX(_) => return false,
@@ -1226,6 +1229,14 @@ impl Renderer {
                     [0., 0., 1., 1.],
                     *radius,
                     0.,
+                    [*top, *bottom],
+                    self.white.id,
+                ),
+                Draw::Glass(rect, radius, top, bottom) => self.gradient_quad(
+                    *rect,
+                    [0., 0., 1., 1.],
+                    *radius,
+                    -1024.,
                     [*top, *bottom],
                     self.white.id,
                 ),

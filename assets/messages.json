@@ -3859,5 +3859,38 @@
     "pl": "60 min",
     "ru": "60 мин",
     "zh": "60 分钟"
+  },
+  "liquidGlass": {
+    "en": "Liquid Glass",
+    "it": "Liquid Glass",
+    "de": "Liquid Glass",
+    "fr": "Liquid Glass",
+    "es": "Liquid Glass",
+    "pt": "Liquid Glass",
+    "pl": "Liquid Glass",
+    "ru": "Liquid Glass",
+    "zh": "Liquid Glass"
+  },
+  "liquidGlassHint": {
+    "en": "Translucent controls with lightweight reflections. Turn off for an opaque appearance.",
+    "it": "Controlli traslucidi con riflessi leggeri. Disattiva per uno stile opaco.",
+    "de": "Transparente Bedienelemente mit dezenten Reflexionen. Für eine deckende Darstellung ausschalten.",
+    "fr": "Commandes translucides avec des reflets légers. Désactivez pour un aspect opaque.",
+    "es": "Controles translúcidos con reflejos ligeros. Desactiva para un aspecto opaco.",
+    "pt": "Controles translúcidos com reflexos leves. Desative para um visual opaco.",
+    "pl": "Półprzezroczyste elementy z delikatnymi refleksami. Wyłącz, aby uzyskać nieprzezroczysty wygląd.",
+    "ru": "Полупрозрачные элементы с лёгкими бликами. Отключите для непрозрачного оформления.",
+    "zh": "半透明控件与轻量反光效果。关闭后使用不透明外观。"
+  },
+  "ccDimmingHint": {
+    "en": "← → Adjust · Select the sleep timer for more options",
+    "it": "← → Regola · Seleziona il timer per altre opzioni",
+    "de": "← → Anpassen · Timer für weitere Optionen auswählen",
+    "fr": "← → Régler · Sélectionnez la minuterie pour plus d’options",
+    "es": "← → Ajustar · Selecciona el temporizador para más opciones",
+    "pt": "← → Ajustar · Selecione o temporizador para mais opções",
+    "pl": "← → Zmień · Wybierz timer, aby zobaczyć opcje",
+    "ru": "← → Изменить · Выберите таймер для других параметров",
+    "zh": "← → 调整 · 选择睡眠定时器以查看更多选项"
   }
 }

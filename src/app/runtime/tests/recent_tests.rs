@@ -295,10 +295,10 @@ fn home_header_exposes_navigation_tv_settings_and_control_center() {
         .into_iter()
         .filter(|control| control.rect.y < 120.)
         .collect();
-    assert_eq!(header.len(), 5);
+    assert_eq!(header.len(), 6);
     assert!(header.iter().all(|control| matches!(
         control.target,
-        Target::Nav(_) | Target::TvSettings | Target::ControlCenter
+        Target::Nav(_) | Target::TvSettings | Target::ControlCenter | Target::Profile
     )));
 }
 

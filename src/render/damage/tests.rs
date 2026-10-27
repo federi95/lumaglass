@@ -193,3 +193,18 @@ fn an_unchanged_frame_names_a_pixel_inside_the_drawable() {
         );
     }
 }
+
+#[test]
+fn glass_material_changes_are_bounded_and_switching_it_off_invalidates_the_surface() {
+    let mut tracker = Tracker::default();
+    let rect = Rect::new(500., 400., 320., 156.);
+    let glass = Draw::Glass(rect, 40., [0.3, 0.4, 0.5, 0.7], [0.1, 0.2, 0.3, 0.9]);
+    tracker.push(&[wallpaper(), glass.clone()]);
+    tracker.push(&[wallpaper(), glass]);
+    let unchanged = area(tracker.damage(1));
+    assert!(unchanged.w <= 0. || unchanged.h <= 0.);
+    tracker.push(&[wallpaper(), Draw::Shape(rect, 40., 0., [0.1, 0.1, 0.1, 1.])]);
+    let damage = area(tracker.damage(1));
+    assert!(damage.x <= 500. && damage.y <= 400.);
+    assert!(damage.x + damage.w >= 820. && damage.y + damage.h >= 556.);
+}

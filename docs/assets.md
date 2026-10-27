@@ -123,7 +123,7 @@ The provided Apple design guidance informed focus, motion and materials. This pr
 
 ### Control center symbols
 
-`assets/ui-icons/user.svg`, `wifi.svg` and `volume.svg` are original Lumaglass
+`assets/ui-icons/user.svg`, `wifi.svg`, `volume.svg` and `control-center.svg` are original Lumaglass
 geometric symbols under the repository's MIT license. They are not extracted
 from Apple SF Symbols or tvOS. The [control center guide](control-center.md)
 records design and protocol references; Apple screenshots and avatars are not

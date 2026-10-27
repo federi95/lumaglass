@@ -140,14 +140,16 @@ pub struct Scene {
     pub controls: Vec<Control>,
     pub modal: Option<Rect>,
     accent: crate::features::appearance::Accent,
+    liquid_glass: bool,
 }
 impl Scene {
-    fn new(accent: crate::features::appearance::Accent) -> Self {
+    fn new(accent: crate::features::appearance::Accent, liquid_glass: bool) -> Self {
         Self {
             draw: Vec::new(),
             controls: Vec::new(),
             modal: None,
             accent,
+            liquid_glass,
         }
     }
     fn shape(&mut self, rect: Rect, radius: f32, fill: Color) {
@@ -214,8 +216,11 @@ impl Scene {
         } else {
             [top[0] * 0.92, top[1] * 0.92, top[2] * 0.92, 1.]
         };
-        self.draw
-            .push(Draw::RoundedGradient(rect, radius, top, bottom));
+        if self.liquid_glass {
+            self.draw.push(Draw::Glass(rect, radius, top, bottom));
+        } else {
+            self.shape(rect, radius, top);
+        }
     }
     fn shadow(&mut self, rect: Rect, radius: f32, blur: f32, y: f32, alpha: f32) {
         self.draw.push(Draw::Shadow(
@@ -225,22 +230,35 @@ impl Scene {
             c(0, alpha),
         ));
     }
-    fn pill(&mut self, rect: Rect, focused: bool, selected: bool) {
-        self.shadow(rect, rect.h / 2., 18., 4., 0.06);
+    /// Shared control material. Glass is a single paint quad, including its rim.
+    fn material(&mut self, rect: Rect, radius: f32, focused: bool, raised: bool) {
         if focused {
-            self.selection_surface(rect, rect.h / 2.);
+            self.selection_surface(rect, radius);
+        } else if self.liquid_glass {
+            let (top, bottom) = if raised {
+                (c(0x34444f, 0.94), c(0x16212b, 0.96))
+            } else {
+                (c(0x414d57, 0.64), c(0x1b232c, 0.82))
+            };
+            self.draw.push(Draw::Glass(rect, radius, top, bottom));
         } else {
             self.shape(
                 rect,
-                rect.h / 2.,
-                if selected {
-                    c(0x303438, 1.)
+                radius,
+                if raised {
+                    c(0x20262d, 1.)
                 } else {
-                    c(0x171c20, 0.72)
+                    c(0x171c20, 1.)
                 },
             );
-            self.border(rect, rect.h / 2., 1., c(0xffffff, 0.07));
+            self.border(rect, radius, 1., c(0xffffff, 0.08));
         }
+    }
+    fn pill(&mut self, rect: Rect, focused: bool, selected: bool) {
+        if self.liquid_glass {
+            self.shadow(rect, rect.h / 2., 12., 3., 0.08);
+        }
+        self.material(rect, rect.h / 2., focused, selected);
     }
     fn fade(&mut self, from: usize, alpha: f32, brightness: f32) {
         for draw in &mut self.draw[from..] {
@@ -256,7 +274,7 @@ impl Scene {
                 | Draw::Text(_, _, _, color, _)
                 | Draw::TintedImage(_, _, _, _, color)
                 | Draw::AppImage(_, _, color) => apply(color),
-                Draw::RoundedGradient(_, _, a, b) => {
+                Draw::RoundedGradient(_, _, a, b) | Draw::Glass(_, _, a, b) => {
                     apply(a);
                     apply(b);
                 }
@@ -319,7 +337,10 @@ pub fn scene_with_pill(
     pill_width: f32,
     now: OffsetDateTime,
 ) -> Scene {
-    let mut out = Scene::new(state.preferences.appearance.accent);
+    let mut out = Scene::new(
+        state.preferences.appearance.accent,
+        state.preferences.appearance.liquid_glass,
+    );
     let blur_suffix = wallpaper_blur(state);
     if let Some((previous, start)) = &state.previous_background {
         paint_wallpaper(&mut out, state, assets, previous, blur_suffix, 1.);
@@ -438,7 +459,9 @@ pub fn scene_with_pill(
     out.draw.push(Draw::EdgeFade(None));
     out.draw.push(Draw::Clip(None));
     header(&mut out, state, assets, now, pill_x, pill_width);
-    footer(&mut out, state, assets);
+    if !matches!(state.overlay, Some(Overlay::ControlCenter { .. })) {
+        footer(&mut out, state, assets);
+    }
     if let Some(
         overlay @ (Overlay::Options { .. }
         | Overlay::Keyboard
@@ -449,6 +472,9 @@ pub fn scene_with_pill(
     ) = &state.overlay
     {
         out.controls.clear();
+        if matches!(overlay, Overlay::ControlCenter { .. }) {
+            out.fade(content_start, 0.30, 1.);
+        }
         let start = out.draw.len();
         out.shape(
             Rect::new(0., 0., 1920., 1080.),
@@ -456,7 +482,11 @@ pub fn scene_with_pill(
             c(
                 0x080b12,
                 if matches!(overlay, Overlay::ControlCenter { .. }) {
-                    0.38
+                    if state.preferences.appearance.liquid_glass {
+                        0.20
+                    } else {
+                        0.38
+                    }
                 } else {
                     0.70
                 },
@@ -478,6 +508,7 @@ pub fn scene_with_pill(
             Overlay::ControlCenter { .. } => {
                 control_center::render(&mut out, state, assets);
                 header_identity(&mut out, state, assets, now);
+                control_center_button(&mut out, state, assets);
             }
             Overlay::Keyboard => keyboard(&mut out, state, assets),
             Overlay::SystemKeyboard | Overlay::Recents { .. } => {}
@@ -523,7 +554,9 @@ pub fn scene_with_pill(
 }
 
 pub(crate) fn wallpaper_blur(state: &State) -> &'static str {
-    if matches!(state.overlay, Some(Overlay::ControlCenter { .. })) {
+    if state.preferences.appearance.liquid_glass
+        && matches!(state.overlay, Some(Overlay::ControlCenter { .. }))
+    {
         crate::features::appearance::Blur::Soft.suffix()
     } else {
         state.preferences.appearance.blur.suffix()
@@ -538,23 +571,16 @@ fn header_identity(out: &mut Scene, state: &State, assets: &Assets, now: OffsetD
         state.preferences.show_seconds,
     );
     let right = state.preferences.header.side == Side::Right;
-    let focused = state.focus == Target::ControlCenter;
+    let focused = state.focus == Target::Profile;
     let clock_width = assets.width(&clock, text(20., 500, -0.03)).ceil().min(260.);
-    let width = clock_width + 82.;
-    let x = if right { 1768. - width } else { 84. };
-    let capsule = Rect::new(x, 52., width, 50.);
+    let width = clock_width + 84.;
+    let x = if right { 1694. - width } else { 84. };
     let avatar = if state.preferences.header.combined {
-        out.shape(capsule, 25., c(0x171c20, 0.72));
-        out.border(
-            capsule,
-            25.,
-            if focused { 2. } else { 1. },
-            if focused {
-                out.accent_color(WHITE)
-            } else {
-                c(0xffffff, 0.2)
-            },
-        );
+        let capsule = Rect::new(x, 52., width, 50.);
+        out.material(capsule, 25., false, false);
+        if focused {
+            out.border(capsule, 25., 2., out.accent_color(c(0xffffff, 0.9)));
+        }
         out.text(
             &clock,
             Rect::new(x + 20., 65., clock_width, 25.),
@@ -562,19 +588,26 @@ fn header_identity(out: &mut Scene, state: &State, assets: &Assets, now: OffsetD
             WHITE,
             false,
         );
-        out.control(Target::ControlCenter, capsule, false);
         Rect::new(x + width - 46., 57., 40., 40.)
     } else {
         out.text(
             &clock,
-            Rect::new(if right { x } else { 84. }, 64.8, clock_width, 25.),
+            Rect::new(
+                if right {
+                    1694. - clock_width - 68.
+                } else {
+                    84.
+                },
+                65.,
+                clock_width,
+                25.,
+            ),
             text(20., 500, -0.03),
             WHITE,
             false,
         );
-        let avatar = Rect::new(if right { x + width - 48. } else { 1712. }, 52., 50., 50.);
+        let avatar = Rect::new(1644., 52., 50., 50.);
         out.pill(avatar, focused, false);
-        out.control(Target::ControlCenter, avatar, false);
         avatar.inset(5.)
     };
     out.shape(avatar, avatar.w / 2., out.accent_color(c(0xc9b6ff, 0.95)));
@@ -590,6 +623,27 @@ fn header_identity(out: &mut Scene, state: &State, assets: &Assets, now: OffsetD
     } else {
         out.icon(assets, "user", avatar.inset(9.), c(0x20242a, 1.));
     }
+    // Profile owns only its own avatar hit area; it never opens quick controls.
+    if state.overlay.is_none() {
+        out.control(Target::Profile, avatar.inset(-5.), false);
+    }
+}
+fn control_center_button(out: &mut Scene, state: &State, assets: &Assets) {
+    let rect = Rect::new(1712., 52., 50., 50.);
+    let focused = state.focus == Target::ControlCenter;
+    let open = matches!(state.overlay, Some(Overlay::ControlCenter { .. }));
+    out.pill(rect, focused || open, false);
+    out.icon(
+        assets,
+        "control-center",
+        rect.inset(13.),
+        if focused || open {
+            c(0x20242a, 1.)
+        } else {
+            WHITE
+        },
+    );
+    out.control(Target::ControlCenter, rect, false);
 }
 
 fn header(
@@ -604,9 +658,7 @@ fn header(
     header_identity(out, state, assets, now);
     let layout = navigation(assets, language);
     let nav = layout.surface;
-    out.shadow(nav, 48., 18., 4., 0.06);
-    out.shape(nav, 48., c(0x171c20, 0.72));
-    out.border(nav, 48., 1., c(0xffffff, 0.07));
+    out.material(nav, 48., false, false);
     let pill = Rect::new(pill_x, 52.3, pill_width, 49.);
     out.selection_surface(pill, 32.);
     if matches!(state.focus, Target::Nav(_)) && !state.pointer {
@@ -634,6 +686,7 @@ fn header(
         );
         out.control(Target::Nav(index), rect, false);
     }
+    control_center_button(out, state, assets);
     let rect = Rect::new(1786.4, 52., 49.6, 49.6);
     let focused = state.focus == Target::TvSettings;
     out.pill(rect, focused, false);
@@ -1620,12 +1673,7 @@ fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
     let focused = state.focus == row.target;
     let bright = focused;
     let radius = if row.description.is_some() { 20. } else { 48. };
-    if bright {
-        out.selection_surface(row.rect, radius);
-    } else {
-        out.shape(row.rect, radius, c(0x171c20, 0.72));
-        out.border(row.rect, radius, 1., c(0xffffff, 0.07));
-    }
+    out.material(row.rect, radius, bright, false);
     let color = if bright {
         c(0x2c2c2c, 1.)
     } else {
@@ -2348,7 +2396,12 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                             out,
                             state,
                             Target::Setting(19),
-                            Rect::new(640., 164.8 + position as f32 * 84. - s, 1120., 124.),
+                            Rect::new(
+                                640.,
+                                164.8 + position as f32 * 84. - s,
+                                1120.,
+                                crate::features::sliders::HEIGHT,
+                            ),
                             language.t(key),
                             &labels,
                             step,
@@ -2364,7 +2417,14 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                         target: Target::Setting(index),
                         rect: Rect::new(
                             640.,
-                            164.8 + position as f32 * 84. + if index == 20 { 52. } else { 0. } - s,
+                            164.8
+                                + position as f32 * 84.
+                                + if index == 20 {
+                                    crate::features::sliders::HEIGHT - 72.
+                                } else {
+                                    0.
+                                }
+                                - s,
                             1120.,
                             72.,
                         ),
@@ -3088,6 +3148,11 @@ fn appearance_settings(out: &mut Scene, state: &State, assets: &Assets) {
             Setting::Accent => language.t(state.preferences.appearance.accent.key()),
             Setting::Dimming => language.t(state.preferences.appearance.dimming.key()),
             Setting::Blur => language.t(state.preferences.appearance.blur.key()),
+            Setting::LiquidGlass => language.t(if state.preferences.appearance.liquid_glass {
+                "stateOn"
+            } else {
+                "stateOff"
+            }),
         };
         let target = Target::AppearanceOption(option);
         if let Some((step, labels)) = state.slider_values(&target) {
@@ -3095,30 +3160,32 @@ fn appearance_settings(out: &mut Scene, state: &State, assets: &Assets) {
                 out,
                 state,
                 target,
-                Rect::new(640., y, 1120., 124.),
+                Rect::new(640., y, 1120., crate::features::sliders::HEIGHT),
                 language.t(option.key()),
                 &labels,
                 step,
             );
-            y += 136.;
+            y += crate::features::sliders::HEIGHT + 12.;
             continue;
         }
+        let description = (option == Setting::LiquidGlass).then_some(language.t("liquidGlassHint"));
+        let height = if description.is_some() { 112. } else { 72. };
         row(
             out,
             state,
             assets,
             Row {
                 target: Target::AppearanceOption(option),
-                rect: Rect::new(640., y, 1120., 72.),
+                rect: Rect::new(640., y, 1120., height),
                 title: language.t(option.key()),
                 icon: None,
                 value: Some(value),
-                description: None,
+                description,
                 selected: false,
                 chevron: false,
             },
         );
-        y += 84.;
+        y += height + 12.;
     }
 }
 
@@ -3155,12 +3222,12 @@ fn home_settings(out: &mut Scene, state: &State, assets: &Assets) {
                 out,
                 state,
                 target,
-                Rect::new(640., y, 1120., 124.),
+                Rect::new(640., y, 1120., crate::features::sliders::HEIGHT),
                 language.t(option.key()),
                 &labels,
                 step,
             );
-            y += 136.;
+            y += crate::features::sliders::HEIGHT + 12.;
             continue;
         }
         row(

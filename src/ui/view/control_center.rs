@@ -1,41 +1,57 @@
-//! Original native quick controls inspired by the layout of tvOS Control Center.
+//! Compact quick controls with a single-pass glass material and a timer detail view.
 use super::*;
 use crate::features::{appearance::Setting, control_center::Action};
 
 pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     let language = state.preferences.language;
-    let panel = Rect::new(1192., 132., 644., 842.);
+    let panel = Rect::new(1188., 140., 648., 744.);
     out.modal = Some(panel);
-    out.shadow(panel, 36., 32., 8., 0.28);
-    out.shape(panel, 36., c(0x1c282b, 0.91));
-    out.border(panel, 36., 1., c(0xffffff, 0.24));
+    if out.liquid_glass {
+        out.shadow(panel, 40., 24., 8., 0.24);
+    }
+    out.material(panel, 40., false, true);
     out.text(
         language.t("controlCenter"),
-        Rect::new(1224., 156., 580., 30.),
+        Rect::new(1220., 167., 480., 32.),
         text(24., 550, -0.02),
         WHITE,
         false,
     );
+    let close = Rect::new(1762., 159., 42., 42.);
+    let color = surface(
+        out,
+        close,
+        21.,
+        state.focus == Target::CloseControlCenter,
+        true,
+    );
+    out.icon(assets, "close", close.inset(12.), color);
+    out.control(Target::CloseControlCenter, close, false);
     let report = &state.controls.report;
     let unavailable = language.t(if state.webos {
         "infoUnavailable"
     } else {
         "infoNotApplicable"
     });
-    let network = language.t(match report.network.as_str() {
-        "wifi" => "ccWifi",
-        "wired" => "ccEthernet",
-        "offline" => "ccOffline",
-        _ => {
-            if state.webos {
-                "infoUnavailable"
-            } else {
-                "infoNotApplicable"
+    let loading = language.t("loading");
+    let network = if state.controls.loading {
+        loading
+    } else {
+        language.t(match report.network.as_str() {
+            "wifi" => "ccWifi",
+            "wired" => "ccEthernet",
+            "offline" => "ccOffline",
+            _ => {
+                if state.webos {
+                    "infoUnavailable"
+                } else {
+                    "infoNotApplicable"
+                }
             }
-        }
-    });
+        })
+    };
     let audio = if state.controls.loading {
-        language.t("loading").to_owned()
+        loading.to_owned()
     } else if let Some(muted) = report.muted {
         if muted {
             language.t("ccMuted").to_owned()
@@ -52,9 +68,11 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Standby,
-        Rect::new(1224., 208., 278., 206.),
+        Rect::new(1220., 220., 276., 202.),
         "power",
-        if report.power_active {
+        if state.controls.loading {
+            loading
+        } else if report.power_active {
             language.t("ccStandbyReady")
         } else {
             unavailable
@@ -65,8 +83,12 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Network,
-        Rect::new(1514., 208., 290., 97.),
-        "wifi",
+        Rect::new(1512., 220., 292., 93.),
+        if report.network == "wired" {
+            "tv"
+        } else {
+            "wifi"
+        },
         network,
     );
     tile(
@@ -74,7 +96,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Audio,
-        Rect::new(1514., 317., 290., 97.),
+        Rect::new(1512., 329., 292., 93.),
         "volume",
         &audio,
     );
@@ -83,30 +105,34 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Screensaver,
-        Rect::new(1224., 426., 278., 98.),
+        Rect::new(1220., 438., 284., 92.),
         "grid",
         language.t("ccStartNow"),
     );
-    let sleep = report
-        .sleep_index
-        .map(|index| {
-            if index == 0 {
-                language.t("stateOff").to_owned()
-            } else {
-                format!(
-                    "{} {}",
-                    crate::features::control_center::SLEEP_MINUTES[index.min(5)],
-                    language.t("minutesShort")
-                )
-            }
-        })
-        .unwrap_or_else(|| unavailable.into());
+    let sleep = if state.controls.loading {
+        loading.to_owned()
+    } else {
+        report
+            .sleep_index
+            .map(|index| {
+                if index == 0 {
+                    language.t("stateOff").to_owned()
+                } else {
+                    format!(
+                        "{} {}",
+                        crate::features::control_center::SLEEP_MINUTES[index.min(5)],
+                        language.t("minutesShort")
+                    )
+                }
+            })
+            .unwrap_or_else(|| unavailable.into())
+    };
     tile(
         out,
         state,
         assets,
         Action::Sleep,
-        Rect::new(1514., 426., 290., 98.),
+        Rect::new(1520., 438., 284., 92.),
         "clock",
         &sleep,
     );
@@ -119,53 +145,79 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     .into_iter()
     .enumerate()
     {
-        let rect = Rect::new(1224. + index as f32 * 148., 538., 136., 78.);
+        let rect = Rect::new(1220. + index as f32 * 150., 546., 134., 82.);
         let target = Target::Quick(action);
-        let focused = state.focus == target;
-        out.pill(rect, focused, false);
-        let color = if focused { c(0x20242a, 1.) } else { WHITE };
+        let color = surface(out, rect, 32., state.focus == target, true);
         out.icon(
             assets,
             icon,
-            Rect::new(rect.x + 55., rect.y + 10., 26., 26.),
+            Rect::new(rect.x + 54., rect.y + 12., 26., 26.),
             color,
         );
+        let label = language.t(action.key());
+        let size = (13. * 114. / assets.width(label, text(13., 500, 0.)).max(114.)).max(10.5);
         out.text(
-            language.t(action.key()),
-            Rect::new(rect.x + 4., rect.y + 45., rect.w - 8., 23.),
-            text(13., 500, 0.),
+            label,
+            Rect::new(rect.x + 10., rect.y + 50., 114., 24.),
+            text(size, 500, 0.),
             color,
             true,
         );
         out.control(target, rect, false);
     }
-    for (target, title, y) in [
+    let (target, title) = if state.cc_timer {
+        (Target::SleepSlider, "ccSleepTimer")
+    } else {
         (
             Target::AppearanceOption(Setting::Dimming),
             "appearanceDimming",
-            632.,
-        ),
-        (Target::SleepSlider, "ccSleepTimer", 770.),
-    ] {
-        if let Some((step, labels)) = state.slider_values(&target) {
-            slider::draw(
-                out,
-                state,
-                target,
-                Rect::new(1224., y, 580., 124.),
-                language.t(title),
-                &labels,
-                step,
-            );
-        }
+        )
+    };
+    if let Some((step, labels)) = state.slider_values(&target) {
+        slider::draw(
+            out,
+            state,
+            target,
+            Rect::new(1220., 646., 584., crate::features::sliders::HEIGHT),
+            language.t(title),
+            &labels,
+            step,
+        );
     }
     out.text(
-        language.t("ccSliderHint"),
-        Rect::new(1224., 912., 580., 40.),
-        text(14., 400, 0.),
-        c(0xffffff, 0.72),
+        language.t(if state.cc_timer {
+            "ccSliderHint"
+        } else {
+            "ccDimmingHint"
+        }),
+        Rect::new(1220., 824., 584., 38.),
+        text(13., 400, 0.),
+        c(0xffffff, 0.64),
         false,
     );
+}
+
+/// Text stays light on translucent glass; the opaque focused fallback uses dark text.
+fn surface(out: &mut Scene, rect: Rect, radius: f32, focused: bool, enabled: bool) -> Color {
+    if out.liquid_glass && focused {
+        out.draw.push(Draw::Glass(
+            rect,
+            radius,
+            out.accent_color(c(0x71879a, 0.70)),
+            c(0x2c4050, 0.90),
+        ));
+        out.border(rect, radius, 2., out.accent_color(c(0xffffff, 0.88)));
+    } else {
+        out.material(rect, radius, focused && enabled, false);
+    }
+    if !out.liquid_glass && focused && !enabled {
+        out.border(rect, radius, 2., out.accent_color(WHITE));
+    }
+    if !out.liquid_glass && focused && enabled {
+        c(0x20242a, 1.)
+    } else {
+        c(0xffffff, if enabled { 1. } else { 0.60 })
+    }
 }
 fn tile(
     out: &mut Scene,
@@ -176,21 +228,19 @@ fn tile(
     icon: &str,
     subtitle: &str,
 ) {
+    let enabled = match action {
+        Action::Standby => {
+            state.webos && state.controls.report.power_active && !state.controls.loading
+        }
+        Action::Audio => {
+            state.webos && state.controls.report.muted.is_some() && !state.controls.loading
+        }
+        _ => true,
+    };
     let target = Target::Quick(action);
-    let focused = state.focus == target;
-    out.shape(
-        rect,
-        30.,
-        if focused {
-            out.accent_color(WHITE)
-        } else {
-            c(0xffffff, 0.08)
-        },
-    );
-    out.border(rect, 30., if focused { 2. } else { 1. }, c(0xffffff, 0.22));
-    let color = if focused { c(0x20242a, 1.) } else { WHITE };
+    let color = surface(out, rect, 32., state.focus == target, enabled);
     let large = rect.h > 150.;
-    let size = if large { 60. } else { 30. };
+    let size = if large { 58. } else { 28. };
     out.icon(
         assets,
         icon,
@@ -198,36 +248,32 @@ fn tile(
             if large {
                 rect.x + (rect.w - size) / 2.
             } else {
-                rect.x + 20.
+                rect.x + 22.
             },
-            rect.y + if large { 30. } else { 33. },
+            rect.y + if large { 30. } else { (rect.h - size) / 2. },
             size,
             size,
         ),
         color,
     );
+    let x = rect.x + if large { 20. } else { 66. };
+    let width = rect.w - if large { 40. } else { 84. };
+    let label = state.preferences.language.t(action.key());
+    let font = (17. * width / assets.width(label, text(17., 550, 0.)).max(width)).max(14.);
     out.text(
-        state.preferences.language.t(action.key()),
-        Rect::new(
-            if large { rect.x + 16. } else { rect.x + 64. },
-            rect.y + if large { 110. } else { 16. },
-            if large { rect.w - 32. } else { rect.w - 80. },
-            52.,
-        ),
-        text(17., 550, 0.),
+        label,
+        Rect::new(x, rect.y + if large { 112. } else { 18. }, width, 30.),
+        text(font, 550, 0.),
         color,
         large,
     );
+    let mut secondary = color;
+    secondary[3] *= 0.74;
     out.text(
         subtitle,
-        Rect::new(
-            rect.x + if large { 16. } else { 64. },
-            rect.y + if large { 157. } else { 62. },
-            rect.w - if large { 32. } else { 80. },
-            34.,
-        ),
+        Rect::new(x, rect.y + if large { 155. } else { 57. }, width, 36.),
         text(13., 400, 0.),
-        color,
+        secondary,
         large,
     );
     out.control(target, rect, false);

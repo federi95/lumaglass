@@ -38,6 +38,8 @@ pub enum Page {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum Target {
     ControlCenter,
+    CloseControlCenter,
+    Profile,
     Quick(crate::features::control_center::Action),
     SleepSlider,
     ClockAvatar,
@@ -249,6 +251,7 @@ pub const KEYS: [&str; 40] = [
 
 pub struct State {
     pub sleep_draft: usize,
+    pub cc_timer: bool,
     pub display_change: Option<bool>,
     pub display_keep: bool,
     pub display_trial: bool,
@@ -305,6 +308,7 @@ impl State {
             wallpapers: crate::features::wallpapers::Session::default(),
             photo_draft: String::new(),
             sleep_draft: 0,
+            cc_timer: false,
             display_change: None,
             display_keep: false,
             display_trial: false,
@@ -582,16 +586,18 @@ impl State {
 
     pub fn open_control_center(&mut self) -> Vec<Effect> {
         if matches!(self.overlay, Some(Overlay::ControlCenter { .. })) {
+            self.cc_timer = false;
             return self.back();
         }
         if self.overlay.is_some() || self.moving.is_some() || self.launching || self.display_trial {
             return vec![];
         }
         self.sleep_draft = self.controls.report.sleep_index.unwrap_or(0);
+        self.cc_timer = false;
         self.overlay = Some(Overlay::ControlCenter {
             restore: self.focus.clone(),
         });
-        self.focus = Target::Quick(crate::features::control_center::Action::Standby);
+        self.focus = Target::Quick(crate::features::control_center::Action::Screensaver);
         self.pointer = false;
         self.pressed = None;
         self.dirty = true;
@@ -753,10 +759,11 @@ impl State {
     }
     pub fn slider_allowed(&self, target: &Target) -> bool {
         if matches!(self.overlay, Some(Overlay::ControlCenter { .. })) {
-            return matches!(
-                target,
-                Target::SleepSlider | Target::AppearanceOption(AppearanceOption::Dimming)
-            );
+            return if self.cc_timer {
+                *target == Target::SleepSlider
+            } else {
+                *target == Target::AppearanceOption(AppearanceOption::Dimming)
+            };
         }
         if self.overlay.is_some() || self.page != Page::Settings {
             return false;
@@ -786,7 +793,12 @@ impl State {
             return vec![];
         }
         if action == Action::Sleep {
-            self.focus = Target::SleepSlider;
+            self.cc_timer = !self.cc_timer;
+            self.focus = if self.cc_timer {
+                Target::SleepSlider
+            } else {
+                Target::Quick(Action::Sleep)
+            };
             self.dirty = true;
             return vec![];
         }
@@ -811,6 +823,7 @@ impl State {
             return vec![];
         }
         let muted = self.controls.report.muted.unwrap_or(false);
+        self.cc_timer = false;
         self.back();
         match action {
             Action::Standby => {
@@ -1416,11 +1429,58 @@ impl State {
                 self.focus(Target::ControlCenter, controls);
                 return vec![];
             }
-            if self.focus == Target::ControlCenter {
-                if matches!(
-                    direction,
-                    Direction::Down | Direction::Left | Direction::Right
-                ) {
+            let header_focus = matches!(
+                self.focus,
+                Target::Nav(_) | Target::ControlCenter | Target::Profile | Target::TvSettings
+            );
+            if header_focus && matches!(direction, Direction::Left | Direction::Right) {
+                let left_profile = self.preferences.header.combined
+                    && self.preferences.header.side == crate::features::header::Side::Left;
+                let order = if left_profile {
+                    [
+                        Target::Profile,
+                        Target::Nav(0),
+                        Target::Nav(1),
+                        Target::Nav(2),
+                        Target::ControlCenter,
+                        Target::TvSettings,
+                    ]
+                } else {
+                    [
+                        Target::Nav(0),
+                        Target::Nav(1),
+                        Target::Nav(2),
+                        Target::Profile,
+                        Target::ControlCenter,
+                        Target::TvSettings,
+                    ]
+                };
+                if let Some(index) = order.iter().position(|target| *target == self.focus) {
+                    let next = if matches!(direction, Direction::Left) {
+                        index.saturating_sub(1)
+                    } else {
+                        (index + 1).min(order.len() - 1)
+                    };
+                    if next == index {
+                        return vec![];
+                    }
+                    if let Target::Nav(page) = order[next] {
+                        if page == self.page_index() {
+                            self.focus(Target::Nav(page), controls);
+                        } else {
+                            self.open(page);
+                        }
+                    } else {
+                        self.focus(order[next].clone(), controls);
+                    }
+                }
+                return vec![];
+            }
+            if matches!(
+                self.focus,
+                Target::ControlCenter | Target::Profile | Target::TvSettings
+            ) {
+                if matches!(direction, Direction::Down) {
                     self.focus(Target::Nav(self.page_index()), controls);
                 }
                 return vec![];
@@ -2386,6 +2446,20 @@ impl State {
                 return self.set_slider(&target, (index + 1) % values.len());
             }
         }
+        if self.focus == Target::Profile && self.overlay.is_none() {
+            self.open(2);
+            self.section = 0;
+            self.subpage = Some(Subpage::Clock);
+            self.focus = Target::ClockAvatar;
+            self.dirty = true;
+            return vec![];
+        }
+        if self.focus == Target::CloseControlCenter
+            && matches!(self.overlay, Some(Overlay::ControlCenter { .. }))
+        {
+            self.cc_timer = false;
+            return self.back();
+        }
         if self.focus == Target::ControlCenter {
             return self.open_control_center();
         }
@@ -2393,6 +2467,7 @@ impl State {
             return self.quick_action(action);
         }
         if self.focus == Target::SleepSlider
+            && self.cc_timer
             && matches!(self.overlay, Some(Overlay::ControlCenter { .. }))
         {
             if self.controls.loading || !self.webos {
@@ -2401,6 +2476,7 @@ impl State {
 
             if let Some(expected) = self.controls.report.sleep_index {
                 let value = self.sleep_draft;
+                self.cc_timer = false;
                 self.back();
                 self.confirm_control(crate::features::controls::Command::SleepTimer {
                     expected,
@@ -2617,6 +2693,10 @@ impl State {
                     }
                     AppearanceOption::Blur => {
                         self.preferences.appearance.blur = self.preferences.appearance.blur.next()
+                    }
+                    AppearanceOption::LiquidGlass => {
+                        self.preferences.appearance.liquid_glass =
+                            !self.preferences.appearance.liquid_glass;
                     }
                 }
                 return vec![Effect::Save];
@@ -3223,6 +3303,12 @@ impl State {
     }
 
     pub fn back(&mut self) -> Vec<Effect> {
+        if self.cc_timer && matches!(self.overlay, Some(Overlay::ControlCenter { .. })) {
+            self.cc_timer = false;
+            self.focus = Target::Quick(crate::features::control_center::Action::Sleep);
+            self.dirty = true;
+            return vec![];
+        }
         if self.display_trial {
             self.display_change = Some(false);
             return vec![];

@@ -82,6 +82,7 @@ pub fn bounds(command: &Draw) -> Option<Rect> {
     match command {
         Draw::Shape(rect, ..)
         | Draw::RoundedGradient(rect, ..)
+        | Draw::Glass(rect, ..)
         | Draw::Image(_, rect, ..)
         | Draw::TintedImage(_, rect, ..)
         | Draw::AppImage(_, rect, _) => Some(rect.inset(-1.)),
@@ -103,7 +104,8 @@ fn same(a: &Draw, b: &Draw) -> bool {
         (Draw::Shape(r1, a1, b1, c1), Draw::Shape(r2, a2, b2, c2)) => {
             rect(r1, r2) && a1 == a2 && b1 == b2 && c1 == c2
         }
-        (Draw::RoundedGradient(r1, a1, t1, b1), Draw::RoundedGradient(r2, a2, t2, b2)) => {
+        (Draw::RoundedGradient(r1, a1, t1, b1), Draw::RoundedGradient(r2, a2, t2, b2))
+        | (Draw::Glass(r1, a1, t1, b1), Draw::Glass(r2, a2, t2, b2)) => {
             rect(r1, r2) && a1 == a2 && t1 == t2 && b1 == b2
         }
         (Draw::Shadow(r1, a1, b1, c1), Draw::Shadow(r2, a2, b2, c2)) => {

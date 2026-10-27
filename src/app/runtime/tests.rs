@@ -71,7 +71,7 @@ fn accent_palette_recolors_native_selection_surfaces_and_keeps_dark_labels() {
             .draw
             .iter()
             .find_map(|draw| match draw {
-                Draw::RoundedGradient(rect, _, top, bottom)
+                Draw::RoundedGradient(rect, _, top, bottom) | Draw::Glass(rect, _, top, bottom)
                     if (rect.y - 52.3).abs() < 0.01 && (rect.h - 49.).abs() < 0.01 =>
                 {
                     Some((*top, *bottom))
@@ -999,6 +999,7 @@ fn input_name_actions_only_highlight_the_focused_row_and_keep_the_saved_mode() {
             .iter()
             .filter_map(|draw| match draw {
                 crate::renderer::Draw::RoundedGradient(rect, ..)
+                | crate::renderer::Draw::Glass(rect, ..)
                     if rect.x == 640. && rect.w == 1120. =>
                 {
                     Some(rect.y)
@@ -1041,6 +1042,7 @@ fn clock_choices_only_highlight_focus_while_preserving_saved_checkmarks() {
             .iter()
             .filter_map(|draw| match draw {
                 crate::renderer::Draw::RoundedGradient(rect, ..)
+                | crate::renderer::Draw::Glass(rect, ..)
                     if rect.x == 640. && rect.w == 1120. =>
                 {
                     Some(rect.y)

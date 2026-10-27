@@ -1,5 +1,8 @@
 //! Shared discrete slider geometry for SDL rendering, pointer input and remote steps.
-pub const INSET: f32 = 32.;
+pub const INSET: f32 = 80.;
+pub const HEIGHT: f32 = 156.;
+pub const TRACK_Y: f32 = 82.;
+pub const TRACK_HIT_TOP: f32 = TRACK_Y - 24.;
 pub fn index_at(x: f32, left: f32, width: f32, count: usize) -> usize {
     if count < 2 || !x.is_finite() || width <= 0. {
         return 0;

@@ -167,7 +167,7 @@ impl Blur {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Preferences {
     #[serde(deserialize_with = "fallback")]
@@ -178,6 +178,25 @@ pub struct Preferences {
     pub dimming: Dimming,
     #[serde(deserialize_with = "fallback")]
     pub blur: Blur,
+    #[serde(default = "enabled", deserialize_with = "glass_fallback")]
+    pub liquid_glass: bool,
+}
+fn enabled() -> bool {
+    true
+}
+fn glass_fallback<'de, D: Deserializer<'de>>(d: D) -> Result<bool, D::Error> {
+    Ok(serde_json::from_value(serde_json::Value::deserialize(d)?).unwrap_or(true))
+}
+impl Default for Preferences {
+    fn default() -> Self {
+        Self {
+            density: Density::default(),
+            accent: Accent::default(),
+            dimming: Dimming::default(),
+            blur: Blur::default(),
+            liquid_glass: true,
+        }
+    }
 }
 fn fallback<'de, D: Deserializer<'de>, T: serde::de::DeserializeOwned + Default>(
     deserializer: D,
@@ -190,15 +209,23 @@ pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Prefere
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub enum Setting {
+    LiquidGlass,
     Density,
     Accent,
     Dimming,
     Blur,
 }
 impl Setting {
-    pub const ALL: [Self; 4] = [Self::Density, Self::Accent, Self::Dimming, Self::Blur];
+    pub const ALL: [Self; 5] = [
+        Self::Density,
+        Self::Accent,
+        Self::Dimming,
+        Self::Blur,
+        Self::LiquidGlass,
+    ];
     pub fn key(self) -> &'static str {
         match self {
+            Self::LiquidGlass => "liquidGlass",
             Self::Density => "appearanceDensity",
             Self::Accent => "appearanceAccent",
             Self::Dimming => "appearanceDimming",
