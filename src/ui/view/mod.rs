@@ -274,6 +274,66 @@ impl Scene {
             self.border(rect, radius, 1., c(0xffffff, 0.08));
         }
     }
+    /// Clear chrome keeps white content over a locally tinted lens. Selection,
+    /// hover/remote focus and press have distinct borders, tint and depth.
+    fn chrome(
+        &mut self,
+        rect: Rect,
+        radius: f32,
+        focused: bool,
+        selected: bool,
+        pressed: bool,
+    ) -> Color {
+        if self.liquid_glass {
+            self.shadow(
+                rect,
+                radius,
+                if focused { 18. } else { 10. },
+                if pressed { 1. } else { 4. },
+                if focused { 0.28 } else { 0.12 },
+            );
+            let (top, bottom) = if pressed {
+                (c(0x142536, 0.32), c(0x101d2b, 0.38))
+            } else if focused {
+                (self.accent_color(c(0xbad4eb, 0.24)), c(0x586d88, 0.24))
+            } else if selected {
+                (c(0xb2c6da, 0.18), c(0x52677e, 0.20))
+            } else {
+                (c(0x899cb3, 0.10), c(0x24374a, 0.18))
+            };
+            self.glass(rect, radius, top, bottom);
+            self.border(
+                rect,
+                radius,
+                if focused { 2. } else { 1. },
+                if focused {
+                    self.accent_color(c(0xffffff, if pressed { 0.65 } else { 0.95 }))
+                } else {
+                    c(0xe4efff, if selected { 0.46 } else { 0.22 })
+                },
+            );
+            if focused && !pressed {
+                self.border(rect.inset(4.), (radius - 4.).max(0.), 1., c(0xffffff, 0.18));
+            }
+            WHITE
+        } else {
+            self.material(rect, radius, focused || selected, false);
+            if pressed {
+                self.shape(rect, radius, c(0, 0.16));
+            }
+            if focused || selected {
+                c(0x20242a, 1.)
+            } else {
+                WHITE
+            }
+        }
+    }
+    fn pressed_feedback(&mut self, state: &State, target: &Target, rect: Rect, radius: f32) {
+        if state.pressed.as_ref() == Some(target) {
+            self.shape(rect, radius, c(0, 0.16));
+            self.border(rect.inset(3.), (radius - 3.).max(0.), 1., c(0xffffff, 0.30));
+        }
+    }
     fn pill(&mut self, rect: Rect, focused: bool, selected: bool) {
         if self.liquid_glass {
             self.shadow(rect, rect.h / 2., 12., 3., 0.08);
@@ -501,9 +561,6 @@ pub fn scene_with_pill(
     {
         out.controls.clear();
         out.glass_layer = None;
-        if matches!(overlay, Overlay::ControlCenter { .. }) {
-            out.fade(content_start, 0.30, 1.);
-        }
         let start = out.draw.len();
         out.shape(
             Rect::new(0., 0., 1920., 1080.),
@@ -512,7 +569,7 @@ pub fn scene_with_pill(
                 0x080b12,
                 if matches!(overlay, Overlay::ControlCenter { .. }) {
                     if state.preferences.appearance.liquid_glass {
-                        0.35
+                        0.16
                     } else {
                         0.38
                     }
@@ -604,15 +661,18 @@ fn header_identity(out: &mut Scene, state: &State, assets: &Assets, now: OffsetD
     let x = if right { 1694. - width } else { 84. };
     let avatar = if state.preferences.header.combined {
         let capsule = Rect::new(x, 52., width, 50.);
-        out.material(capsule, 25., false, out.liquid_glass);
-        if focused {
-            out.border(capsule, 25., 2., out.accent_color(c(0xffffff, 0.9)));
-        }
+        let color = out.chrome(
+            capsule,
+            25.,
+            focused,
+            false,
+            state.pressed.as_ref() == Some(&Target::Profile),
+        );
         out.text(
             &clock,
             Rect::new(x + 20., 65., clock_width, 25.),
             text(20., 500, -0.03),
-            WHITE,
+            color,
             false,
         );
         Rect::new(x + width - 46., 57., 40., 40.)
@@ -634,7 +694,13 @@ fn header_identity(out: &mut Scene, state: &State, assets: &Assets, now: OffsetD
             false,
         );
         let avatar = Rect::new(1644., 52., 50., 50.);
-        out.pill(avatar, focused, false);
+        out.chrome(
+            avatar,
+            25.,
+            focused,
+            false,
+            state.pressed.as_ref() == Some(&Target::Profile),
+        );
         avatar.inset(5.)
     };
     out.shape(avatar, avatar.w / 2., out.accent_color(c(0xc9b6ff, 0.95)));
@@ -659,17 +725,14 @@ fn control_center_button(out: &mut Scene, state: &State, assets: &Assets) {
     let rect = Rect::new(1712., 52., 50., 50.);
     let focused = state.focus == Target::ControlCenter;
     let open = matches!(state.overlay, Some(Overlay::ControlCenter { .. }));
-    out.pill(rect, focused || open, false);
-    out.icon(
-        assets,
-        "control-center",
-        rect.inset(13.),
-        if focused || open {
-            c(0x20242a, 1.)
-        } else {
-            WHITE
-        },
+    let color = out.chrome(
+        rect,
+        25.,
+        focused,
+        open,
+        state.pressed.as_ref() == Some(&Target::ControlCenter),
     );
+    out.icon(assets, "control-center", rect.inset(13.), color);
     out.control(Target::ControlCenter, rect, false);
 }
 
@@ -685,9 +748,28 @@ fn header(
     header_identity(out, state, assets, now);
     let layout = navigation(assets, language);
     let nav = layout.surface;
-    out.material(nav, 48., false, out.liquid_glass);
+    out.chrome(nav, nav.h / 2., false, false, false);
     let pill = Rect::new(pill_x, 52.3, pill_width, 49.);
-    out.selection_surface(pill, 32.);
+    let selected_target = Target::Nav(state.page_index());
+    let selected_color = out.chrome(
+        pill,
+        pill.h / 2.,
+        state.focus == selected_target,
+        true,
+        state.pressed.as_ref() == Some(&selected_target),
+    );
+    if let Target::Nav(index) = state.focus
+        && index != state.page_index()
+        && let Some(rect) = layout.items.get(index)
+    {
+        out.chrome(
+            *rect,
+            rect.h / 2.,
+            true,
+            false,
+            state.pressed.as_ref() == Some(&state.focus),
+        );
+    }
     if matches!(state.focus, Target::Nav(_)) && !state.pointer {
         // Follow the pill's animated position and width instead of jumping to
         // the destination tab's control rectangle.
@@ -705,9 +787,15 @@ fn header(
             Rect::new(rect.x, 64.3, rect.w, 25.),
             text(20.8, 550, -0.02),
             if state.page_index() == index {
-                c(0x2c2c2c, 1.)
+                selected_color
+            } else if state.focus == Target::Nav(index) {
+                if out.liquid_glass {
+                    WHITE
+                } else {
+                    c(0x20242a, 1.)
+                }
             } else {
-                c(0xeeeeee, 0.73)
+                c(0xffffff, 0.86)
             },
             true,
         );
@@ -716,16 +804,18 @@ fn header(
     control_center_button(out, state, assets);
     let rect = Rect::new(1786.4, 52., 49.6, 49.6);
     let focused = state.focus == Target::TvSettings;
-    out.pill(rect, focused, false);
+    let color = out.chrome(
+        rect,
+        rect.h / 2.,
+        focused,
+        false,
+        state.pressed.as_ref() == Some(&Target::TvSettings),
+    );
     out.icon(
         assets,
         "settings",
         Rect::new(1799.6, 65.2, 23.2, 23.2),
-        if focused {
-            c(0x2c2c2c, 1.)
-        } else {
-            c(0xeeeeee, 0.73)
-        },
+        color,
     );
     out.control(Target::TvSettings, rect, false);
 }
@@ -764,6 +854,12 @@ fn tile(
     }
     let start = out.draw.len();
     let focused = state.focus == Target::App(app.id.clone());
+    let pressed = state.pressed.as_ref() == Some(&Target::App(app.id.clone()));
+    let rect = if focused && !pressed && !state.preferences.reduced_motion {
+        rect.inset(-5.)
+    } else {
+        rect
+    };
     out.shadow(
         rect,
         19.2,
@@ -1701,6 +1797,10 @@ fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
     let bright = focused;
     let radius = if row.description.is_some() { 20. } else { 48. };
     out.material(row.rect, radius, bright, false);
+    if focused {
+        out.border(row.rect, radius, 2., out.accent_color(c(0xffffff, 0.90)));
+    }
+    out.pressed_feedback(state, &row.target, row.rect, radius);
     let color = if bright {
         c(0x2c2c2c, 1.)
     } else {
