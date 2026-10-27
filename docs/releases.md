@@ -8,6 +8,12 @@ and installation boundary. Keep the generated Version Packages PR unmerged
 until release readiness; ordinary feature work does not bump source versions
 manually. Any intermediate prerelease needs its own explicit release decision.
 
+During milestones 1–7, verification runs automatically on pushes and pull
+requests. Version PR creation is manual through the **Release PR** workflow;
+publication additionally requires the repository variable
+`LUMAGLASS_RELEASE_ENABLED` to equal `true`. Leave it unset until the final
+release milestone. CI artifacts remain available without publishing a release.
+
 ## Releases
 
 Add a changeset to feature/fix PRs that should be included in the next app release:
@@ -31,7 +37,7 @@ PR. The workflow becomes active once it is merged into the PR's base branch. It 
 `pull_request_target` with a read-only status job and a separate comment-writing job, without
 installing dependencies or running code from the PR.
 
-After changesets merge into `main`, `.github/workflows/release-pr.yml` creates or updates the
+When explicitly dispatched, `.github/workflows/release-pr.yml` creates or updates the
 **Version Packages** PR on `changeset-release/main`. Changesets combines the pending notes using
 the highest requested bump. The custom `pnpm version:release` command updates `package.json`
 and `CHANGELOG.md`, then synchronizes `appinfo.json`, the root `Cargo.toml`, the `lumaglass` entry in

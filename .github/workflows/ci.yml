@@ -110,7 +110,7 @@ jobs:
 
   release:
     name: Publish release and Homebrew feed
-    if: needs.release-gate.outputs.publish == 'true'
+    if: vars.LUMAGLASS_RELEASE_ENABLED == 'true' && needs.release-gate.outputs.publish == 'true'
     needs: [build, release-gate]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
