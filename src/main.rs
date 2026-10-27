@@ -13,7 +13,7 @@ use features::{
     weather::{self, service as weather_service},
 };
 use platform::sdl_events;
-#[cfg(all(feature = "webos", target_os = "linux"))]
+#[cfg(all(feature = "webos", target_os = "linux", target_arch = "arm"))]
 use platform::webos::app_subscription;
 #[cfg(all(feature = "webos", target_os = "linux", target_arch = "arm"))]
 use platform::webos::luna;
