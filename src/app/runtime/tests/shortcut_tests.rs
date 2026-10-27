@@ -88,6 +88,7 @@ fn shortcut_actions_only_navigate_and_recent_history_only_reads() {
         Action::Apps,
         Action::Settings,
         Action::Recents,
+        Action::ControlCenter,
     ] {
         let mut state = ready();
         state.preferences.shortcuts.enabled = true;
@@ -116,6 +117,9 @@ fn shortcut_actions_only_navigate_and_recent_history_only_reads() {
                 assert_eq!(state.focus, Target::Sidebar(0));
             }
             Action::Recents => assert!(matches!(state.overlay, Some(Overlay::Recents { .. }))),
+            Action::ControlCenter => {
+                assert!(matches!(state.overlay, Some(Overlay::ControlCenter { .. })))
+            }
             Action::None => unreachable!(),
         }
         if action == Action::Recents {

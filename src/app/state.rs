@@ -37,6 +37,12 @@ pub enum Page {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum Target {
+    ControlCenter,
+    Quick(crate::features::control_center::Action),
+    SleepSlider,
+    ClockAvatar,
+    ClockSide,
+    AvatarStyle,
     DisplayHD,
     DisplayUHD,
     DisplayKeep,
@@ -137,6 +143,9 @@ pub struct Control {
 
 #[derive(Clone, Debug)]
 pub enum Overlay {
+    ControlCenter {
+        restore: Target,
+    },
     ControlConfirm {
         command: crate::features::controls::Command,
         restore: Target,
@@ -239,6 +248,7 @@ pub const KEYS: [&str; 40] = [
 ];
 
 pub struct State {
+    pub sleep_draft: usize,
     pub display_change: Option<bool>,
     pub display_keep: bool,
     pub display_trial: bool,
@@ -294,6 +304,7 @@ impl State {
             controls: crate::features::controls::Controls::default(),
             wallpapers: crate::features::wallpapers::Session::default(),
             photo_draft: String::new(),
+            sleep_draft: 0,
             display_change: None,
             display_keep: false,
             display_trial: false,
@@ -569,6 +580,286 @@ impl State {
         self.preferences.appearance.density.apps()
     }
 
+    pub fn open_control_center(&mut self) -> Vec<Effect> {
+        if matches!(self.overlay, Some(Overlay::ControlCenter { .. })) {
+            return self.back();
+        }
+        if self.overlay.is_some() || self.moving.is_some() || self.launching || self.display_trial {
+            return vec![];
+        }
+        self.sleep_draft = self.controls.report.sleep_index.unwrap_or(0);
+        self.overlay = Some(Overlay::ControlCenter {
+            restore: self.focus.clone(),
+        });
+        self.focus = Target::Quick(crate::features::control_center::Action::Standby);
+        self.pointer = false;
+        self.pressed = None;
+        self.dirty = true;
+        if !self.preferences.reduced_motion {
+            self.panel_started = Some(Instant::now());
+        }
+        self.control_request(crate::features::controls::Command::QuickStatus)
+    }
+    pub fn slider_values(&self, target: &Target) -> Option<(usize, Vec<String>)> {
+        use crate::features::{
+            appearance::{Blur, Density, Dimming},
+            home::GreetingSize,
+            screensaver::Timeout,
+        };
+        let language = self.preferences.language;
+        let labels = |keys: &[&str]| {
+            keys.iter()
+                .map(|key| language.t(key).to_owned())
+                .collect::<Vec<_>>()
+        };
+        Some(match target {
+            Target::Setting(19) => {
+                let value = self.preferences.screensaver.timeout;
+                (
+                    Timeout::ALL.iter().position(|v| *v == value).unwrap_or(0),
+                    Timeout::ALL
+                        .iter()
+                        .map(|v| {
+                            if *v == Timeout::Off {
+                                language.t("stateOff").into()
+                            } else {
+                                format!("{} {}", v.minutes(), language.t("minutesShort"))
+                            }
+                        })
+                        .collect(),
+                )
+            }
+            Target::AppearanceOption(AppearanceOption::Density) => (
+                match self.preferences.appearance.density {
+                    Density::Compact => 0,
+                    Density::Standard => 1,
+                    Density::Comfortable => 2,
+                },
+                labels(&[
+                    "appearanceCompact",
+                    "appearanceStandard",
+                    "appearanceComfortable",
+                ]),
+            ),
+            Target::AppearanceOption(AppearanceOption::Dimming) => (
+                match self.preferences.appearance.dimming {
+                    Dimming::Off => 0,
+                    Dimming::Low => 1,
+                    Dimming::Medium => 2,
+                    Dimming::High => 3,
+                },
+                vec![
+                    language.t("stateOff").into(),
+                    "20%".into(),
+                    "40%".into(),
+                    "60%".into(),
+                ],
+            ),
+            Target::AppearanceOption(AppearanceOption::Blur) => (
+                match self.preferences.appearance.blur {
+                    Blur::Off => 0,
+                    Blur::Soft => 1,
+                    Blur::Strong => 2,
+                },
+                labels(&["stateOff", "appearanceBlurSoft", "appearanceBlurStrong"]),
+            ),
+            Target::HomeOption(HomeOption::GreetingSize) => (
+                match self.preferences.home.greeting_size {
+                    GreetingSize::Small => 0,
+                    GreetingSize::Medium => 1,
+                    GreetingSize::Large => 2,
+                },
+                labels(&["homeSmall", "homeMedium", "homeLarge"]),
+            ),
+            Target::SleepSlider => {
+                if self.controls.report.sleep_index.is_none() {
+                    (
+                        0,
+                        vec![
+                            language
+                                .t(if self.webos {
+                                    "infoUnavailable"
+                                } else {
+                                    "infoNotApplicable"
+                                })
+                                .into(),
+                        ],
+                    )
+                } else {
+                    (
+                        self.sleep_draft.min(5),
+                        crate::features::control_center::SLEEP_MINUTES
+                            .iter()
+                            .map(|m| {
+                                if *m == 0 {
+                                    language.t("stateOff").into()
+                                } else {
+                                    format!("{m} {}", language.t("minutesShort"))
+                                }
+                            })
+                            .collect(),
+                    )
+                }
+            }
+            _ => return None,
+        })
+    }
+    pub fn set_slider(&mut self, target: &Target, index: usize) -> Vec<Effect> {
+        use crate::features::{
+            appearance::{Blur, Density, Dimming},
+            home::GreetingSize,
+            screensaver::Timeout,
+        };
+        if self.display_trial || !self.slider_allowed(target) {
+            return vec![];
+        }
+        let Some((previous, values)) = self.slider_values(target) else {
+            return vec![];
+        };
+        let index = index.min(values.len().saturating_sub(1));
+        if index == previous {
+            return vec![];
+        }
+        match target {
+            Target::Setting(19) => self.preferences.screensaver.timeout = Timeout::ALL[index],
+            Target::AppearanceOption(AppearanceOption::Density) => {
+                self.preferences.appearance.density =
+                    [Density::Compact, Density::Standard, Density::Comfortable][index];
+                self.home_scroll = 0.;
+            }
+            Target::AppearanceOption(AppearanceOption::Dimming) => {
+                self.preferences.appearance.dimming =
+                    [Dimming::Off, Dimming::Low, Dimming::Medium, Dimming::High][index]
+            }
+            Target::AppearanceOption(AppearanceOption::Blur) => {
+                self.preferences.appearance.blur = [Blur::Off, Blur::Soft, Blur::Strong][index]
+            }
+            Target::HomeOption(HomeOption::GreetingSize) => {
+                self.preferences.home.greeting_size = [
+                    GreetingSize::Small,
+                    GreetingSize::Medium,
+                    GreetingSize::Large,
+                ][index]
+            }
+            Target::SleepSlider => {
+                self.sleep_draft = index;
+                self.dirty = true;
+                return vec![];
+            }
+            _ => return vec![],
+        }
+        self.dirty = true;
+        vec![Effect::Save]
+    }
+    pub fn slider_allowed(&self, target: &Target) -> bool {
+        if matches!(self.overlay, Some(Overlay::ControlCenter { .. })) {
+            return matches!(
+                target,
+                Target::SleepSlider | Target::AppearanceOption(AppearanceOption::Dimming)
+            );
+        }
+        if self.overlay.is_some() || self.page != Page::Settings {
+            return false;
+        }
+        match target {
+            Target::Setting(19) => self.subpage.is_none() && self.section == 0,
+            Target::AppearanceOption(_) => self.subpage == Some(Subpage::Appearance),
+            Target::HomeOption(HomeOption::GreetingSize) => self.subpage == Some(Subpage::Home),
+            _ => false,
+        }
+    }
+    pub fn slider_at(&mut self, target: &Target, rect: Rect, x: f32) -> Vec<Effect> {
+        let Some((_, values)) = self.slider_values(target) else {
+            return vec![];
+        };
+        let index = crate::features::sliders::index_at(
+            x,
+            rect.x + crate::features::sliders::INSET,
+            rect.w - 2. * crate::features::sliders::INSET,
+            values.len(),
+        );
+        self.set_slider(target, index)
+    }
+    pub fn quick_action(&mut self, action: crate::features::control_center::Action) -> Vec<Effect> {
+        use crate::features::{control_center::Action, controls::Command};
+        if !matches!(self.overlay, Some(Overlay::ControlCenter { .. })) {
+            return vec![];
+        }
+        if action == Action::Sleep {
+            self.focus = Target::SleepSlider;
+            self.dirty = true;
+            return vec![];
+        }
+        if action == Action::Standby
+            && (!self.webos || !self.controls.report.power_active || self.controls.loading)
+        {
+            self.notify(self.preferences.language.t(if self.webos {
+                "infoUnavailable"
+            } else {
+                "infoNotApplicable"
+            }));
+            return vec![];
+        }
+        if action == Action::Audio
+            && (!self.webos || self.controls.report.muted.is_none() || self.controls.loading)
+        {
+            self.notify(self.preferences.language.t(if self.webos {
+                "infoUnavailable"
+            } else {
+                "infoNotApplicable"
+            }));
+            return vec![];
+        }
+        let muted = self.controls.report.muted.unwrap_or(false);
+        self.back();
+        match action {
+            Action::Standby => {
+                self.confirm_control(Command::Standby);
+                vec![]
+            }
+            Action::Audio => self.control_request(Command::AudioMute {
+                expected: muted,
+                value: !muted,
+            }),
+            Action::Network => {
+                self.launching = true;
+                vec![Effect::Launch("com.palm.app.settings".into())]
+            }
+            Action::Screensaver => {
+                self.screensaver.start(Instant::now());
+                self.dirty = true;
+                vec![]
+            }
+            Action::Search => {
+                self.open(1);
+                self.open_keyboard(TextField::Apps);
+                vec![]
+            }
+            Action::Inputs => {
+                if let Some(input) = self
+                    .inventory
+                    .inputs
+                    .iter()
+                    .find(|input| self.home_input_visible(input))
+                    .map(|i| i.id.clone())
+                {
+                    self.open(0);
+                    self.focus = Target::Input(input);
+                } else {
+                    self.notify(self.preferences.language.t("shortcutNoInputs"));
+                }
+                vec![]
+            }
+            Action::Recents => self.open_recents(),
+            Action::Settings => {
+                self.open(2);
+                self.section = 0;
+                self.focus = Target::Sidebar(0);
+                vec![]
+            }
+            Action::Sleep => vec![],
+        }
+    }
     pub fn rotation_pool(&self) -> Vec<String> {
         let mut pool = vec![];
         for id in &self.preferences.wallpapers.rotation.selected {
@@ -736,6 +1027,7 @@ impl State {
                 self.focus = Target::Sidebar(0);
             }
             ShortcutAction::Recents => return Some(self.open_recents()),
+            ShortcutAction::ControlCenter => return Some(self.open_control_center()),
             ShortcutAction::None => {}
         }
         Some(vec![])
@@ -1108,6 +1400,32 @@ impl State {
             };
             return vec![];
         }
+        if self.slider_allowed(&self.focus)
+            && matches!(direction, Direction::Left | Direction::Right)
+            && let Some((index, values)) = self.slider_values(&self.focus)
+        {
+            let next = if matches!(direction, Direction::Left) {
+                index.saturating_sub(1)
+            } else {
+                (index + 1).min(values.len().saturating_sub(1))
+            };
+            return self.set_slider(&self.focus.clone(), next);
+        }
+        if self.overlay.is_none() {
+            if matches!(self.focus, Target::Nav(_)) && matches!(direction, Direction::Up) {
+                self.focus(Target::ControlCenter, controls);
+                return vec![];
+            }
+            if self.focus == Target::ControlCenter {
+                if matches!(
+                    direction,
+                    Direction::Down | Direction::Left | Direction::Right
+                ) {
+                    self.focus(Target::Nav(self.page_index()), controls);
+                }
+                return vec![];
+            }
+        }
         if self.overlay.is_none()
             && matches!(
                 self.subpage,
@@ -1378,6 +1696,35 @@ impl State {
                                 self.focus(next, controls);
                             }
                         }
+                    }
+                    return vec![];
+                }
+            }
+            if self.subpage == Some(Subpage::Clock) {
+                let rows = [
+                    Target::ClockFormat,
+                    Target::ClockTimeFormat,
+                    Target::ClockAvatar,
+                    Target::ClockSide,
+                    Target::AvatarStyle,
+                ];
+                if let Some(index) = rows.iter().position(|target| target == &self.focus) {
+                    match direction {
+                        Direction::Up if index == 0 => self.focus(Target::Nav(2), controls),
+                        Direction::Up => self.focus(rows[index - 1].clone(), controls),
+                        Direction::Down if index + 1 < rows.len() => {
+                            self.focus(rows[index + 1].clone(), controls)
+                        }
+                        Direction::Left => self.close_subpage(),
+                        Direction::Right
+                            if matches!(
+                                self.focus,
+                                Target::ClockFormat | Target::ClockTimeFormat
+                            ) =>
+                        {
+                            return self.activate();
+                        }
+                        _ => {}
                     }
                     return vec![];
                 }
@@ -2032,6 +2379,66 @@ impl State {
     pub fn activate(&mut self) -> Vec<Effect> {
         if self.display_trial && !matches!(self.focus, Target::DisplayHD | Target::DisplayKeep) {
             return vec![];
+        }
+        if self.slider_allowed(&self.focus) && self.focus != Target::SleepSlider {
+            let target = self.focus.clone();
+            if let Some((index, values)) = self.slider_values(&target) {
+                return self.set_slider(&target, (index + 1) % values.len());
+            }
+        }
+        if self.focus == Target::ControlCenter {
+            return self.open_control_center();
+        }
+        if let Target::Quick(action) = self.focus {
+            return self.quick_action(action);
+        }
+        if self.focus == Target::SleepSlider
+            && matches!(self.overlay, Some(Overlay::ControlCenter { .. }))
+        {
+            if self.controls.loading || !self.webos {
+                return vec![];
+            }
+
+            if let Some(expected) = self.controls.report.sleep_index {
+                let value = self.sleep_draft;
+                self.back();
+                self.confirm_control(crate::features::controls::Command::SleepTimer {
+                    expected,
+                    value,
+                });
+            }
+            return vec![];
+        }
+        if self.overlay.is_none() && self.subpage == Some(Subpage::Clock) {
+            match self.focus {
+                Target::ClockAvatar => {
+                    self.preferences.header.combined = !self.preferences.header.combined;
+                    self.dirty = true;
+                    return vec![Effect::Save];
+                }
+                Target::ClockSide => {
+                    use crate::features::header::Side;
+                    self.preferences.header.side = if self.preferences.header.side == Side::Left {
+                        Side::Right
+                    } else {
+                        Side::Left
+                    };
+                    self.dirty = true;
+                    return vec![Effect::Save];
+                }
+                Target::AvatarStyle => {
+                    use crate::features::header::Avatar;
+                    self.preferences.header.avatar =
+                        if self.preferences.header.avatar == Avatar::Initials {
+                            Avatar::Symbol
+                        } else {
+                            Avatar::Initials
+                        };
+                    self.dirty = true;
+                    return vec![Effect::Save];
+                }
+                _ => {}
+            }
         }
         if self.subpage == Some(Subpage::Display) && self.overlay.is_none() {
             match self.focus {
@@ -2851,7 +3258,8 @@ impl State {
             if let Overlay::Options { restore, .. }
             | Overlay::Recents { restore }
             | Overlay::RemovalStatus { restore }
-            | Overlay::ControlConfirm { restore, .. } = overlay
+            | Overlay::ControlConfirm { restore, .. }
+            | Overlay::ControlCenter { restore } = overlay
             {
                 self.focus = restore;
                 self.recents.pending = None;

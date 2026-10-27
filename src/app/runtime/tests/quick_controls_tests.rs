@@ -1,0 +1,132 @@
+use super::*;
+use crate::features::{
+    appearance::{Dimming, Setting},
+    control_center::Action,
+    controls::Command,
+    header::Side,
+};
+#[test]
+fn quick_panel_restores_focus_and_never_mutates_on_open() {
+    let mut state = ready();
+    state.focus = Target::App("netflix".into());
+    assert!(state.open_control_center().is_empty());
+    assert_eq!(state.focus, Target::Quick(Action::Standby));
+    assert!(state.activate().is_empty());
+    assert!(matches!(state.overlay, Some(Overlay::ControlCenter { .. })));
+    state.back();
+    assert_eq!(state.focus, Target::App("netflix".into()));
+    state.webos = true;
+    assert!(matches!(
+        state.open_control_center().as_slice(),
+        [Effect::Control {
+            command: Command::QuickStatus,
+            ..
+        }]
+    ));
+    assert!(state.activate().is_empty());
+    assert!(matches!(state.overlay, Some(Overlay::ControlCenter { .. })));
+}
+#[test]
+fn sliders_clamp_save_only_changes_and_respect_modal_scope() {
+    let mut state = ready();
+    let target = Target::AppearanceOption(Setting::Dimming);
+    assert!(state.set_slider(&target, 2).is_empty());
+    state.open_control_center();
+    assert_eq!(state.set_slider(&target, 2), vec![Effect::Save]);
+    assert_eq!(state.preferences.appearance.dimming, Dimming::Medium);
+    assert!(state.set_slider(&target, 2).is_empty());
+    state.focus = target.clone();
+    state.direction(Direction::Right, &controls(&state));
+    assert_eq!(state.preferences.appearance.dimming, Dimming::High);
+    assert!(
+        state
+            .direction(Direction::Right, &controls(&state))
+            .is_empty()
+    );
+    state.direction(Direction::Down, &controls(&state));
+    assert_eq!(state.focus, Target::SleepSlider);
+    state.controls.report.sleep_index = Some(0);
+    assert!(state.set_slider(&Target::SleepSlider, 3).is_empty());
+    assert_eq!(state.sleep_draft, 3);
+    assert_eq!(state.controls.report.sleep_index, Some(0));
+    state.back();
+    state.open(2);
+    state.subpage = Some(crate::state::Subpage::Appearance);
+    state.overlay = Some(Overlay::Keyboard);
+    assert!(state.set_slider(&target, 0).is_empty());
+    assert_eq!(state.preferences.appearance.dimming, Dimming::High);
+}
+#[test]
+fn standby_confirmation_defaults_to_cancel_and_timer_is_only_applied_after_confirmation() {
+    let mut state = ready();
+    state.webos = true;
+    state.open_control_center();
+    state.controls.loading = false;
+    state.controls.report.power_active = true;
+    state.activate();
+    assert_eq!(state.focus, Target::CloseDialog);
+    state.back();
+    assert!(state.overlay.is_none());
+    state.open_control_center();
+    state.controls.loading = false;
+    state.controls.report.sleep_index = Some(0);
+    state.focus = Target::SleepSlider;
+    state.set_slider(&Target::SleepSlider, 3);
+    state.activate();
+    assert_eq!(state.focus, Target::CloseDialog);
+    state.focus = Target::ControlApply;
+    assert!(matches!(
+        state.activate().as_slice(),
+        [Effect::Control {
+            command: Command::SleepTimer {
+                expected: 0,
+                value: 3
+            },
+            ..
+        }]
+    ));
+}
+#[test]
+fn clock_capsule_side_and_identity_persist_without_changing_user_text() {
+    let mut state = ready();
+    state.open(2);
+    state.subpage = Some(crate::state::Subpage::Clock);
+    state.preferences.greeting_name = "Ada Lovelace".into();
+    state.focus = Target::ClockAvatar;
+    assert_eq!(state.activate(), vec![Effect::Save]);
+    state.direction(Direction::Down, &controls(&state));
+    assert_eq!(state.focus, Target::ClockSide);
+    state.activate();
+    assert_eq!(state.preferences.header.side, Side::Right);
+    let value = serde_json::to_vec(&state.preferences).unwrap();
+    let restored: Preferences = serde_json::from_slice(&value).unwrap();
+    assert!(restored.header.combined);
+    assert_eq!(restored.header.side, Side::Right);
+    assert_eq!(restored.greeting_name, "Ada Lovelace");
+    assert_eq!(
+        crate::features::header::initials(&restored.greeting_name),
+        "AL"
+    );
+    assert!(
+        scene(&state)
+            .controls
+            .iter()
+            .any(|control| control.target == Target::ControlCenter && control.rect.x > 1200.)
+    );
+}
+#[test]
+fn manual_screensaver_works_with_idle_timeout_disabled_and_consumes_wake() {
+    let mut state = ready();
+    state.open_control_center();
+    state.quick_action(Action::Screensaver);
+    assert!(state.screensaver.active);
+    assert!(state.screensaver.manual);
+    state.screensaver.tick(
+        std::time::Instant::now(),
+        true,
+        crate::features::screensaver::Timeout::Off,
+    );
+    assert!(state.screensaver.active);
+    assert!(state.screensaver.activity(std::time::Instant::now()));
+    assert!(!state.screensaver.manual);
+}

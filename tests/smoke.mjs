@@ -73,6 +73,30 @@ try {
     }
     return state;
   };
+  const quick = await scenario('control-center', 'control-center');
+  assert.equal(quick.modal, true);
+  assert.deepEqual(quick.focus, { Quick: 'Standby' });
+  for (const value of ['Control center', 'Network', 'Audio', 'Sleep timer', 'Screensaver'])
+    assert.ok(quick.ui_text.includes(value));
+  const dismissed = await scenario('control-center-dismissed', 'control-center,back');
+  assert.equal(dismissed.modal, false);
+  assert.deepEqual(dismissed.focus, { Nav: 0 });
+  const dimmed = await scenario('control-center-slider', 'control-center,click:1600:696');
+  assert.equal(dimmed.preferences.appearance.dimming, 'medium');
+  const sliderBack = await scenario(
+    'control-center-slider-back',
+    'control-center,click:1256:696,back',
+  );
+  assert.equal(sliderBack.preferences.appearance.dimming, 'off');
+  const headerSaved = await scenario(
+    'header-capsule-right',
+    'settings,down,enter,down,enter,down,down,enter,down,enter,home',
+  );
+  assert.equal(headerSaved.preferences.header.combined, true);
+  assert.equal(headerSaved.preferences.header.side, 'right');
+  await scenario('header-capsule-control-center', 'control-center');
+  // Restore defaults before exercising the existing independent scenarios.
+  await fs.writeFile(preferences, JSON.stringify({}));
   const home = await scenario('home', 'down');
   assert.deepEqual(home.focus, { App: 'netflix' });
   const recents = await scenario('recents', 'recents,await-recents');
@@ -83,7 +107,7 @@ try {
   assert.equal(recents.recents_visibility, 1);
   assert.ok(!recents.ui_text.includes('Recent apps'));
   assert.ok(!recents.ui_text.includes('Pick up where you left off.'));
-  assert.ok(!recents.ui_text.includes('Desktop preview · Sample history'));
+  assert.ok(!recents.ui_text.includes('Desktop preview · sample history'));
   assert.ok(!recents.ui_text.includes('Netflix'));
   assert.ok(!recents.ui_text.includes('YouTube'));
   assert.ok(!recents.ui_text.includes('1 / 8'));
@@ -244,8 +268,8 @@ try {
   const appNamesEditor = 'settings,down,enter,enter';
   const appNames = await scenario('app-name-settings', appNamesEditor);
   assert.equal(appNames.subpage, 'AppNames');
-  assert.ok(appNames.ui_text.includes('Show on Home'));
-  assert.ok(appNames.ui_text.includes('Show on Apps'));
+  assert.ok(appNames.ui_text.includes('Show on home'));
+  assert.ok(appNames.ui_text.includes('Show on apps'));
   assert.equal(appNames.preferences.show_home_names, false);
   assert.equal(appNames.preferences.show_app_names, true);
   const customNames = await scenario(

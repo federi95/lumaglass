@@ -9,14 +9,35 @@ pub enum Timeout {
     One,
     Five,
     Ten,
+    Fifteen,
+    Thirty,
+    FortyFive,
+    Hour,
 }
 impl Timeout {
+    pub const ALL: [Self; 8] = [
+        Self::Off,
+        Self::One,
+        Self::Five,
+        Self::Ten,
+        Self::Fifteen,
+        Self::Thirty,
+        Self::FortyFive,
+        Self::Hour,
+    ];
+    pub fn minutes(self) -> u64 {
+        self.duration().map_or(0, |d| d.as_secs() / 60)
+    }
     pub fn next(self) -> Self {
         match self {
             Self::Off => Self::One,
             Self::One => Self::Five,
             Self::Five => Self::Ten,
-            Self::Ten => Self::Off,
+            Self::Ten => Self::Fifteen,
+            Self::Fifteen => Self::Thirty,
+            Self::Thirty => Self::FortyFive,
+            Self::FortyFive => Self::Hour,
+            Self::Hour => Self::Off,
         }
     }
     fn duration(self) -> Option<Duration> {
@@ -25,6 +46,10 @@ impl Timeout {
             Self::One => Some(Duration::from_secs(60)),
             Self::Five => Some(Duration::from_secs(300)),
             Self::Ten => Some(Duration::from_secs(600)),
+            Self::Fifteen => Some(Duration::from_secs(900)),
+            Self::Thirty => Some(Duration::from_secs(1800)),
+            Self::FortyFive => Some(Duration::from_secs(2700)),
+            Self::Hour => Some(Duration::from_secs(3600)),
         }
     }
     pub fn key(self) -> &'static str {
@@ -33,6 +58,10 @@ impl Timeout {
             Self::One => "saverOne",
             Self::Five => "saverFive",
             Self::Ten => "saverTen",
+            Self::Fifteen => "saverFifteen",
+            Self::Thirty => "saverThirty",
+            Self::FortyFive => "saverFortyFive",
+            Self::Hour => "saverHour",
         }
     }
 }
@@ -47,6 +76,7 @@ pub fn deserialize<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Preferences
 }
 pub struct Session {
     pub active: bool,
+    pub manual: bool,
     last_input: Instant,
     started: Instant,
     frame: Instant,
@@ -58,6 +88,7 @@ impl Default for Session {
         let now = Instant::now();
         Self {
             active: false,
+            manual: false,
             last_input: now,
             started: now,
             frame: now,
@@ -67,6 +98,13 @@ impl Default for Session {
     }
 }
 impl Session {
+    pub fn start(&mut self, now: Instant) {
+        self.active = true;
+        self.manual = true;
+        self.started = now;
+        self.frame = now;
+        self.last_input = now;
+    }
     pub fn consume_event(&mut self, event: &sdl2::event::Event, now: Instant) -> bool {
         use sdl2::event::Event;
         if let Event::KeyDown {
@@ -125,12 +163,13 @@ impl Session {
         false
     }
     pub fn activity(&mut self, now: Instant) -> bool {
+        self.manual = false;
         self.last_input = now;
         std::mem::replace(&mut self.active, false)
     }
     pub fn tick(&mut self, now: Instant, eligible: bool, timeout: Timeout) -> bool {
         let before = self.active;
-        if !eligible || timeout == Timeout::Off {
+        if !eligible || (timeout == Timeout::Off && !self.manual) {
             self.activity(now);
         } else if !self.active
             && timeout

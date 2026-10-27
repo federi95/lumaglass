@@ -340,6 +340,7 @@ fn script(
         "enter" => state.activate(),
         "back" => state.back(),
         "recents" | "hold-back" => state.open_recents(),
+        "control-center" => state.open_control_center(),
         "menu" => {
             state.options();
             vec![]
@@ -892,6 +893,7 @@ fn run() -> Result<(), String> {
     let mut foreground = platform::ForegroundCheck::default();
     let mut focused = true;
     let mut press: Option<Press> = None;
+    let mut slider_drag: Option<(Target, state::Rect)> = None;
     let mut back_button = BackButton::default();
     let initial_nav = view::navigation(&assets, state.preferences.language);
     let mut pill = initial_nav.items[0].x;
@@ -991,12 +993,25 @@ fn run() -> Result<(), String> {
                     result,
                 } => {
                     let verified = state.controls.accept(generation, result);
-                    if command != crate::features::controls::Command::BlockerStatus {
-                        state.notify(state.preferences.language.t(if verified {
-                            "controlVerified"
-                        } else {
-                            "controlUnconfirmed"
-                        }));
+                    if command == crate::features::controls::Command::QuickStatus {
+                        state.sleep_draft = state.controls.report.sleep_index.unwrap_or(0);
+                    }
+                    if !matches!(
+                        command,
+                        crate::features::controls::Command::BlockerStatus
+                            | crate::features::controls::Command::QuickStatus
+                    ) {
+                        state.notify(state.preferences.language.t(
+                            if command == crate::features::controls::Command::Standby
+                                && state.controls.report.accepted
+                            {
+                                "ccStandbyAccepted"
+                            } else if verified {
+                                "controlVerified"
+                            } else {
+                                "controlUnconfirmed"
+                            },
+                        ));
                     }
                     state.dirty = true;
                     if command.privacy()
@@ -1151,9 +1166,10 @@ fn run() -> Result<(), String> {
                 && !state.launching
                 && press.is_none()
                 && back_button.press.is_none()
-                && options.frames.is_none()
-                && options.profile_frames.is_none()
-                && options.script.is_empty(),
+                && (state.screensaver.manual
+                    || (options.frames.is_none()
+                        && options.profile_frames.is_none()
+                        && options.script.is_empty())),
             state.preferences.screensaver.timeout,
         );
         if state.rotation.due(
@@ -1193,7 +1209,7 @@ fn run() -> Result<(), String> {
             }
             state.dirty = true;
         }
-        let suffix = state.preferences.appearance.blur.suffix();
+        let suffix = view::wallpaper_blur(&state);
         let mut needed = vec![];
         for id in [
             Some(state.current_background()),
@@ -1343,6 +1359,7 @@ fn run() -> Result<(), String> {
                     WindowEvent::Hidden | WindowEvent::Minimized => {
                         visible = false;
                         focused = false;
+                        slider_drag = None;
                         press = None;
                         back_button.cancel();
                         state.shortcut_session.cancel();
@@ -1355,6 +1372,7 @@ fn run() -> Result<(), String> {
                     }
                     WindowEvent::FocusLost => {
                         focused = false;
+                        slider_drag = None;
                         press = None;
                         back_button.cancel();
                         state.shortcut_session.cancel();
@@ -1397,11 +1415,21 @@ fn run() -> Result<(), String> {
                     keymod,
                     ..
                 } => {
+                    slider_drag = None;
                     let native_hold = webos && i32::from(key) == sdl_events::WEBOS_EXIT_KEYCODE;
                     if !is_back(key, webos) && !native_hold {
                         back_button.cancel();
                     }
                     match key {
+                        Keycode::F6
+                            if window_id == window.id()
+                                && shortcut_active
+                                && !repeat
+                                && keymod.is_empty() =>
+                        {
+                            press = None;
+                            pending = state.open_control_center();
+                        }
                         key if window_id == window.id()
                             && sdl_events::shortcut_button(key, webos).is_some() =>
                         {
@@ -1521,15 +1549,21 @@ fn run() -> Result<(), String> {
                     if state.moving.is_none()
                         && !matches!(state.overlay, Some(Overlay::SystemKeyboard)) =>
                 {
-                    let hovered = hit(&scene.controls, &window, x, y, &state);
-                    if let Some(target) = hovered.clone() {
-                        state.pointer_focus(target);
-                    }
-                    if press
-                        .as_ref()
-                        .is_some_and(|p| p.pointer && hovered.as_ref() != Some(&p.target))
-                    {
-                        press = None;
+                    if let Some((target, rect)) = slider_drag.as_ref() {
+                        if let Some((x, _)) = pointer_position(&window, x, y) {
+                            pending = state.slider_at(target, *rect, x);
+                        }
+                    } else {
+                        let hovered = hit(&scene.controls, &window, x, y, &state);
+                        if let Some(target) = hovered.clone() {
+                            state.pointer_focus(target);
+                        }
+                        if press
+                            .as_ref()
+                            .is_some_and(|p| p.pointer && hovered.as_ref() != Some(&p.target))
+                        {
+                            press = None;
+                        }
                     }
                 }
                 Event::MouseButtonDown {
@@ -1548,12 +1582,30 @@ fn run() -> Result<(), String> {
                             state.options();
                             press = None;
                         } else if mouse_btn == MouseButton::Left {
-                            press = Some(Press {
-                                target: state.focus.clone(),
-                                start: Instant::now(),
-                                held: false,
-                                pointer: true,
-                            });
+                            let target = state.focus.clone();
+                            if let Some(rect) = scene
+                                .controls
+                                .iter()
+                                .find(|control| control.target == target)
+                                .map(|c| c.rect)
+                                && state.slider_allowed(&target)
+                                && state.slider_values(&target).is_some()
+                                && pointer_position(&window, x, y)
+                                    .is_some_and(|(_, y)| y >= rect.y + 44.)
+                            {
+                                if let Some((x, _)) = pointer_position(&window, x, y) {
+                                    pending = state.slider_at(&target, rect, x);
+                                }
+                                slider_drag = Some((target, rect));
+                                press = None;
+                            } else {
+                                press = Some(Press {
+                                    target: state.focus.clone(),
+                                    start: Instant::now(),
+                                    held: false,
+                                    pointer: true,
+                                });
+                            }
                         }
                     } else if mouse_btn == MouseButton::Left {
                         press = None;
@@ -1564,23 +1616,33 @@ fn run() -> Result<(), String> {
                     x,
                     y,
                     ..
-                } => match press.take() {
-                    Some(held)
-                        if held.pointer
-                            && !held.held
-                            && hit(&scene.controls, &window, x, y, &state).as_ref()
-                                == Some(&held.target) =>
-                    {
-                        pending = state.activate()
+                } => {
+                    if let Some((target, rect)) = slider_drag.take() {
+                        if let Some((x, _)) = pointer_position(&window, x, y) {
+                            pending = state.slider_at(&target, rect, x);
+                        }
+                        press = None;
+                    } else {
+                        match press.take() {
+                            Some(held)
+                                if held.pointer
+                                    && !held.held
+                                    && hit(&scene.controls, &window, x, y, &state).as_ref()
+                                        == Some(&held.target) =>
+                            {
+                                pending = state.activate()
+                            }
+                            None if scene.modal.is_some_and(|rect| {
+                                pointer_position(&window, x, y)
+                                    .is_some_and(|(x, y)| !rect.contains(x, y))
+                            }) =>
+                            {
+                                pending = state.back()
+                            }
+                            _ => {}
+                        }
                     }
-                    None if scene.modal.is_some_and(|rect| {
-                        pointer_position(&window, x, y).is_some_and(|(x, y)| !rect.contains(x, y))
-                    }) =>
-                    {
-                        pending = state.back()
-                    }
-                    _ => {}
-                },
+                }
                 Event::MouseWheel { x, y, .. } if state.recents_open() => {
                     press = None;
                     let delta = if x != 0 { x } else { -y };

@@ -19,7 +19,9 @@ const MAIN_TOP: f32 = 108.8;
 const FACE_HEIGHT: f32 = 154.4;
 const RECENTS_BACKDROP_OPACITY: f32 = 0.86;
 
+mod control_center;
 mod recents_view;
+mod slider;
 
 pub struct Assets {
     pub root: PathBuf,
@@ -318,7 +320,7 @@ pub fn scene_with_pill(
     now: OffsetDateTime,
 ) -> Scene {
     let mut out = Scene::new(state.preferences.appearance.accent);
-    let blur_suffix = state.preferences.appearance.blur.suffix();
+    let blur_suffix = wallpaper_blur(state);
     if let Some((previous, start)) = &state.previous_background {
         paint_wallpaper(&mut out, state, assets, previous, blur_suffix, 1.);
         paint_wallpaper(
@@ -442,12 +444,24 @@ pub fn scene_with_pill(
         | Overlay::Keyboard
         | Overlay::RemovalConfirm { .. }
         | Overlay::RemovalStatus { .. }
-        | Overlay::ControlConfirm { .. }),
+        | Overlay::ControlConfirm { .. }
+        | Overlay::ControlCenter { .. }),
     ) = &state.overlay
     {
         out.controls.clear();
         let start = out.draw.len();
-        out.shape(Rect::new(0., 0., 1920., 1080.), 0., c(0x080b12, 0.70));
+        out.shape(
+            Rect::new(0., 0., 1920., 1080.),
+            0.,
+            c(
+                0x080b12,
+                if matches!(overlay, Overlay::ControlCenter { .. }) {
+                    0.38
+                } else {
+                    0.70
+                },
+            ),
+        );
         match overlay {
             Overlay::Options { id, removal, .. } => {
                 options(&mut out, state, assets, id, removal.as_ref())
@@ -461,6 +475,10 @@ pub fn scene_with_pill(
                 }
             }
             Overlay::ControlConfirm { command, .. } => control_dialog(&mut out, state, *command),
+            Overlay::ControlCenter { .. } => {
+                control_center::render(&mut out, state, assets);
+                header_identity(&mut out, state, assets, now);
+            }
             Overlay::Keyboard => keyboard(&mut out, state, assets),
             Overlay::SystemKeyboard | Overlay::Recents { .. } => {}
         }
@@ -504,6 +522,76 @@ pub fn scene_with_pill(
     out
 }
 
+pub(crate) fn wallpaper_blur(state: &State) -> &'static str {
+    if matches!(state.overlay, Some(Overlay::ControlCenter { .. })) {
+        crate::features::appearance::Blur::Soft.suffix()
+    } else {
+        state.preferences.appearance.blur.suffix()
+    }
+}
+
+fn header_identity(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
+    use crate::features::header::{Avatar, Side};
+    let clock = state.preferences.language.clock(
+        now,
+        state.preferences.hour_24,
+        state.preferences.show_seconds,
+    );
+    let right = state.preferences.header.side == Side::Right;
+    let focused = state.focus == Target::ControlCenter;
+    let clock_width = assets.width(&clock, text(20., 500, -0.03)).ceil().min(260.);
+    let width = clock_width + 82.;
+    let x = if right { 1768. - width } else { 84. };
+    let capsule = Rect::new(x, 52., width, 50.);
+    let avatar = if state.preferences.header.combined {
+        out.shape(capsule, 25., c(0x171c20, 0.72));
+        out.border(
+            capsule,
+            25.,
+            if focused { 2. } else { 1. },
+            if focused {
+                out.accent_color(WHITE)
+            } else {
+                c(0xffffff, 0.2)
+            },
+        );
+        out.text(
+            &clock,
+            Rect::new(x + 20., 65., clock_width, 25.),
+            text(20., 500, -0.03),
+            WHITE,
+            false,
+        );
+        out.control(Target::ControlCenter, capsule, false);
+        Rect::new(x + width - 46., 57., 40., 40.)
+    } else {
+        out.text(
+            &clock,
+            Rect::new(if right { x } else { 84. }, 64.8, clock_width, 25.),
+            text(20., 500, -0.03),
+            WHITE,
+            false,
+        );
+        let avatar = Rect::new(if right { x + width - 48. } else { 1712. }, 52., 50., 50.);
+        out.pill(avatar, focused, false);
+        out.control(Target::ControlCenter, avatar, false);
+        avatar.inset(5.)
+    };
+    out.shape(avatar, avatar.w / 2., out.accent_color(c(0xc9b6ff, 0.95)));
+    let initials = crate::features::header::initials(&state.preferences.greeting_name);
+    if state.preferences.header.avatar == Avatar::Initials && !initials.is_empty() {
+        out.text(
+            initials,
+            Rect::new(avatar.x, avatar.y + 10., avatar.w, 24.),
+            text(17., 600, 0.),
+            c(0x20242a, 1.),
+            true,
+        );
+    } else {
+        out.icon(assets, "user", avatar.inset(9.), c(0x20242a, 1.));
+    }
+}
+
 fn header(
     out: &mut Scene,
     state: &State,
@@ -513,18 +601,7 @@ fn header(
     pill_width: f32,
 ) {
     let language = state.preferences.language;
-    let clock = language.clock(
-        now,
-        state.preferences.hour_24,
-        state.preferences.show_seconds,
-    );
-    out.text(
-        clock,
-        Rect::new(84., 64.8, 300., 24.),
-        text(20., 500, -0.03),
-        WHITE,
-        false,
-    );
+    header_identity(out, state, assets, now);
     let layout = navigation(assets, language);
     let nav = layout.surface;
     out.shadow(nav, 48., 18., 4., 0.06);
@@ -2265,13 +2342,32 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             .into_iter()
             .enumerate()
             {
+                if index == 19 {
+                    if let Some((step, labels)) = state.slider_values(&Target::Setting(19)) {
+                        slider::draw(
+                            out,
+                            state,
+                            Target::Setting(19),
+                            Rect::new(640., 164.8 + position as f32 * 84. - s, 1120., 124.),
+                            language.t(key),
+                            &labels,
+                            step,
+                        );
+                    }
+                    continue;
+                }
                 row(
                     out,
                     state,
                     assets,
                     Row {
                         target: Target::Setting(index),
-                        rect: Rect::new(640., 164.8 + position as f32 * 84. - s, 1120., 72.),
+                        rect: Rect::new(
+                            640.,
+                            164.8 + position as f32 * 84. + if index == 20 { 52. } else { 0. } - s,
+                            1120.,
+                            72.,
+                        ),
                         title: language.t(key),
                         icon: Some(icon),
                         value,
@@ -2843,6 +2939,21 @@ fn control_dialog(out: &mut Scene, state: &State, command: crate::features::cont
             language.t(if value { "stateOn" } else { "stateOff" })
         );
     }
+    if let crate::features::controls::Command::SleepTimer { value, .. } = command {
+        title = format!(
+            "{}: {}",
+            language.t("ccSleepTimer"),
+            if value == 0 {
+                language.t("stateOff").to_owned()
+            } else {
+                format!(
+                    "{} {}",
+                    crate::features::control_center::SLEEP_MINUTES[value.min(5)],
+                    language.t("minutesShort")
+                )
+            }
+        );
+    }
     out.text(
         title,
         Rect::new(590., 320., 740., 90.),
@@ -2851,7 +2962,11 @@ fn control_dialog(out: &mut Scene, state: &State, command: crate::features::cont
         false,
     );
     out.text(
-        language.t("controlConfirmHint"),
+        language.t(match command {
+            crate::features::controls::Command::Standby => "ccStandbyHint",
+            crate::features::controls::Command::SleepTimer { .. } => "ccTimerHint",
+            _ => "controlConfirmHint",
+        }),
         Rect::new(590., 425., 740., 160.),
         text(19., 400, 0.).leading(1.5),
         WHITE,
@@ -2966,20 +3081,35 @@ fn shortcut_settings(out: &mut Scene, state: &State, assets: &Assets) {
 fn appearance_settings(out: &mut Scene, state: &State, assets: &Assets) {
     use crate::features::appearance::Setting;
     let language = state.preferences.language;
-    for (index, option) in Setting::ALL.into_iter().enumerate() {
+    let mut y = 164.8 - state.scroll;
+    for option in Setting::ALL {
         let value = match option {
             Setting::Density => language.t(state.preferences.appearance.density.key()),
             Setting::Accent => language.t(state.preferences.appearance.accent.key()),
             Setting::Dimming => language.t(state.preferences.appearance.dimming.key()),
             Setting::Blur => language.t(state.preferences.appearance.blur.key()),
         };
+        let target = Target::AppearanceOption(option);
+        if let Some((step, labels)) = state.slider_values(&target) {
+            slider::draw(
+                out,
+                state,
+                target,
+                Rect::new(640., y, 1120., 124.),
+                language.t(option.key()),
+                &labels,
+                step,
+            );
+            y += 136.;
+            continue;
+        }
         row(
             out,
             state,
             assets,
             Row {
                 target: Target::AppearanceOption(option),
-                rect: Rect::new(640., 164.8 + index as f32 * 84. - state.scroll, 1120., 72.),
+                rect: Rect::new(640., y, 1120., 72.),
                 title: language.t(option.key()),
                 icon: None,
                 value: Some(value),
@@ -2988,6 +3118,7 @@ fn appearance_settings(out: &mut Scene, state: &State, assets: &Assets) {
                 chevron: false,
             },
         );
+        y += 84.;
     }
 }
 
@@ -2995,7 +3126,8 @@ fn home_settings(out: &mut Scene, state: &State, assets: &Assets) {
     use crate::features::home::{GreetingMode, Setting};
     let language = state.preferences.language;
     let home = &state.preferences.home;
-    for (index, option) in Setting::ALL.into_iter().enumerate() {
+    let mut y = 164.8 - state.scroll;
+    for option in Setting::ALL {
         let enabled = |flag| language.t(if flag { "stateOn" } else { "stateOff" });
         let value = match option {
             Setting::ShowGreeting => enabled(home.show_greeting),
@@ -3017,13 +3149,27 @@ fn home_settings(out: &mut Scene, state: &State, assets: &Assets) {
             Setting::InputsFirst => enabled(home.inputs_first),
             Setting::GreetingText | Setting::StartupFocus => "",
         };
+        let target = Target::HomeOption(option);
+        if let Some((step, labels)) = state.slider_values(&target) {
+            slider::draw(
+                out,
+                state,
+                target,
+                Rect::new(640., y, 1120., 124.),
+                language.t(option.key()),
+                &labels,
+                step,
+            );
+            y += 136.;
+            continue;
+        }
         row(
             out,
             state,
             assets,
             Row {
                 target: Target::HomeOption(option),
-                rect: Rect::new(640., 164.8 + index as f32 * 84. - state.scroll, 1120., 72.),
+                rect: Rect::new(640., y, 1120., 72.),
                 title: language.t(option.key()),
                 icon: None,
                 value: (!value.is_empty()).then_some(value),
@@ -3032,6 +3178,7 @@ fn home_settings(out: &mut Scene, state: &State, assets: &Assets) {
                 chevron: matches!(option, Setting::GreetingText | Setting::StartupFocus),
             },
         );
+        y += 84.;
     }
 }
 
@@ -3172,6 +3319,37 @@ fn clock_settings(out: &mut Scene, state: &State, assets: &Assets) {
             } else {
                 "HH:MM"
             },
+        ),
+        (
+            Target::ClockAvatar,
+            "clockAvatar",
+            language.t(if state.preferences.header.combined {
+                "stateOn"
+            } else {
+                "stateOff"
+            }),
+        ),
+        (
+            Target::ClockSide,
+            "clockSide",
+            language.t(
+                if state.preferences.header.side == crate::features::header::Side::Left {
+                    "sideLeft"
+                } else {
+                    "sideRight"
+                },
+            ),
+        ),
+        (
+            Target::AvatarStyle,
+            "avatarStyle",
+            language.t(
+                if state.preferences.header.avatar == crate::features::header::Avatar::Initials {
+                    "avatarInitials"
+                } else {
+                    "avatarSymbol"
+                },
+            ),
         ),
     ]
     .into_iter()

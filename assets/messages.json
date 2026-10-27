@@ -77,15 +77,15 @@
     "fr": "Mise à jour des applications récentes…"
   },
   "recentDesktop": {
-    "en": "Desktop preview · Sample history",
+    "en": "Desktop preview · sample history",
     "de": "Desktop-Vorschau · Beispielverlauf",
-    "es": "Vista previa de escritorio · Historial de ejemplo",
+    "es": "Vista previa de escritorio · historial de ejemplo",
     "zh": "桌面预览 · 示例记录",
-    "pt": "Prévia no desktop · Histórico de exemplo",
-    "it": "Anteprima desktop · Cronologia di esempio",
-    "ru": "Предпросмотр на компьютере · Пример истории",
-    "pl": "Podgląd na komputerze · Przykładowa historia",
-    "fr": "Aperçu sur ordinateur · Historique d’exemple"
+    "pt": "Prévia no desktop · histórico de exemplo",
+    "it": "Anteprima desktop · cronologia di esempio",
+    "ru": "Предпросмотр на компьютере · пример истории",
+    "pl": "Podgląd na komputerze · przykładowa historia",
+    "fr": "Aperçu sur ordinateur · historique d’exemple"
   },
   "home": {
     "en": "Home",
@@ -385,26 +385,26 @@
     "fr": "Noms des applications"
   },
   "showOnHome": {
-    "en": "Show on Home",
+    "en": "Show on home",
     "de": "Auf der Startseite anzeigen",
-    "es": "Mostrar en Inicio",
+    "es": "Mostrar en inicio",
     "zh": "在主页显示",
-    "pt": "Mostrar no Início",
-    "it": "Mostra nella Home",
+    "pt": "Mostrar no início",
+    "it": "Mostra nella home",
     "ru": "Показывать на главной",
-    "pl": "Pokazuj na ekranie Start",
+    "pl": "Pokazuj na ekranie start",
     "fr": "Afficher sur l’Accueil"
   },
   "showOnApps": {
-    "en": "Show on Apps",
+    "en": "Show on apps",
     "de": "In Apps anzeigen",
-    "es": "Mostrar en Aplicaciones",
+    "es": "Mostrar en aplicaciones",
     "zh": "在应用页显示",
-    "pt": "Mostrar em Apps",
+    "pt": "Mostrar em apps",
     "it": "Mostra in App",
     "ru": "Показывать в приложениях",
-    "pl": "Pokazuj w Aplikacjach",
-    "fr": "Afficher dans Applications"
+    "pl": "Pokazuj w aplikacjach",
+    "fr": "Afficher dans applications"
   },
   "clock24": {
     "en": "24-hour clock",
@@ -1353,15 +1353,15 @@
     "fr": "{app} est de retour dans votre bibliothèque."
   },
   "appHidden": {
-    "en": "{app} hidden. You can restore it from Apps.",
+    "en": "{app} hidden. You can restore it from apps.",
     "de": "{app} ausgeblendet. Du kannst sie unter Apps wiederherstellen.",
-    "es": "{app} oculta. Puedes recuperarla en Aplicaciones.",
+    "es": "{app} oculta. Puedes recuperarla en aplicaciones.",
     "zh": "已隐藏 {app}。你可以在“应用”中恢复。",
-    "pt": "{app} oculto. Você pode restaurá-lo em Apps.",
+    "pt": "{app} oculto. Você pode restaurá-lo em apps.",
     "it": "{app} nascosta. Puoi ripristinarla da App.",
     "ru": "{app}: скрыто. Вернуть можно в разделе «Приложения».",
-    "pl": "Ukryto {app}. Możesz ją przywrócić w Aplikacjach.",
-    "fr": "Application {app} masquée. Vous pouvez la restaurer depuis Applications."
+    "pl": "Ukryto {app}. Możesz ją przywrócić w aplikacjach.",
+    "fr": "Application {app} masquée. Vous pouvez la restaurer depuis applications."
   },
   "refreshNotice": {
     "en": "Refreshing your apps and inputs…",
@@ -2200,15 +2200,15 @@
     "fr": "Lecture seule : réglages et consentements ne prouvent pas qu’un service fonctionne."
   },
   "infoHomeBoot": {
-    "en": "Other Home startup integrations",
+    "en": "Other home startup integrations",
     "de": "Andere Home-Startintegrationen",
     "zh": "其他主屏幕启动集成",
-    "es": "Otras integraciones de inicio de Home",
-    "pt": "Outras integrações de início da Home",
-    "it": "Altre integrazioni Home all’avvio",
-    "ru": "Другие интеграции Home при запуске",
-    "pl": "Inne integracje Home przy starcie",
-    "fr": "Autres intégrations Home au démarrage"
+    "es": "Otras integraciones de inicio de home",
+    "pt": "Outras integrações de início da home",
+    "it": "Altre integrazioni home all’avvio",
+    "ru": "Другие интеграции home при запуске",
+    "pl": "Inne integracje home przy starcie",
+    "fr": "Autres intégrations home au démarrage"
   },
   "infoHomeBootClear": {
     "en": "None detected",
@@ -2420,26 +2420,26 @@
     "fr": "Afficher dans Lumaglass"
   },
   "twoRowFavorites": {
-    "en": "Two-row Home favorites",
+    "en": "Two-row home favorites",
     "de": "Home-Favoriten in zwei Reihen",
     "zh": "主页收藏显示为两行",
-    "es": "Favoritos de Home en dos filas",
-    "pt": "Favoritos da Home em duas linhas",
-    "it": "Preferiti Home su due righe",
-    "ru": "Избранное Home в два ряда",
-    "pl": "Ulubione Home w dwóch rzędach",
-    "fr": "Favoris Home sur deux rangées"
+    "es": "Favoritos de home en dos filas",
+    "pt": "Favoritos da home em duas linhas",
+    "it": "Preferiti home su due righe",
+    "ru": "Избранное home в два ряда",
+    "pl": "Ulubione home w dwóch rzędach",
+    "fr": "Favoris home sur deux rangées"
   },
   "homePersonalization": {
     "en": "Home personalization",
     "de": "Home anpassen",
     "zh": "主页个性化",
-    "es": "Personalización de Home",
-    "pt": "Personalização da Home",
-    "it": "Personalizzazione Home",
-    "ru": "Настройка Home",
-    "pl": "Personalizacja Home",
-    "fr": "Personnalisation de Home"
+    "es": "Personalización de home",
+    "pt": "Personalização da home",
+    "it": "Personalizzazione home",
+    "ru": "Настройка home",
+    "pl": "Personalizacja home",
+    "fr": "Personnalisation de home"
   },
   "homeShowGreeting": {
     "en": "Show greeting",
@@ -2519,15 +2519,15 @@
     "fr": "Afficher le jour de la semaine"
   },
   "homeShowInputs": {
-    "en": "Show inputs on Home",
+    "en": "Show inputs on home",
     "de": "Eingänge auf Home anzeigen",
     "zh": "在主页显示输入源",
-    "es": "Mostrar entradas en Home",
-    "pt": "Mostrar entradas na Home",
-    "it": "Mostra ingressi nella Home",
-    "ru": "Показывать входы на Home",
-    "pl": "Pokaż wejścia na Home",
-    "fr": "Afficher les entrées sur Home"
+    "es": "Mostrar entradas en home",
+    "pt": "Mostrar entradas na home",
+    "it": "Mostra ingressi nella home",
+    "ru": "Показывать входы на home",
+    "pl": "Pokaż wejścia na home",
+    "fr": "Afficher les entrées sur home"
   },
   "homeGreetingFirst": {
     "en": "Greeting before date",
@@ -2651,15 +2651,15 @@
     "fr": "Automatique"
   },
   "homeStartupHint": {
-    "en": "Focus only; no launch. Unavailable choices use the first visible Home card.",
+    "en": "Focus only; no launch. Unavailable choices use the first visible home card.",
     "de": "Nur Fokus, kein Start. Nicht verfügbare Ziele führen zur ersten sichtbaren Home-Karte.",
     "zh": "仅设置焦点，不会启动。所选项不可用时使用主页第一张可见卡片。",
-    "es": "Solo foco, sin abrir apps. Si no está disponible, usa la primera tarjeta visible de Home.",
-    "pt": "Só foco, sem abrir apps. Se indisponível, usa o primeiro cartão visível da Home.",
-    "it": "Solo focus, nessun avvio. Scelte non disponibili usano la prima scheda visibile della Home.",
-    "ru": "Только фокус, без запуска. Недоступный выбор заменяется первой видимой карточкой Home.",
-    "pl": "Tylko fokus, bez uruchamiania. Niedostępny wybór zastępuje pierwsza widoczna karta Home.",
-    "fr": "Sélection seule, sans lancement. Un choix indisponible revient à la première carte visible de Home."
+    "es": "Solo foco, sin abrir apps. Si no está disponible, usa la primera tarjeta visible de home.",
+    "pt": "Só foco, sem abrir apps. Se indisponível, usa o primeiro cartão visível da home.",
+    "it": "Solo focus, nessun avvio. Scelte non disponibili usano la prima scheda visibile della home.",
+    "ru": "Только фокус, без запуска. Недоступный выбор заменяется первой видимой карточкой home.",
+    "pl": "Tylko fokus, bez uruchamiania. Niedostępny wybór zastępuje pierwsza widoczna karta home.",
+    "fr": "Sélection seule, sans lancement. Un choix indisponible revient à la première carte visible de home."
   },
   "homeStaticGreeting": {
     "en": "Custom greeting",
@@ -3025,15 +3025,15 @@
     "fr": "Applications récentes"
   },
   "shortcutNoInputs": {
-    "en": "No Home input is visible. Check Home and per-input visibility settings.",
+    "en": "No home input is visible. Check home and per-input visibility settings.",
     "de": "Kein Eingang auf Home sichtbar. Home- und Eingangseinstellungen prüfen.",
     "zh": "主页上没有可见输入源。请检查主页及各输入源的显示设置。",
-    "es": "No hay entradas visibles en Home. Revisa la visibilidad de Home y cada entrada.",
-    "pt": "Nenhuma entrada visível na Home. Verifique a visibilidade da Home e das entradas.",
-    "it": "Nessun ingresso visibile nella Home. Controlla la visibilità Home e dei singoli ingressi.",
-    "ru": "На Home нет видимых входов. Проверьте настройки Home и отдельных входов.",
-    "pl": "Brak widocznych wejść na Home. Sprawdź ustawienia Home i poszczególnych wejść.",
-    "fr": "Aucune entrée visible sur Home. Vérifiez les réglages de Home et de chaque entrée."
+    "es": "No hay entradas visibles en home. Revisa la visibilidad de home y cada entrada.",
+    "pt": "Nenhuma entrada visível na home. Verifique a visibilidade da home e das entradas.",
+    "it": "Nessun ingresso visibile nella home. Controlla la visibilità home e dei singoli ingressi.",
+    "ru": "На home нет видимых входов. Проверьте настройки home и отдельных входов.",
+    "pl": "Brak widocznych wejść na home. Sprawdź ustawienia home i poszczególnych wejść.",
+    "fr": "Aucune entrée visible sur home. Vérifiez les réglages de home et de chaque entrée."
   },
   "controlPrivacyChange": {
     "en": "Change privacy setting",
@@ -3540,5 +3540,324 @@
     "ru": "After 5 minutes",
     "pl": "After 5 minutes",
     "fr": "After 5 minutes"
+  },
+  "controlCenter": {
+    "en": "Control center",
+    "it": "Centro di controllo",
+    "de": "Kontrollzentrum",
+    "fr": "Centre de contrôle",
+    "es": "Centro de control",
+    "pt": "Central de controle",
+    "pl": "Centrum sterowania",
+    "ru": "Пункт управления",
+    "zh": "控制中心"
+  },
+  "clockAvatar": {
+    "en": "Clock and avatar together",
+    "it": "Orologio e avatar insieme",
+    "de": "Uhr und Avatar zusammen",
+    "fr": "Horloge et avatar ensemble",
+    "es": "Reloj y avatar juntos",
+    "pt": "Relógio e avatar juntos",
+    "pl": "Zegar i awatar razem",
+    "ru": "Часы и аватар вместе",
+    "zh": "时钟与头像合并"
+  },
+  "clockSide": {
+    "en": "Clock position",
+    "it": "Posizione orologio",
+    "de": "Position der Uhr",
+    "fr": "Position de l’horloge",
+    "es": "Posición del reloj",
+    "pt": "Posição do relógio",
+    "pl": "Położenie zegara",
+    "ru": "Положение часов",
+    "zh": "时钟位置"
+  },
+  "sideLeft": {
+    "en": "Left",
+    "it": "Sinistra",
+    "de": "Links",
+    "fr": "Gauche",
+    "es": "Izquierda",
+    "pt": "Esquerda",
+    "pl": "Lewa",
+    "ru": "Слева",
+    "zh": "左侧"
+  },
+  "sideRight": {
+    "en": "Right",
+    "it": "Destra",
+    "de": "Rechts",
+    "fr": "Droite",
+    "es": "Derecha",
+    "pt": "Direita",
+    "pl": "Prawa",
+    "ru": "Справа",
+    "zh": "右侧"
+  },
+  "avatarStyle": {
+    "en": "Avatar style",
+    "it": "Stile avatar",
+    "de": "Avatar-Stil",
+    "fr": "Style de l’avatar",
+    "es": "Estilo del avatar",
+    "pt": "Estilo do avatar",
+    "pl": "Styl awatara",
+    "ru": "Стиль аватара",
+    "zh": "头像样式"
+  },
+  "avatarInitials": {
+    "en": "Initials",
+    "it": "Iniziali",
+    "de": "Initialen",
+    "fr": "Initiales",
+    "es": "Iniciales",
+    "pt": "Iniciais",
+    "pl": "Inicjały",
+    "ru": "Инициалы",
+    "zh": "姓名首字母"
+  },
+  "avatarSymbol": {
+    "en": "Symbol",
+    "it": "Simbolo",
+    "de": "Symbol",
+    "fr": "Symbole",
+    "es": "Símbolo",
+    "pt": "Símbolo",
+    "pl": "Symbol",
+    "ru": "Символ",
+    "zh": "图标"
+  },
+  "ccStandby": {
+    "en": "Standby",
+    "it": "Standby",
+    "de": "Standby",
+    "fr": "Veille",
+    "es": "Reposo",
+    "pt": "Espera",
+    "pl": "Czuwanie",
+    "ru": "Режим ожидания",
+    "zh": "待机"
+  },
+  "ccNetwork": {
+    "en": "Network",
+    "it": "Rete",
+    "de": "Netzwerk",
+    "fr": "Réseau",
+    "es": "Red",
+    "pt": "Rede",
+    "pl": "Sieć",
+    "ru": "Сеть",
+    "zh": "网络"
+  },
+  "ccAudio": {
+    "en": "Audio",
+    "it": "Audio",
+    "de": "Audio",
+    "fr": "Audio",
+    "es": "Audio",
+    "pt": "Áudio",
+    "pl": "Dźwięk",
+    "ru": "Звук",
+    "zh": "音频"
+  },
+  "ccScreensaver": {
+    "en": "Screensaver",
+    "it": "Salvaschermo",
+    "de": "Bildschirmschoner",
+    "fr": "Économiseur d’écran",
+    "es": "Salvapantallas",
+    "pt": "Protetor de tela",
+    "pl": "Wygaszacz ekranu",
+    "ru": "Заставка",
+    "zh": "屏幕保护"
+  },
+  "ccSleepTimer": {
+    "en": "Sleep timer",
+    "it": "Timer di spegnimento",
+    "de": "Ausschalt-Timer",
+    "fr": "Minuterie de veille",
+    "es": "Temporizador de apagado",
+    "pt": "Temporizador de desligamento",
+    "pl": "Wyłącznik czasowy",
+    "ru": "Таймер сна",
+    "zh": "睡眠定时器"
+  },
+  "ccWifi": {
+    "en": "Wi-Fi connected",
+    "it": "Wi-Fi connesso",
+    "de": "WLAN verbunden",
+    "fr": "Wi-Fi connecté",
+    "es": "Wi-Fi conectado",
+    "pt": "Wi-Fi conectado",
+    "pl": "Połączono z Wi-Fi",
+    "ru": "Wi-Fi подключён",
+    "zh": "Wi-Fi 已连接"
+  },
+  "ccEthernet": {
+    "en": "Ethernet connected",
+    "it": "Ethernet connessa",
+    "de": "Ethernet verbunden",
+    "fr": "Ethernet connecté",
+    "es": "Ethernet conectado",
+    "pt": "Ethernet conectada",
+    "pl": "Połączono z Ethernet",
+    "ru": "Ethernet подключён",
+    "zh": "以太网已连接"
+  },
+  "ccOffline": {
+    "en": "Offline",
+    "it": "Non connessa",
+    "de": "Offline",
+    "fr": "Hors ligne",
+    "es": "Sin conexión",
+    "pt": "Sem conexão",
+    "pl": "Offline",
+    "ru": "Нет подключения",
+    "zh": "离线"
+  },
+  "ccMuted": {
+    "en": "Muted",
+    "it": "Audio disattivato",
+    "de": "Stumm",
+    "fr": "Son coupé",
+    "es": "Silenciado",
+    "pt": "Sem som",
+    "pl": "Wyciszono",
+    "ru": "Звук выключен",
+    "zh": "已静音"
+  },
+  "ccUnmuted": {
+    "en": "Sound on",
+    "it": "Audio attivo",
+    "de": "Ton an",
+    "fr": "Son activé",
+    "es": "Sonido activo",
+    "pt": "Som ativo",
+    "pl": "Dźwięk włączony",
+    "ru": "Звук включён",
+    "zh": "声音已开启"
+  },
+  "ccStandbyReady": {
+    "en": "Turn off the TV",
+    "it": "Spegni la TV",
+    "de": "Fernseher ausschalten",
+    "fr": "Éteindre le téléviseur",
+    "es": "Apagar la TV",
+    "pt": "Desligar a TV",
+    "pl": "Wyłącz telewizor",
+    "ru": "Выключить телевизор",
+    "zh": "关闭电视"
+  },
+  "ccStartNow": {
+    "en": "Start now",
+    "it": "Avvia ora",
+    "de": "Jetzt starten",
+    "fr": "Démarrer",
+    "es": "Iniciar ahora",
+    "pt": "Iniciar agora",
+    "pl": "Uruchom teraz",
+    "ru": "Запустить сейчас",
+    "zh": "立即启动"
+  },
+  "ccSliderHint": {
+    "en": "← → Adjust · OK confirms the sleep timer",
+    "it": "← → Regola · OK conferma il timer",
+    "de": "← → Anpassen · OK bestätigt den Timer",
+    "fr": "← → Régler · OK confirme la minuterie",
+    "es": "← → Ajustar · OK confirma el temporizador",
+    "pt": "← → Ajustar · OK confirma o temporizador",
+    "pl": "← → Zmień · OK zatwierdza timer",
+    "ru": "← → Изменить · OK подтверждает таймер",
+    "zh": "← → 调整 · OK 确认定时器"
+  },
+  "ccStandbyHint": {
+    "en": "Send one standby request to the TV? Acknowledgement does not confirm that standby completed.",
+    "it": "Inviare una richiesta di standby alla TV? La ricezione non conferma il completamento dello standby.",
+    "de": "Eine Standby-Anfrage senden? Die Annahme bestätigt nicht den abgeschlossenen Standby.",
+    "fr": "Envoyer une demande de veille ? Son acceptation ne confirme pas la mise en veille.",
+    "es": "¿Enviar una solicitud de reposo? La aceptación no confirma que se haya completado.",
+    "pt": "Enviar uma solicitação de espera? A aceitação não confirma a conclusão.",
+    "pl": "Wysłać żądanie czuwania? Akceptacja nie potwierdza przejścia w czuwanie.",
+    "ru": "Отправить запрос режима ожидания? Принятие не подтверждает завершение.",
+    "zh": "发送一次待机请求？请求被接受不代表电视已进入待机。"
+  },
+  "ccTimerHint": {
+    "en": "Apply this LG sleep timer? It can turn off the TV after you leave Lumaglass. Choose Off to cancel it.",
+    "it": "Applicare questo timer LG? Può spegnere la TV anche dopo l’uscita da Lumaglass. Scegli Disattivato per annullarlo.",
+    "de": "Diesen LG-Timer anwenden? Er kann den Fernseher auch außerhalb von Lumaglass ausschalten. Aus bricht ihn ab.",
+    "fr": "Appliquer cette minuterie LG ? Elle peut éteindre la TV après avoir quitté Lumaglass. Désactivez-la pour l’annuler.",
+    "es": "¿Aplicar este temporizador LG? Puede apagar la TV tras salir de Lumaglass. Desactívalo para cancelarlo.",
+    "pt": "Aplicar este temporizador LG? Ele pode desligar a TV fora do Lumaglass. Desative para cancelar.",
+    "pl": "Zastosować timer LG? Może wyłączyć TV po wyjściu z Lumaglass. Wyłącz go, aby anulować.",
+    "ru": "Применить таймер LG? Он может выключить ТВ после выхода из Lumaglass. Выберите отключение для отмены.",
+    "zh": "应用 LG 睡眠定时器？退出 Lumaglass 后仍可关闭电视。选择关闭可取消定时器。"
+  },
+  "ccStandbyAccepted": {
+    "en": "Standby request accepted",
+    "it": "Richiesta di standby ricevuta",
+    "de": "Standby-Anfrage angenommen",
+    "fr": "Demande de veille acceptée",
+    "es": "Solicitud de reposo aceptada",
+    "pt": "Solicitação de espera aceita",
+    "pl": "Przyjęto żądanie czuwania",
+    "ru": "Запрос ожидания принят",
+    "zh": "待机请求已接受"
+  },
+  "minutesShort": {
+    "en": "min",
+    "it": "min",
+    "de": "Min.",
+    "fr": "min",
+    "es": "min",
+    "pt": "min",
+    "pl": "min",
+    "ru": "мин",
+    "zh": "分钟"
+  },
+  "saverFifteen": {
+    "en": "15 min",
+    "it": "15 min",
+    "de": "15 Min.",
+    "fr": "15 min",
+    "es": "15 min",
+    "pt": "15 min",
+    "pl": "15 min",
+    "ru": "15 мин",
+    "zh": "15 分钟"
+  },
+  "saverThirty": {
+    "en": "30 min",
+    "it": "30 min",
+    "de": "30 Min.",
+    "fr": "30 min",
+    "es": "30 min",
+    "pt": "30 min",
+    "pl": "30 min",
+    "ru": "30 мин",
+    "zh": "30 分钟"
+  },
+  "saverFortyFive": {
+    "en": "45 min",
+    "it": "45 min",
+    "de": "45 Min.",
+    "fr": "45 min",
+    "es": "45 min",
+    "pt": "45 min",
+    "pl": "45 min",
+    "ru": "45 мин",
+    "zh": "45 分钟"
+  },
+  "saverHour": {
+    "en": "60 min",
+    "it": "60 min",
+    "de": "60 Min.",
+    "fr": "60 min",
+    "es": "60 min",
+    "pt": "60 min",
+    "pl": "60 min",
+    "ru": "60 мин",
+    "zh": "60 分钟"
   }
 }

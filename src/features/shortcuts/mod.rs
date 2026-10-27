@@ -39,6 +39,7 @@ pub enum Action {
     Apps,
     Settings,
     Recents,
+    ControlCenter,
 }
 impl Action {
     pub fn key(self) -> &'static str {
@@ -50,6 +51,7 @@ impl Action {
             Self::Apps => "apps",
             Self::Settings => "settings",
             Self::Recents => "shortcutRecents",
+            Self::ControlCenter => "controlCenter",
         }
     }
     pub fn next(self) -> Self {
@@ -60,7 +62,8 @@ impl Action {
             Self::Inputs => Self::Apps,
             Self::Apps => Self::Settings,
             Self::Settings => Self::Recents,
-            Self::Recents => Self::None,
+            Self::Recents => Self::ControlCenter,
+            Self::ControlCenter => Self::None,
         }
     }
 }
