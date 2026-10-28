@@ -47,6 +47,9 @@ pub enum Target {
     CatalogBack,
     CatalogToggle,
     CatalogLgHome,
+    CatalogSystemInspect,
+    CatalogSystemRestore,
+    CatalogSystemCancel,
     CatalogRemove,
     ControlCenter,
     CloseControlCenter,
@@ -235,6 +238,12 @@ pub enum Direction {
 
 #[derive(Debug, PartialEq)]
 pub enum Effect {
+    SystemVisibility {
+        generation: u64,
+        id: String,
+        command: crate::features::apps::system_visibility::Command,
+        plan: Option<String>,
+    },
     AppCatalog {
         generation: u64,
     },
@@ -518,8 +527,36 @@ impl State {
 
     /// Disabled rows remain focusable so the reason can be read, but cannot mutate.
     pub fn target_enabled(&self, target: &Target) -> bool {
+        if self.catalog.system_visibility.confirming
+            && matches!(self.subpage, Some(Subpage::ManagedApp(_)))
+            && matches!(
+                target,
+                Target::CatalogToggle
+                    | Target::CatalogRemove
+                    | Target::CatalogSystemInspect
+                    | Target::CatalogSystemRestore
+            )
+        {
+            return false;
+        }
         match target {
-            Target::CatalogLgHome => false,
+            Target::CatalogLgHome => {
+                !self.catalog.system_visibility.loading
+                    && self
+                        .system_visibility_report()
+                        .is_some_and(crate::features::apps::system_visibility::Report::can_hide)
+            }
+            Target::CatalogSystemCancel => self.catalog.system_visibility.confirming,
+            Target::CatalogSystemInspect => {
+                !self.catalog.system_visibility.loading
+                    && matches!(self.subpage, Some(Subpage::ManagedApp(_)))
+            }
+            Target::CatalogSystemRestore => {
+                !self.catalog.system_visibility.loading
+                    && self
+                        .system_visibility_report()
+                        .is_some_and(|r| r.can_restore)
+            }
             Target::CatalogUndo => self.catalog.can_undo(),
             Target::CatalogRestoreAll => !self.preferences.hidden.is_empty(),
             Target::CatalogPrevious => self.catalog.page > 0,
@@ -1289,6 +1326,9 @@ impl State {
                 | Target::CatalogToggle
                 | Target::CatalogRemove
                 | Target::CatalogLgHome
+                | Target::CatalogSystemInspect
+                | Target::CatalogSystemRestore
+                | Target::CatalogSystemCancel
         ) && !matches!(self.subpage, Some(Subpage::ManagedApp(_)))
         {
             self.focus = Target::CatalogRefresh;

@@ -143,6 +143,12 @@ pub fn redirect_to_home() -> Result<bool, String> {
 }
 
 pub enum Request {
+    SystemVisibility {
+        generation: u64,
+        id: String,
+        command: crate::features::apps::system_visibility::Command,
+        plan: Option<String>,
+    },
     AppCatalog {
         generation: u64,
     },
@@ -174,6 +180,11 @@ pub enum Request {
     },
 }
 pub enum Response {
+    SystemVisibility {
+        generation: u64,
+        id: String,
+        result: Result<crate::features::apps::system_visibility::Report, String>,
+    },
     AppCatalog {
         generation: u64,
         result: Result<crate::features::apps::catalog::Report, String>,
@@ -209,6 +220,12 @@ pub enum Response {
 }
 
 enum ObservationRequest {
+    SystemVisibility(
+        u64,
+        String,
+        crate::features::apps::system_visibility::Command,
+        Option<String>,
+    ),
     AppCatalog(u64),
     Control(u64, crate::features::controls::Command),
     System(u64),
@@ -277,6 +294,19 @@ impl Platform {
         thread::spawn(move || {
             for job in jobs {
                 let response = match job {
+                    ObservationRequest::SystemVisibility(generation, id, command, plan) => {
+                        Response::SystemVisibility {
+                            generation,
+                            result: if webos {
+                                system_visibility(&id, command, plan.as_deref())
+                            } else {
+                                Ok(crate::features::apps::system_visibility::Report::preview(
+                                    &id,
+                                ))
+                            },
+                            id,
+                        }
+                    }
                     ObservationRequest::AppCatalog(generation) => Response::AppCatalog {
                         generation,
                         result: if webos {
@@ -327,6 +357,13 @@ impl Platform {
             };
             while let Ok(request) = requests.recv() {
                 let response = match request {
+                    Request::SystemVisibility { generation, id, .. } => {
+                        Response::SystemVisibility {
+                            generation,
+                            id,
+                            result: Err("Wrong worker".into()),
+                        }
+                    }
                     Request::AppCatalog { generation } => Response::AppCatalog {
                         generation,
                         result: Err("Wrong observation worker".into()),
@@ -456,6 +493,12 @@ impl Platform {
             return;
         }
         let job = match request {
+            Request::SystemVisibility {
+                generation,
+                id,
+                command,
+                plan,
+            } => ObservationRequest::SystemVisibility(generation, id, command, plan),
             Request::AppCatalog { generation } => ObservationRequest::AppCatalog(generation),
             Request::Control {
                 generation,
@@ -474,6 +517,13 @@ impl Platform {
             };
             let error = "Observation worker unavailable".to_owned();
             let response = match job {
+                ObservationRequest::SystemVisibility(generation, id, _, _) => {
+                    Response::SystemVisibility {
+                        generation,
+                        id,
+                        result: Err(error),
+                    }
+                }
                 ObservationRequest::AppCatalog(generation) => Response::AppCatalog {
                     generation,
                     result: Err(error),
@@ -563,6 +613,37 @@ fn control_command(
         json!({"command":command}),
     )?;
     serde_json::from_value(command_reply(&envelope)?).map_err(|_| "Invalid control response".into())
+}
+
+fn system_visibility(
+    id: &str,
+    action: crate::features::apps::system_visibility::Command,
+    plan: Option<&str>,
+) -> Result<crate::features::apps::system_visibility::Report, String> {
+    if !valid_app_id(id) {
+        return Err("Invalid app identity".into());
+    }
+    let quote = |value: &str| format!("'{}'", value.replace('\'', "'\\''"));
+    let script = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tv/system-apps.cjs"));
+    let mut payload = json!({"action":action,"id":id,"plan":plan});
+    if action == crate::features::apps::system_visibility::Command::Hide {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| "System clock unavailable")?
+            .as_millis();
+        payload["expiresAt"] = json!(
+            u64::try_from(now)
+                .map_err(|_| "Invalid clock")?
+                .saturating_add(8000)
+        );
+    }
+    let payload = serde_json::to_string(&payload).map_err(|e| e.to_string())?;
+    let shell = format!("/usr/bin/node -e {} {}", quote(script), quote(&payload));
+    let reply = call(
+        "luna://org.webosbrew.hbchannel.service/exec",
+        json!({"command":shell}),
+    )?;
+    crate::features::apps::system_visibility::Report::parse(id, &command_reply(&reply)?)
 }
 
 fn app_catalog() -> Result<crate::features::apps::catalog::Report, String> {

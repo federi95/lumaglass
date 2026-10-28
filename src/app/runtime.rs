@@ -244,6 +244,17 @@ fn effects(
     for effect in effects {
         match effect {
             Effect::AppCatalog { generation } => platform.send(Request::AppCatalog { generation }),
+            Effect::SystemVisibility {
+                generation,
+                id,
+                command,
+                plan,
+            } => platform.send(Request::SystemVisibility {
+                generation,
+                id,
+                command,
+                plan,
+            }),
             Effect::Manage {
                 generation,
                 command,
@@ -988,6 +999,11 @@ fn run() -> Result<(), String> {
         state.dirty |= assets.artwork.poll();
         while let Ok(response) = platform.receiver.try_recv() {
             match response {
+                Response::SystemVisibility {
+                    generation,
+                    id,
+                    result,
+                } => state.system_visibility_accept(generation, &id, result),
                 Response::AppCatalog { generation, result } => {
                     state.catalog_accept(generation, result)
                 }

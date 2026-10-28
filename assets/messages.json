@@ -4343,5 +4343,137 @@
     "pl": "Półprzezroczyste elementy z uproszczonymi refleksami.",
     "ru": "Полупрозрачные элементы с упрощёнными бликами.",
     "zh": "半透明控件，使用简化反光效果。"
+  },
+  "systemVisibilityInspect": {
+    "en": "Inspect system visibility",
+    "it": "Analizza visibilità di sistema",
+    "de": "Systemsichtbarkeit prüfen",
+    "fr": "Analyser la visibilité système",
+    "es": "Analizar visibilidad del sistema",
+    "pt": "Analisar visibilidade do sistema",
+    "pl": "Sprawdź widoczność systemową",
+    "ru": "Проверить системную видимость",
+    "zh": "检查系统可见性"
+  },
+  "systemVisibilityInspectHint": {
+    "en": "Read-only checks of the app, firmware and conflicting changes.",
+    "it": "Controlli in sola lettura su app, firmware e modifiche in conflitto.",
+    "de": "Schreibgeschützte Prüfung von App, Firmware und Änderungskonflikten.",
+    "fr": "Vérifications en lecture seule de l’app, du firmware et des conflits.",
+    "es": "Comprobaciones de solo lectura de la app, el firmware y los conflictos.",
+    "pt": "Verificações somente de leitura do app, firmware e conflitos.",
+    "pl": "Kontrole aplikacji, oprogramowania TV i konfliktów tylko do odczytu.",
+    "ru": "Проверка приложения, прошивки и конфликтов без изменений.",
+    "zh": "只读检查应用、固件和修改冲突。"
+  },
+  "systemVisibilityRestore": {
+    "en": "Restore LG visibility",
+    "it": "Ripristina visibilità LG",
+    "de": "LG-Sichtbarkeit wiederherstellen",
+    "fr": "Restaurer la visibilité LG",
+    "es": "Restaurar visibilidad de LG",
+    "pt": "Restaurar visibilidade LG",
+    "pl": "Przywróć widoczność LG",
+    "ru": "Восстановить видимость LG",
+    "zh": "恢复 LG 可见性"
+  },
+  "systemVisibilityRestoreHint": {
+    "en": "Restore only changes owned by Lumaglass. Other launchers are left alone.",
+    "it": "Ripristina solo le modifiche di Lumaglass, preservando quelle degli altri launcher.",
+    "de": "Nur Änderungen von Lumaglass wiederherstellen. Andere Launcher bleiben unberührt.",
+    "fr": "Restaure uniquement les modifications de Lumaglass, sans toucher aux autres lanceurs.",
+    "es": "Restaura solo los cambios de Lumaglass, conservando los de otros lanzadores.",
+    "pt": "Restaura apenas alterações do Lumaglass, preservando as de outros launchers.",
+    "pl": "Przywraca tylko zmiany Lumaglass, zachowując zmiany innych programów.",
+    "ru": "Отменяет только изменения Lumaglass, сохраняя изменения других оболочек.",
+    "zh": "仅恢复 Lumaglass 的修改，保留其他启动器的修改。"
+  },
+  "systemVisibilityConflict": {
+    "en": "Conflicting changes",
+    "it": "Modifiche in conflitto",
+    "de": "Änderungskonflikt",
+    "fr": "Modifications en conflit",
+    "es": "Cambios en conflicto",
+    "pt": "Alterações em conflito",
+    "pl": "Konflikt zmian",
+    "ru": "Конфликт изменений",
+    "zh": "修改冲突"
+  },
+  "systemVisibilityOwned": {
+    "en": "Lumaglass change",
+    "it": "Modifica di Lumaglass",
+    "de": "Lumaglass-Änderung",
+    "fr": "Modification de Lumaglass",
+    "es": "Cambio de Lumaglass",
+    "pt": "Alteração do Lumaglass",
+    "pl": "Zmiana Lumaglass",
+    "ru": "Изменение Lumaglass",
+    "zh": "Lumaglass 修改"
+  },
+  "systemVisibilityRestored": {
+    "en": "Restored",
+    "it": "Ripristinato",
+    "de": "Wiederhergestellt",
+    "fr": "Restauré",
+    "es": "Restaurado",
+    "pt": "Restaurado",
+    "pl": "Przywrócono",
+    "ru": "Восстановлено",
+    "zh": "已恢复"
+  },
+  "systemVisibilityPending": {
+    "en": "Needs verification",
+    "it": "Da verificare",
+    "de": "Prüfung erforderlich",
+    "fr": "À vérifier",
+    "es": "Por verificar",
+    "pt": "A verificar",
+    "pl": "Wymaga sprawdzenia",
+    "ru": "Нужна проверка",
+    "zh": "需要验证"
+  },
+  "systemVisibilityUnverified": {
+    "en": "Firmware not verified",
+    "it": "Firmware non verificato",
+    "de": "Firmware nicht geprüft",
+    "fr": "Firmware non vérifié",
+    "es": "Firmware no verificado",
+    "pt": "Firmware não verificado",
+    "pl": "Oprogramowanie niezweryfikowane",
+    "ru": "Прошивка не проверена",
+    "zh": "固件未经验证"
+  },
+  "systemVisibilityChecking": {
+    "en": "Checking…",
+    "it": "Analisi…",
+    "de": "Wird geprüft…",
+    "fr": "Analyse…",
+    "es": "Analizando…",
+    "pt": "Analisando…",
+    "pl": "Sprawdzanie…",
+    "ru": "Проверка…",
+    "zh": "检查中…"
+  },
+  "systemVisibilityConfirm": {
+    "en": "Confirm LG hiding",
+    "it": "Conferma nascondimento LG",
+    "de": "Ausblenden bei LG bestätigen",
+    "fr": "Confirmer le masquage LG",
+    "es": "Confirmar ocultación en LG",
+    "pt": "Confirmar ocultação LG",
+    "pl": "Potwierdź ukrycie w LG",
+    "ru": "Подтвердить скрытие LG",
+    "zh": "确认在 LG 中隐藏"
+  },
+  "systemVisibilityHideHint": {
+    "en": "Hide this tile from LG Home. The app may stop opening; its files are preserved.",
+    "it": "Nasconde la tile dalla Home LG. L’app potrebbe non aprirsi più; i file vengono conservati.",
+    "de": "Blendet die Kachel in LG Home aus. Die App startet möglicherweise nicht mehr; ihre Dateien bleiben erhalten.",
+    "fr": "Masque la tuile dans LG Home. L’app peut ne plus s’ouvrir ; ses fichiers sont conservés.",
+    "es": "Oculta la ficha en LG Home. La app podría dejar de abrirse; sus archivos se conservan.",
+    "pt": "Oculta o bloco na LG Home. O app pode deixar de abrir; os arquivos são preservados.",
+    "pl": "Ukrywa kafelek w LG Home. Aplikacja może przestać się otwierać; pliki zostaną zachowane.",
+    "ru": "Скрывает плитку в LG Home. Приложение может перестать открываться; файлы сохраняются.",
+    "zh": "从 LG Home 隐藏此磁贴。应用可能无法再打开，但文件会保留。"
   }
 }

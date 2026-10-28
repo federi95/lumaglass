@@ -59,6 +59,13 @@ implementation. The protected-ID additions in `src/features/apps/management.rs`
 and `tv/manage-app.cjs` follow that reference. The original Rory Gallagher MIT
 notice remains preserved and included in the package.
 
+`tv/system-apps.cjs` is an original Lumaglass implementation of qualified
+manifest transactions, read-only preflight and ownership-scoped recovery. The
+fixed per-app block/release protocol is informed by Glasshouse's `samrescan.js`
+at revision `d6905c4d84d5282e3a95ebe611c0493f88ac164c`; its original MIT notice
+remains preserved. No SAM restart, regional-list rewrite or boot hook is ported,
+and no firmware is qualified by this reference alone.
+
 ## Liquid Glass optics
 
 The optional single-sample Light path and 720p cache budget are original Lumaglass additions. The Full path retains the attribution below.

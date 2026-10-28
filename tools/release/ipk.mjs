@@ -98,6 +98,7 @@ export function normalizeAndVerifyPackage(bytes, manifest) {
     'autostart.sh',
     'home.sh',
     'home.cjs',
+    'system-apps.cjs',
     'home-mounts.cjs',
     'blocker.cjs',
     'splash.png',

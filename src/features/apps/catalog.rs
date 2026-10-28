@@ -161,6 +161,7 @@ struct Change {
 #[derive(Default)]
 pub struct Catalog {
     pub report: Option<Report>,
+    pub system_visibility: super::system_visibility::Session,
     pub loading: bool,
     pub failed: bool,
     pub filter: Filter,
@@ -188,10 +189,11 @@ impl Catalog {
 }
 impl State {
     pub fn catalog_request(&mut self) -> Vec<Effect> {
-        self.catalog
-            .request()
-            .map(|generation| vec![Effect::AppCatalog { generation }])
-            .unwrap_or_default()
+        let Some(generation) = self.catalog.request() else {
+            return vec![];
+        };
+        self.catalog.system_visibility.invalidate();
+        vec![Effect::AppCatalog { generation }]
     }
     pub fn catalog_accept(&mut self, generation: u64, result: Result<Report, String>) {
         if generation != self.catalog.generation || !self.catalog.loading {
@@ -278,12 +280,17 @@ impl State {
     }
     pub fn catalog_rows(&self) -> Vec<Target> {
         if matches!(self.subpage, Some(Subpage::ManagedApp(_))) {
-            return vec![
+            let mut rows = vec![
                 Target::CatalogBack,
                 Target::CatalogToggle,
-                Target::CatalogLgHome,
-                Target::CatalogRemove,
+                Target::CatalogSystemInspect,
+                Target::CatalogSystemRestore,
             ];
+            if self.catalog.system_visibility.confirming {
+                rows.push(Target::CatalogSystemCancel);
+            }
+            rows.extend([Target::CatalogLgHome, Target::CatalogRemove]);
+            return rows;
         }
         let mut rows = vec![
             Target::CatalogRefresh,
@@ -312,6 +319,7 @@ impl State {
         self.catalog_request()
     }
     pub fn catalog_back(&mut self) {
+        self.catalog.system_visibility.invalidate();
         if let Some(Subpage::ManagedApp(id)) = self.subpage.clone() {
             self.subpage = Some(Subpage::AppManagement);
             let visible = self
@@ -375,6 +383,28 @@ impl State {
         self.dirty = true;
         match self.focus.clone() {
             Target::CatalogRefresh => return self.catalog_request(),
+            Target::CatalogSystemCancel => {
+                self.catalog.system_visibility.confirming = false;
+                self.focus = Target::CatalogLgHome;
+            }
+            Target::CatalogLgHome => {
+                if self.catalog.system_visibility.confirming {
+                    return self.system_visibility_request(super::system_visibility::Command::Hide);
+                }
+                if self
+                    .system_visibility_report()
+                    .is_some_and(super::system_visibility::Report::can_hide)
+                {
+                    self.catalog.system_visibility.confirming = true;
+                    self.focus = Target::CatalogSystemCancel;
+                }
+            }
+            Target::CatalogSystemInspect => {
+                return self.system_visibility_request(super::system_visibility::Command::Inspect);
+            }
+            Target::CatalogSystemRestore => {
+                return self.system_visibility_request(super::system_visibility::Command::Restore);
+            }
             Target::CatalogFilter => {
                 self.catalog.filter = self.catalog.filter.next();
                 self.catalog.page = 0;
@@ -389,6 +419,7 @@ impl State {
                 self.scroll = 0.;
             }
             Target::CatalogApp(id) if self.catalog_entry(&id).is_some() => {
+                self.catalog.system_visibility.invalidate();
                 self.catalog.return_scroll = self.scroll;
                 self.subpage = Some(Subpage::ManagedApp(id));
                 self.focus = Target::CatalogBack;
@@ -453,6 +484,7 @@ impl State {
         vec![]
     }
     pub fn catalog_invalidate_removed(&mut self, id: &str) {
+        self.catalog.system_visibility.invalidate();
         self.catalog.generation = self.catalog.generation.wrapping_add(1);
         self.catalog.loading = false;
         if let Some(report) = &mut self.catalog.report {

@@ -296,6 +296,69 @@ fn detail(out: &mut Scene, state: &State, assets: &Assets, id: &str) {
             chevron: false,
         },
     );
+    let report = state.system_visibility_report();
+    let observed = report.map(|report| {
+        format!(
+            "{} · {} · {}",
+            report.model.as_deref().unwrap_or(language.t("infoUnknown")),
+            report
+                .firmware
+                .as_deref()
+                .unwrap_or(language.t("infoUnknown")),
+            report.sdk.as_deref().unwrap_or(language.t("infoUnknown"))
+        )
+    });
+    let hint = observed.as_ref().map_or_else(
+        || language.t("systemVisibilityInspectHint").to_owned(),
+        |observed| format!("{} {}", language.t("systemVisibilityInspectHint"), observed),
+    );
+    item(
+        out,
+        state,
+        assets,
+        &mut y,
+        Item {
+            target: Target::CatalogSystemInspect,
+            title: language.t("systemVisibilityInspect"),
+            value: Some(language.t(if state.catalog.system_visibility.loading {
+                "systemVisibilityChecking"
+            } else {
+                report.map_or("infoUnknown", |report| report.key())
+            })),
+            description: Some(&hint),
+            chevron: false,
+        },
+    );
+    item(
+        out,
+        state,
+        assets,
+        &mut y,
+        Item {
+            target: Target::CatalogSystemRestore,
+            title: language.t("systemVisibilityRestore"),
+            value: None,
+            description: Some(language.t("systemVisibilityRestoreHint")),
+            chevron: false,
+        },
+    );
+    let confirming = state.catalog.system_visibility.confirming;
+    let qualified = report.is_some_and(crate::features::apps::system_visibility::Report::can_hide);
+    if confirming {
+        item(
+            out,
+            state,
+            assets,
+            &mut y,
+            Item {
+                target: Target::CatalogSystemCancel,
+                title: language.t("uninstallCancel"),
+                value: None,
+                description: None,
+                chevron: false,
+            },
+        );
+    }
     item(
         out,
         state,
@@ -303,9 +366,21 @@ fn detail(out: &mut Scene, state: &State, assets: &Assets, id: &str) {
         &mut y,
         Item {
             target: Target::CatalogLgHome,
-            title: language.t("catalogHideLg"),
-            value: Some(language.t("infoUnavailable")),
-            description: Some(language.t("catalogLgBlocked")),
+            title: language.t(if confirming {
+                "systemVisibilityConfirm"
+            } else {
+                "catalogHideLg"
+            }),
+            value: Some(language.t(if qualified {
+                "infoAvailable"
+            } else {
+                "infoUnavailable"
+            })),
+            description: Some(language.t(if qualified {
+                "systemVisibilityHideHint"
+            } else {
+                "catalogLgBlocked"
+            })),
             chevron: false,
         },
     );

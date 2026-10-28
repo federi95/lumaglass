@@ -6,3 +6,4 @@ pub(crate) mod home_layout;
 pub(crate) mod management;
 pub(crate) mod recents;
 pub(crate) mod scroll_preview;
+pub(crate) mod system_visibility;
