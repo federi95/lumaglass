@@ -34,10 +34,158 @@ jobs:
             const { isReleaseMerge } = await import(`${process.env.GITHUB_WORKSPACE}/tools/release/release-gate.mjs`);
             return isReleaseMerge({ github, context });
 
-  build:
-    name: Rust checks, rendering, and native package
+  checks:
+    name: Formatting, lint and unit tests
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.0
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - uses: dtolnay/rust-toolchain@1.93.0
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2.9.3
+        with:
+          cache-bin: false
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      - name: Install Rust desktop dependencies
+        timeout-minutes: 10
+        run: |
+          apt_options=(-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
+          sudo apt-get "${apt_options[@]}" update
+          sudo apt-get "${apt_options[@]}" install -y --no-install-recommends libsdl2-dev pkg-config
+      - name: Check formatting
+        run: pnpm format:check
+      - name: Lint Rust and packaging tools
+        run: pnpm check
+      - name: Run unit tests
+        run: pnpm test
+
+  prepare:
+    name: Prepare shared native runtime
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.0
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - uses: dtolnay/rust-toolchain@1.93.0
+      - uses: Swatinem/rust-cache@v2.9.3
+        with:
+          cache-bin: false
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      - name: Restore generated native assets
+        id: assets
+        uses: actions/cache/restore@v6.1.0
+        with:
+          path: .build/assets
+          key: ${{ runner.os }}-${{ runner.arch }}-native-assets-v1-rust1.93-node24-${{ hashFiles('assets/**', 'tools/assets/**', 'tools/vector-assets/**', 'crates/vector-geometry/**', 'tools/lib/project.mjs', '**/Cargo.toml', 'Cargo.lock', 'pnpm-lock.yaml', 'appinfo.json') }}
+      - name: Install desktop and optional asset dependencies
+        timeout-minutes: 10
+        env:
+          ASSETS_CACHE_HIT: ${{ steps.assets.outputs.cache-hit }}
+        run: |
+          asset_packages=()
+          if [ "$ASSETS_CACHE_HIT" != true ]; then
+            asset_packages=(woff2 python3-venv)
+          fi
+          apt_options=(-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
+          sudo apt-get "${apt_options[@]}" update
+          sudo apt-get "${apt_options[@]}" install -y --no-install-recommends libsdl2-dev pkg-config "${asset_packages[@]}"
+      - name: Prepare isolated font tools
+        if: steps.assets.outputs.cache-hit != 'true'
+        timeout-minutes: 5
+        run: |
+          python3 -m venv .build/fonttools-venv
+          .build/fonttools-venv/bin/python -m pip install --disable-pip-version-check \
+            --only-binary=:all: --timeout 30 --retries 2 -r tools/assets/requirements-ci.txt
+          echo "$GITHUB_WORKSPACE/.build/fonttools-venv/bin" >> "$GITHUB_PATH"
+      - name: Generate native assets on cache miss
+        if: steps.assets.outputs.cache-hit != 'true'
+        run: pnpm assets
+      - name: Cache generated native assets from main
+        if: steps.assets.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@v6.1.0
+        with:
+          path: .build/assets
+          key: ${{ runner.os }}-${{ runner.arch }}-native-assets-v1-rust1.93-node24-${{ hashFiles('assets/**', 'tools/assets/**', 'tools/vector-assets/**', 'crates/vector-geometry/**', 'tools/lib/project.mjs', '**/Cargo.toml', 'Cargo.lock', 'pnpm-lock.yaml', 'appinfo.json') }}
+      - name: Build the desktop renderer once
+        run: cargo build --locked --package lumaglass
+      - name: Archive runtime with executable permissions
+        run: tar -czf .build/native-runtime.tar.gz .build/assets target/debug/lumaglass
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: native-runtime
+          path: .build/native-runtime.tar.gz
+          include-hidden-files: true
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
+
+  graphics:
+    name: Graphics (${{ matrix.suite }})
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        suite: [home, brands, weather, translations, display]
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.0
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install graphics runtime dependencies
+        timeout-minutes: 10
+        run: |
+          apt_options=(-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
+          sudo apt-get "${apt_options[@]}" update
+          sudo apt-get "${apt_options[@]}" install -y --no-install-recommends libsdl2-2.0-0 libgl1 libegl1 libgl1-mesa-dri xvfb xauth
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: native-runtime
+          path: .build
+      - name: Restore the exact runtime built by this workflow
+        run: tar -xzf .build/native-runtime.tar.gz
+      - name: Exercise the native graphics suite and record timing
+        env:
+          GRAPHICS_SUITE: ${{ matrix.suite }}
+        run: node tools/ci/run-graphics.mjs "$GRAPHICS_SUITE"
+      - name: Upload rendering diagnostics and suite duration
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: native-rendering-${{ matrix.suite }}
+          if-no-files-found: ignore
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            .build/*.png
+            .build/*-render.json
+            .build/ci-timing-*.json
+
+  package:
+    name: Cross-build and verify native package
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     outputs:
       tag: ${{ steps.package.outputs.tag }}
     steps:
@@ -51,39 +199,19 @@ jobs:
         run: pnpm install --frozen-lockfile
       - uses: dtolnay/rust-toolchain@1.93.0
         with:
-          components: rustfmt, clippy
           targets: armv7-unknown-linux-gnueabi
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2.9.3
+      - uses: Swatinem/rust-cache@v2.9.3
         with:
           key: webos-${{ hashFiles('tools/webos/build-webos.sh', 'tools/webos/setup-webos-sdk.mjs', 'tools/webos/webos-runtime.mjs') }}
-      - name: Install desktop and asset dependencies
-        timeout-minutes: 10
-        run: |
-          apt_options=(-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
-          sudo apt-get "${apt_options[@]}" update
-          sudo apt-get "${apt_options[@]}" install -y --no-install-recommends \
-            libsdl2-dev pkg-config woff2 python3-venv libgl1-mesa-dri xvfb xauth
-      - name: Prepare isolated font tools
-        timeout-minutes: 5
-        run: |
-          python3 -m venv .build/fonttools-venv
-          .build/fonttools-venv/bin/python -m pip install --disable-pip-version-check \
-            --only-binary=:all: --timeout 30 --retries 2 -r tools/assets/requirements-ci.txt
-          echo "$GITHUB_WORKSPACE/.build/fonttools-venv/bin" >> "$GITHUB_PATH"
-      - name: Check formatting
-        run: pnpm format:check
-      - name: Lint Rust and packaging tools
-        run: pnpm check
-      - name: Run unit tests
-        run: pnpm test
-      - name: Generate native assets
-        run: pnpm assets
-      - name: Exercise desktop rendering and mocked weather
-        env:
-          LIBGL_ALWAYS_SOFTWARE: '1'
-        run: xvfb-run -a -s '-screen 0 1920x1080x24' pnpm test:smoke
-      - name: Set up the webOS SDK
+          cache-bin: false
+          save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: native-runtime
+          path: .build
+      - name: Restore shared generated assets
+        run: tar -xzf .build/native-runtime.tar.gz .build/assets
+      - name: Set up the pinned webOS SDK
         run: pnpm sdk
       - name: Cross-build and verify the native IPK and Homebrew feed
         id: package
@@ -103,17 +231,30 @@ jobs:
             dist/repo.json
             dist/description.html
             dist/app-icon-large.png
-      - name: Upload native rendering diagnostics
-        if: always()
-        uses: actions/upload-artifact@v7.0.2
-        with:
-          name: native-rendering
-          if-no-files-found: ignore
-          retention-days: 7
-          include-hidden-files: true
-          path: |
-            .build/*.png
-            .build/*-render.json
+
+  build:
+    # Keep the existing aggregate check name for branch rules and the release gate.
+    name: Rust checks, rendering, and native package
+    if: always()
+    needs: [checks, prepare, graphics, package]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ needs.package.outputs.tag }}
+    steps:
+      - name: Require every unit, graphics and package job
+        env:
+          CHECKS_RESULT: ${{ needs.checks.result }}
+          PREPARE_RESULT: ${{ needs.prepare.result }}
+          GRAPHICS_RESULT: ${{ needs.graphics.result }}
+          PACKAGE_RESULT: ${{ needs.package.result }}
+        run: |
+          for result in "$CHECKS_RESULT" "$PREPARE_RESULT" "$GRAPHICS_RESULT" "$PACKAGE_RESULT"; do
+            if [ "$result" != success ]; then
+              printf 'A required CI job did not succeed: %s\n' "$result" >&2
+              exit 1
+            fi
+          done
 
   release:
     name: Publish release and Homebrew feed

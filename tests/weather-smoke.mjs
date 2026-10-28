@@ -1,3 +1,4 @@
+import { buildNative } from '../tools/ci/native-smoke.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -145,7 +146,7 @@ const forecastCount = () => requests.filter((request) => request.path === '/v1/f
 const searchCount = () => requests.filter((request) => request.path === '/v1/search').length;
 const locationPage = 'settings,down,down,down,enter,down,enter';
 try {
-  await run('cargo', ['build', '--locked', '--package', 'lumaglass']);
+  buildNative();
   await writePreferences();
   await scenario('unconfigured', 'home,down');
   assert.equal(requests.length, 0, 'No geolocation or automatic city discovery');

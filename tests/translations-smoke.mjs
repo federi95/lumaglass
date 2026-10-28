@@ -1,3 +1,4 @@
+import { buildNative } from '../tools/ci/native-smoke.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -102,7 +103,7 @@ function contains(state, key, language) {
 const picker = 'settings,down,enter,down,down,down,enter';
 const location = 'settings,down,down,down,enter,down,enter';
 try {
-  await run('cargo', ['build', '--locked', '--package', 'lumaglass']);
+  buildNative();
   for (const language of ['en', 'it', 'de', 'fr', 'es', 'pt', 'pl', 'ru', 'zh']) {
     await fs.writeFile(
       preferences,

@@ -1,3 +1,4 @@
+import { buildNative } from '../tools/ci/native-smoke.mjs';
 // Exercise every curated logo with the native desktop renderer. No TV, network
 // service or weather API is used. The contact sheet is a manual design preview.
 import assert from 'node:assert/strict';
@@ -14,7 +15,7 @@ function run(command, args) {
   if (result.error) throw result.error;
   assert.equal(result.status, 0, `${command} failed`);
 }
-run('cargo', ['build', '--locked', '--package', 'lumaglass', '--no-default-features']);
+buildNative();
 const binary = path.resolve(root, process.env.CARGO_TARGET_DIR ?? 'target', 'debug/lumaglass');
 const scratch = await fs.mkdtemp(path.join(out, 'brand-gallery-'));
 try {

@@ -1,3 +1,4 @@
+import { buildNative } from '../tools/ci/native-smoke.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -12,7 +13,7 @@ const run = (command, args) => {
   if (result.error) throw result.error;
   assert.equal(result.status, 0, `${command} failed`);
 };
-run('cargo', ['build', '--locked', '--package', 'lumaglass']);
+buildNative();
 const binary = path.resolve(root, process.env.CARGO_TARGET_DIR ?? 'target', 'debug/lumaglass');
 const temporary = await fs.mkdtemp(path.join(out, 'smoke-'));
 try {

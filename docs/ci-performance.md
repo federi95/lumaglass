@@ -26,16 +26,39 @@ build and package inspection are smaller contributors. Repeated pushes can cance
 an in-progress run and start the checks again, extending the time before one
 complete green result is available.
 
-Potential follow-up changes, requiring a separately authorized CI run:
+## Implemented pipeline changes
 
-- Run independent graphics suites in separate jobs with a shared generated-asset
-  artifact, keeping the ARM build independent where possible.
-- Reuse native build/asset artifacts within the same commit and cache asset outputs
-  with keys covering their sources, compiler, fonts and locked dependencies.
-- Replace conservative frame budgets with explicit settled/ready conditions where
-  animations are not the subject of a scenario. Keep separate motion/4K coverage.
-- Retain per-suite timings so duration changes can be attributed to a suite rather
-  than inferred from the combined step.
+The 28 October revision separates formatting/lint/unit tests, shared runtime
+preparation, five graphics jobs and the ARM package job. The Home, brand artwork,
+mock weather, translation and real display-watchdog suites all remain enabled.
+Each graphics suite runs on its own runner and Xvfb instance with software GL;
+`fail-fast: false` retains diagnostics from the other suites if one fails.
 
-These are proposed improvements. This revision leaves the workflow triggers and
-test coverage unchanged and does not push commits or dispatch Actions workflows.
+The prepare job builds the desktop binary once and shares a tar archive containing
+that exact binary and generated assets within the same workflow run. Tar retains
+executable permissions. Graphics jobs opt into the prebuilt binary explicitly;
+ordinary standalone smoke commands still build it. The package job reuses those
+assets and runs independently of graphics after preparation.
+
+Generated assets use an exact cache key covering the runner OS/architecture,
+Rust/Node versions, source assets, generator code, vector crates, Cargo manifests
+and lockfile, pnpm lockfile and app manifest. There are no stale-prefix restores
+for generated assets. Only trusted main pushes save asset and Rust caches. A hit
+also skips installation of font-generation tools. The privileged PR Test IPK
+workflow is unchanged and continues to avoid shared caches.
+
+Each graphics job records `.build/ci-timing-SUITE.json`, adds its duration to the
+job summary and uploads its own diagnostic artifact. The original aggregate
+check name remains and fails if any required job fails, is cancelled or is
+skipped. Release publication still requires that aggregate and the existing
+merged-version-PR gate; version 3.0.0 is not published by this optimization.
+
+The expected wall-clock benefit is replacing the sum of graphics-suite durations
+with their longest duration, plus runner setup/artifact transfer. Cache hits also
+avoid full asset regeneration. Runner minutes can increase because jobs have
+separate setup steps. Actual gains must be read from completed runs; the old
+601-second observation is not a benchmark of the new UI or pipeline.
+
+Frame budgets and assertions have not been shortened for speed. Replacing fixed
+waits with explicit readiness signals remains a possible later improvement and
+must preserve animation and 4K coverage.
