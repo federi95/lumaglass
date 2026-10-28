@@ -37,9 +37,12 @@ remains a separate local preference. TV behavior still needs hardware verificati
 Confirmed Live Plus/limit-ad-tracking changes and an optional reversible LG hosts
 blocker are available through System settings. Personal local/HTTPS wallpapers,
 rotation and an app-local clock/photo screensaver are configurable. Render
-resolution includes an experimental guarded 4K trial. Consent writes, system-wide
-app hiding and replacement of LG's system screensaver remain separate future
-integrations. Hardware verification is pending; see the [weekend checklist](docs/manual-verification.md).
+resolution includes an experimental guarded 4K trial.
+**Settings → General → System screensaver** adds compatibility inspection, a request
+through LG’s idle policy, and ownership-scoped recovery. A dedicated native clock/photo
+player and reversible adapter are implemented, but replacement stays disabled until an
+exact firmware profile is qualified. See [system screensaver](docs/system-screensaver.md).
+Consent writes and service disabling remain unavailable. Hardware verification is pending; see the [weekend checklist](docs/manual-verification.md).
 See the [architecture](docs/architecture.md) for the current implementation.
 
 The source version remains 2.9.0 until the automated Changesets version PR.

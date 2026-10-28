@@ -18,7 +18,7 @@ src/features/appearance/    shared card geometry and local visual preferences
 src/features/controls/      fixed confirmed TV mutations and result state
 src/features/display/       guarded render-resolution trials and watchdog
 src/features/wallpapers/    bounded acquisition/cache and Home rotation
-src/features/screensaver/   foreground-only idle presentation
+src/features/screensaver/   local idle presentation and dedicated native system-saver candidate
 src/features/shortcuts/     local navigation bindings and held-button state
 src/features/weather/       forecast scheduling, HTTP worker and cache
 src/features/system/        typed read-only TV observations and request state
@@ -160,7 +160,7 @@ See [app-management.md](app-management.md) for the policy and completion rules.
 
 The current platform adapter uses the native LS2 caller and Homebrew Channel's
 elevated fixed helpers. Privacy and blocker operations expose typed, bounded intents with explicit
-verification. Future system-wide screensaver integrations must follow the same
+verification. System-wide screensaver candidates follow the same
 capability and recovery boundaries. Boot hooks
 and persistent settings must not depend on the renderer remaining open. A
 separate local service is introduced only for operations that need one; it
@@ -234,3 +234,12 @@ catalog refresh/removal invalidates old observations. Global hide is not exposed
 by the UI before firmware qualification. The fixed Node adapter stages atomic
 journals and an independent recovery copy, and never restarts SAM. See
 [system app visibility](system-app-visibility.md).
+
+The system-saver candidate has an early executable entry, before launcher/storage/worker
+initialization. It loads a bounded immutable settings/photo snapshot, SDL and the
+existing GLES2 painter only. LG power observation/wake calls and photo decoding run
+on workers; normal frames are paced at one second. It creates no glass layers, network
+clients or preference writes. Native settings transport inspect/apply/restore/request
+intents through the bounded observation worker with generation checks. The Node 8
+adapter has an empty firmware registry, a content-bound plan, root ownership checks,
+per-app refresh and journalled recovery. See [system screensaver](system-screensaver.md).

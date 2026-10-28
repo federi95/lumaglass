@@ -123,3 +123,15 @@ for manifest/SAM readback, failure rollback, interrupted release recovery and
 standalone restore, including picture, audio and HDMI after standby/wake. No SAM
 restart or automatic boot hook may be used as a fallback. See
 [the adapter design](system-app-visibility.md). These checks have not been run.
+
+## System screensaver candidate
+
+Open General → System screensaver and record the model/firmware/SDK, root
+access and stock manifest reported by inspection. On an unqualified TV, applying
+the native replacement must remain disabled and no new mount, lock or journal
+should appear. Test requesting the original LG saver through LG’s policy separately
+from local idle presentation; a refused start must not launch any app directly.
+Check that restoring the native candidate is unavailable without a proven owned
+transaction. Hardware qualification of the replacement requires the complete
+[startup, wake, policy and recovery checks](system-screensaver.md#qualification-before-enabling-a-profile);
+no firmware allowlist is enabled by this revision.
