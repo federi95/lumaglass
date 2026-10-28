@@ -105,11 +105,25 @@ action calls TV services. Extra scroll-preview cards cannot be uninstalled.
 The service methods, caller permissions and metadata coverage require manual
 verification on each target firmware. These private TV endpoints are referenced
 from [Glasshouse's app adapter](https://github.com/rorygallagher2024/glasshouse/blob/8e2521644f646ae6e6966f7ee06148a4daea0e41/server/lib/apps.js);
-they are not a cross-firmware support guarantee. System-app deletion, forced
-filesystem cleanup and LG Home tile hiding are outside this implementation.
+they are not a cross-firmware support guarantee. System-app deletion and forced filesystem cleanup remain outside this
+implementation. LG Home hiding now has a candidate transaction backend, but
+remains disabled until exact firmware qualification.
 
 New regression cases cover complete catalog validation, unknown/denied values,
 stale generations, local visibility restoration, protected identities and removal
-focus restoration. They have been compiled, not executed. Desktop/ARM builds,
-lint and package inspection do not establish TV compatibility or deletion behavior.
-Tests, graphical preview, CI and publication remain suspended for this revision.
+focus restoration. They run in CI after push; local test execution remains disabled by the owner.
+Desktop/ARM builds, lint and package inspection do not establish TV compatibility
+or deletion behavior. Hardware checks and release publication remain pending.
+
+## Experimental global visibility preflight
+
+The selected-app page offers **Inspect system visibility**, a separate read-only
+check of the current manifest, firmware and conflicting mounts or queued
+Glasshouse changes. **Restore LG visibility** is enabled only for an observed
+Lumaglass-owned transaction that can be recovered. Neither action changes the
+local hidden-app preference or invokes uninstall.
+
+The candidate transaction backend is implemented, but **Hide in LG Home stays
+unavailable** because no exact model/firmware profile is qualified. There is no
+force switch or automatic boot reapplication. See [system app visibility](system-app-visibility.md)
+for journal, rollback, standalone recovery and the remaining hardware checks.

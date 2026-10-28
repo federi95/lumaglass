@@ -226,3 +226,11 @@ late catalog generations, remove their entries/undo patches and repair focus.
 There is no enabled adapter for LG manifest tile hiding, SAM restart, service
 disabling or system-package deletion. These are explicit unavailable capabilities,
 not unchecked raw commands exposed to settings. See [app management](app-management.md).
+
+The app catalog's system-visibility session runs inspection and ownership-scoped
+recovery on the bounded observation worker, independently of app launch/uninstall.
+Reply generation and selected identity are checked before updating native state;
+catalog refresh/removal invalidates old observations. Global hide is not exposed
+by the UI before firmware qualification. The fixed Node adapter stages atomic
+journals and an independent recovery copy, and never restarts SAM. See
+[system app visibility](system-app-visibility.md).

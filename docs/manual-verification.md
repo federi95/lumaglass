@@ -108,3 +108,18 @@ uninstall path later, use one explicitly disposable user app, verify identity an
 Cancel as the initial choice, then check confirmed absence and catalog/focus update.
 Do not treat a request acknowledgment as successful removal. These checks and
 the new regression suites have not been executed.
+
+## Global visibility preflight and qualification
+
+Before any qualification attempt, open the selected-app inspection and compare
+its model/firmware/SDK and manifest identity with read-only TV observations.
+Protected/user apps and foreign app-directory/manifest mounts must refuse global
+changes. Queued Glasshouse hidden-app entries or overrides must show a conflict.
+Normal builds must keep Hide in LG Home disabled on every unqualified firmware.
+
+The transaction engine is covered by isolated CI fixtures, not hardware approval.
+A reviewed candidate profile still requires a separate controlled hardware session
+for manifest/SAM readback, failure rollback, interrupted release recovery and
+standalone restore, including picture, audio and HDMI after standby/wake. No SAM
+restart or automatic boot hook may be used as a fallback. See
+[the adapter design](system-app-visibility.md). These checks have not been run.

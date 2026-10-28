@@ -17,6 +17,7 @@ the current implementation; the project excludes a web dashboard and MQTT bridge
 | [Pending TV verification](manual-verification.md) | Weekend hardware checklist                                                      |
 | [Privacy and blocker](privacy-and-blocker.md)     | Confirmed settings, optional hosts blocking and recovery                        |
 | [App management](app-management.md)               | Full reported catalog, reversible local visibility and confirmed uninstallation |
+| [System app visibility](system-app-visibility.md) | Read-only preflight, qualified transactions and scoped recovery                 |
 | [Architecture](architecture.md)                   | Native modules, platform workers, storage and project boundaries                |
 | [TV integration](tv-integration.md)               | Installation, Home takeover, diagnostics and recovery                           |
 | [Compatibility](compatibility.md)                 | Clearly attributed upstream reports and fork verification status                |
@@ -32,4 +33,4 @@ Upstream project provenance and complete notice locations are in
 - [Control center and header](control-center.md): quick controls, value sliders and clock/avatar layout.
 
 - [Liquid Glass](liquid-glass.md): optional native material and rendering budget.
-- [CI duration](ci-performance.md): measured bottlenecks and proposed improvements.
+- [CI duration](ci-performance.md): parallel suites, shared runtime, cache policy and measured durations.

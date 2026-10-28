@@ -62,3 +62,15 @@ separate setup steps. Actual gains must be read from completed runs; the old
 Frame budgets and assertions have not been shortened for speed. Replacing fixed
 waits with explicit readiness signals remains a possible later improvement and
 must preserve animation and 4K coverage.
+
+## First completed optimized run
+
+[Run 40656800577 on 4951da4](https://github.com/federi95/lumaglass/actions/runs/40656800577)
+completed all required jobs successfully. From first job start to the aggregate
+check completion, elapsed time was 5 minutes 54 seconds. Preparation took 1 minute
+48 seconds, Home graphics (including runner setup) 3 minutes 56 seconds, the
+translation job 2 minutes 37 seconds and native packaging 1 minute 17 seconds.
+Other graphics jobs ran alongside them. Asset reuse was available after the
+previous preparation run. These are job wall times, not TV rendering performance;
+different revisions and cache states prevent a controlled before/after speedup
+claim. The old combined graphics step alone took 601 seconds.
