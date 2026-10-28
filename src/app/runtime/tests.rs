@@ -57,32 +57,36 @@ fn wallpaper_effects_cover_only_the_background_and_follow_crossfade_images() {
 }
 
 #[test]
-fn accent_palette_recolors_native_selection_surfaces_and_keeps_dark_labels() {
+fn accent_palette_recolors_selection_surfaces_and_keeps_contrasting_labels() {
     use crate::{
-        features::appearance::{Accent, Density},
+        features::appearance::{Accent, Density, Glass},
         renderer::Draw,
     };
-    let mut state = ready();
-    let neutral = scene(&state);
-    state.preferences.appearance.accent = Accent::Blue;
-    let blue = scene(&state);
-    let surface = |scene: &view::Scene| {
-        scene
-            .draw
-            .iter()
-            .find_map(|draw| match draw {
-                Draw::RoundedGradient(rect, _, top, bottom)
-                | Draw::Glass(rect, _, top, bottom, _)
-                    if (rect.y - 52.3).abs() < 0.01 && (rect.h - 49.).abs() < 0.01 =>
-                {
-                    Some((*top, *bottom))
-                }
-                _ => None,
-            })
-            .unwrap()
-    };
-    assert_ne!(surface(&neutral), surface(&blue));
-    assert!(blue.draw.iter().any(|draw| matches!(draw, Draw::Text(value, _, _, color, _) if value == "Home" && color[0] < 0.3 && color[1] < 0.3 && color[2] < 0.3)));
+    for mode in [Glass::Off, Glass::Light, Glass::Full] {
+        let mut state = ready();
+        state.preferences.appearance.liquid_glass = mode;
+        let neutral = scene(&state);
+        state.preferences.appearance.accent = Accent::Blue;
+        let blue = scene(&state);
+        let surface = |scene: &view::Scene| {
+            scene
+                .draw
+                .iter()
+                .find_map(|draw| {
+                    let (rect, top, bottom) = match draw {
+                        Draw::Shape(rect, _, _, color) => (rect, color, color),
+                        Draw::RoundedGradient(rect, _, top, bottom)
+                        | Draw::Glass(rect, _, top, bottom, _) => (rect, top, bottom),
+                        _ => return None,
+                    };
+                    ((rect.y - 52.3).abs() < 0.01 && (rect.h - 49.).abs() < 0.01)
+                        .then_some((*top, *bottom))
+                })
+                .unwrap()
+        };
+        assert_ne!(surface(&neutral), surface(&blue));
+        assert!(blue.draw.iter().any(|draw| matches!(draw, Draw::Text(value, _, _, color, _) if value == "Home" && if mode.enabled() {color[..3].iter().all(|c| *c > 0.9)} else {color[..3].iter().all(|c| *c < 0.3)})));
+    }
     let loaded: Preferences =
         serde_json::from_value(json!({"appearance":{"accent":"unknown","density":"compact"}}))
             .unwrap();
@@ -1000,9 +1004,9 @@ fn input_name_actions_only_highlight_the_focused_row_and_keep_the_saved_mode() {
             .draw
             .iter()
             .filter_map(|draw| match draw {
-                crate::renderer::Draw::RoundedGradient(rect, ..)
-                | crate::renderer::Draw::Glass(rect, ..)
-                    if rect.x == 640. && rect.w == 1120. =>
+                crate::renderer::Draw::RoundedGradient(rect, _, top, _)
+                | crate::renderer::Draw::Glass(rect, _, top, _, _)
+                    if rect.x == 640. && rect.w == 1120. && top[3] > 0.8 =>
                 {
                     Some(rect.y)
                 }
@@ -1043,9 +1047,9 @@ fn clock_choices_only_highlight_focus_while_preserving_saved_checkmarks() {
             .draw
             .iter()
             .filter_map(|draw| match draw {
-                crate::renderer::Draw::RoundedGradient(rect, ..)
-                | crate::renderer::Draw::Glass(rect, ..)
-                    if rect.x == 640. && rect.w == 1120. =>
+                crate::renderer::Draw::RoundedGradient(rect, _, top, _)
+                | crate::renderer::Draw::Glass(rect, _, top, _, _)
+                    if rect.x == 640. && rect.w == 1120. && top[3] > 0.8 =>
                 {
                     Some(rect.y)
                 }
@@ -1165,7 +1169,7 @@ fn system_category_owns_refresh_and_quit_and_restores_sidebar_focus() {
     state.direction(Direction::Right, &controls(&state));
     assert_eq!(state.focus, Target::Setting(3));
     assert_eq!(state.activate(), vec![Effect::Reload]);
-    for setting in [7, 8, 21, 9, 14, 15, 16, 5] {
+    for setting in [7, 8, 21, 9, 22, 14, 15, 16, 5] {
         state.direction(Direction::Down, &controls(&state));
         assert_eq!(state.focus, Target::Setting(setting));
     }
