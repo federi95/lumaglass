@@ -167,7 +167,55 @@ impl Blur {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+/// Explicit quality choice; legacy booleans retain their original appearance.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Glass {
+    Off,
+    Light,
+    #[default]
+    Full,
+}
+impl Glass {
+    pub const fn enabled(self) -> bool {
+        !matches!(self, Self::Off)
+    }
+    pub const fn next(self) -> Self {
+        match self {
+            Self::Off => Self::Light,
+            Self::Light => Self::Full,
+            Self::Full => Self::Off,
+        }
+    }
+    pub const fn key(self) -> &'static str {
+        match self {
+            Self::Off => "stateOff",
+            Self::Light => "liquidGlassLight",
+            Self::Full => "liquidGlassFull",
+        }
+    }
+    pub const fn hint(self) -> &'static str {
+        match self {
+            Self::Off => "liquidGlassOffHint",
+            Self::Light => "liquidGlassLightHint",
+            Self::Full => "liquidGlassHint",
+        }
+    }
+}
+impl<'de> Deserialize<'de> for Glass {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let value = serde_json::Value::deserialize(d)?;
+        Ok(match value {
+            serde_json::Value::Bool(false) => Self::Off,
+            serde_json::Value::String(value) if value == "off" => Self::Off,
+            serde_json::Value::String(value) if value == "light" => Self::Light,
+            // Missing/invalid choices and the legacy `true` keep the existing default.
+            _ => Self::Full,
+        })
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Preferences {
     #[serde(deserialize_with = "fallback")]
@@ -178,25 +226,8 @@ pub struct Preferences {
     pub dimming: Dimming,
     #[serde(deserialize_with = "fallback")]
     pub blur: Blur,
-    #[serde(default = "enabled", deserialize_with = "glass_fallback")]
-    pub liquid_glass: bool,
-}
-fn enabled() -> bool {
-    true
-}
-fn glass_fallback<'de, D: Deserializer<'de>>(d: D) -> Result<bool, D::Error> {
-    Ok(serde_json::from_value(serde_json::Value::deserialize(d)?).unwrap_or(true))
-}
-impl Default for Preferences {
-    fn default() -> Self {
-        Self {
-            density: Density::default(),
-            accent: Accent::default(),
-            dimming: Dimming::default(),
-            blur: Blur::default(),
-            liquid_glass: true,
-        }
-    }
+    #[serde(deserialize_with = "fallback")]
+    pub liquid_glass: Glass,
 }
 fn fallback<'de, D: Deserializer<'de>, T: serde::de::DeserializeOwned + Default>(
     deserializer: D,
@@ -233,3 +264,6 @@ impl Setting {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

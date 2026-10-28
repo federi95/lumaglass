@@ -155,6 +155,8 @@ pub struct RenderStats {
     pub cpu_submission_ms: f64,
     /// Share of the drawable redrawn in the last frame (1 without partial redraw).
     pub redrawn_fraction: f64,
+    /// Requested optical quality, not proof of driver support or performance.
+    pub glass_quality: Option<backdrop::Quality>,
     pub glass_background_bytes: usize,
     pub glass_background_refreshes: u32,
     /// CPU preparation/submission time, not a GPU timestamp.
@@ -189,6 +191,7 @@ impl RenderStats {
             draw_calls: 0,
             cpu_submission_ms: 0.,
             redrawn_fraction: 1.,
+            glass_quality: None,
             glass_background_bytes: 0,
             glass_background_refreshes: 0,
             glass_background_ms: 0.,
@@ -1291,7 +1294,7 @@ impl Renderer {
                         *rect,
                         [opacity, 0., opacity, 1.],
                         *radius,
-                        -1024.,
+                        effect.quality.paint_flag(),
                         [*top, *bottom],
                         self.white.id,
                     );
@@ -1347,6 +1350,7 @@ impl Renderer {
             (d, _) => d,
         };
         self.render_pass(commands, width, height, damage);
+        self.stats.glass_quality = backdrop::quality(commands);
         self.stats.glass_background_bytes = self.backdrops.iter().map(backdrop::Cache::bytes).sum();
         self.stats.glass_background_refreshes = refreshes;
         self.stats.glass_background_ms = preparation_ms;
@@ -1367,7 +1371,11 @@ impl Renderer {
             .max_texture_size
             .min(self.info.max_viewport[0].max(0) as u32)
             .min(self.info.max_viewport[1].max(0) as u32);
-        let size = backdrop::size(drawable, limit);
+        let Some(quality) = backdrop::quality(commands) else {
+            self.backdrops = Default::default();
+            return (0, None);
+        };
+        let size = backdrop::size(drawable, limit, quality);
         if size.width < 320 || size.height < 180 {
             self.backdrops = Default::default();
             return (0, None);

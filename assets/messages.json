@@ -3872,15 +3872,15 @@
     "zh": "Liquid Glass"
   },
   "liquidGlassHint": {
-    "en": "Translucent controls with lightweight reflections. Turn off for an opaque appearance.",
-    "it": "Controlli traslucidi con riflessi leggeri. Disattiva per uno stile opaco.",
-    "de": "Transparente Bedienelemente mit dezenten Reflexionen. Für eine deckende Darstellung ausschalten.",
-    "fr": "Commandes translucides avec des reflets légers. Désactivez pour un aspect opaque.",
-    "es": "Controles translúcidos con reflejos ligeros. Desactiva para un aspecto opaco.",
-    "pt": "Controles translúcidos com reflexos leves. Desative para um visual opaco.",
-    "pl": "Półprzezroczyste elementy z delikatnymi refleksami. Wyłącz, aby uzyskać nieprzezroczysty wygląd.",
-    "ru": "Полупрозрачные элементы с лёгкими бликами. Отключите для непрозрачного оформления.",
-    "zh": "半透明控件与轻量反光效果。关闭后使用不透明外观。"
+    "en": "Translucent controls with refraction, colored edges and directional highlights.",
+    "it": "Controlli traslucidi con rifrazione, bordi colorati e riflessi direzionali.",
+    "de": "Transparente Bedienelemente mit Lichtbrechung, farbigen Kanten und gerichteten Lichtreflexen.",
+    "fr": "Commandes translucides avec réfraction, bords colorés et reflets directionnels.",
+    "es": "Controles translúcidos con refracción, bordes de color y reflejos direccionales.",
+    "pt": "Controles translúcidos com refração, bordas coloridas e reflexos direcionais.",
+    "pl": "Półprzezroczyste elementy z refrakcją, kolorowymi krawędziami i kierunkowymi refleksami.",
+    "ru": "Полупрозрачные элементы с преломлением, цветными краями и направленными бликами.",
+    "zh": "半透明控件，具有折射、彩色边缘和定向高光。"
   },
   "ccDimmingHint": {
     "en": "← → Adjust · Select the sleep timer for more options",
@@ -4299,5 +4299,49 @@
     "pl": "Zgłoszona widoczność: {visibility} · SDK: {sdk}. Widoczność systemowa jest niezależna od Lumaglass.",
     "ru": "Видимость по данным системы: {visibility} · SDK: {sdk}. Она не связана с видимостью в Lumaglass.",
     "zh": "系统报告的可见性：{visibility} · SDK：{sdk}。系统可见性与 Lumaglass 可见性相互独立。"
+  },
+  "liquidGlassLight": {
+    "en": "Light",
+    "it": "Leggero",
+    "de": "Leicht",
+    "fr": "Léger",
+    "es": "Ligero",
+    "pt": "Leve",
+    "pl": "Lekki",
+    "ru": "Лёгкий",
+    "zh": "轻量"
+  },
+  "liquidGlassFull": {
+    "en": "Full",
+    "it": "Completo",
+    "de": "Vollständig",
+    "fr": "Complet",
+    "es": "Completo",
+    "pt": "Completo",
+    "pl": "Pełny",
+    "ru": "Полный",
+    "zh": "完整"
+  },
+  "liquidGlassOffHint": {
+    "en": "Opaque controls without glass effects.",
+    "it": "Controlli opachi senza effetti vetro.",
+    "de": "Deckende Bedienelemente ohne Glaseffekte.",
+    "fr": "Commandes opaques sans effets de verre.",
+    "es": "Controles opacos sin efectos de cristal.",
+    "pt": "Controles opacos sem efeitos de vidro.",
+    "pl": "Nieprzezroczyste elementy bez efektów szkła.",
+    "ru": "Непрозрачные элементы без эффекта стекла.",
+    "zh": "不透明控件，不使用玻璃效果。"
+  },
+  "liquidGlassLightHint": {
+    "en": "Translucent controls with simpler reflections.",
+    "it": "Controlli traslucidi con riflessi semplificati.",
+    "de": "Transparente Bedienelemente mit vereinfachten Reflexionen.",
+    "fr": "Commandes translucides avec des reflets simplifiés.",
+    "es": "Controles translúcidos con reflejos simplificados.",
+    "pt": "Controles translúcidos com reflexos simplificados.",
+    "pl": "Półprzezroczyste elementy z uproszczonymi refleksami.",
+    "ru": "Полупрозрачные элементы с упрощёнными бликами.",
+    "zh": "半透明控件，使用简化反光效果。"
   }
 }

@@ -214,3 +214,28 @@ fn glass_material_changes_are_bounded_and_switching_it_off_invalidates_the_surfa
     assert!(damage.x <= 500. && damage.y <= 400.);
     assert!(damage.x + damage.w >= 820. && damage.y + damage.h >= 556.);
 }
+
+#[test]
+fn switching_optical_quality_redraws_the_lens_even_with_unchanged_colors() {
+    use crate::render::backdrop::{Effect, Quality};
+    let mut tracker = Tracker::default();
+    let lens = Rect::new(500., 400., 320., 156.);
+    let draw = |quality| {
+        Draw::Glass(
+            lens,
+            40.,
+            [0.2; 4],
+            [0.3; 4],
+            Effect {
+                quality,
+                ..Effect::default()
+            },
+        )
+    };
+    tracker.push(&[wallpaper(), draw(Quality::Full)]);
+    tracker.push(&[wallpaper(), draw(Quality::Light)]);
+    let damage = area(tracker.damage(1));
+    assert!(damage.x <= lens.x && damage.y <= lens.y);
+    assert!(damage.x + damage.w >= lens.x + lens.w);
+    assert!(damage.y + damage.h >= lens.y + lens.h);
+}

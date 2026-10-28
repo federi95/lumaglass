@@ -16,23 +16,62 @@ impl Layer {
         }
     }
 }
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Quality {
+    Light,
+    #[default]
+    Full,
+}
+impl Quality {
+    pub const fn paint_flag(self) -> f32 {
+        match self {
+            Self::Light => -2048.,
+            Self::Full => -1024.,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Effect {
     pub opacity: f32,
     pub backdrop: Option<Layer>,
+    pub quality: Quality,
 }
 impl Default for Effect {
     fn default() -> Self {
         Self {
             opacity: 1.,
             backdrop: Some(Layer::Base),
+            quality: Quality::Full,
         }
     }
 }
 
-pub fn size(drawable: Size, max_texture: u32) -> Size {
-    let units = (drawable.width.min(1920).min(max_texture) / 16)
-        .min(drawable.height.min(1080).min(max_texture) / 9)
+/// The highest requested quality of nonzero optical surfaces, shared by both targets.
+pub fn quality(commands: &[Draw]) -> Option<Quality> {
+    commands
+        .iter()
+        .filter_map(|command| match command {
+            Draw::Glass(rect, _, _, _, effect)
+                if effect.backdrop.is_some()
+                    && effect.opacity > 0.
+                    && rect.w > 0.
+                    && rect.h > 0. =>
+            {
+                Some(effect.quality)
+            }
+            _ => None,
+        })
+        .max()
+}
+pub fn size(drawable: Size, max_texture: u32, quality: Quality) -> Size {
+    let (width, height) = match quality {
+        Quality::Light => (1280, 720),
+        Quality::Full => (1920, 1080),
+    };
+    let units = (drawable.width.min(width).min(max_texture) / 16)
+        .min(drawable.height.min(height).min(max_texture) / 9)
         .max(1);
     Size::new(units * 16, units * 9)
 }
@@ -240,8 +279,14 @@ mod tests {
     use super::*;
     #[test]
     fn cache_resolution_stays_hd_in_4k_and_fits_small_drivers() {
-        assert_eq!(size(Size::UHD, 4096), Size::HD);
-        assert_eq!(size(Size::HD, 1024), Size::new(1024, 576));
+        assert_eq!(size(Size::UHD, 4096, Quality::Full), Size::HD);
+        assert_eq!(size(Size::HD, 1024, Quality::Full), Size::new(1024, 576));
+        assert_eq!(size(Size::UHD, 4096, Quality::Light), Size::new(1280, 720));
+        assert_eq!(size(Size::HD, 1024, Quality::Light), Size::new(1024, 576));
+        assert_eq!(
+            size(Size::new(640, 360), 4096, Quality::Light),
+            Size::new(640, 360)
+        );
     }
     #[test]
     fn changing_a_foreground_label_does_not_invalidate_its_base_backdrop() {
@@ -267,6 +312,36 @@ mod tests {
         let b = plan(&[base, glass, label("Settings")], Layer::Base).unwrap();
         assert!(damage::same_commands(&a.key, &b.key));
         assert_eq!(a.end, 1);
+    }
+    #[test]
+    fn absent_or_analytic_glass_needs_no_optical_targets_and_mixed_modes_keep_full_quality() {
+        let draw = |quality, backdrop, opacity| {
+            Draw::Glass(
+                Rect::new(500., 50., 400., 60.),
+                30.,
+                [0.2; 4],
+                [0.3; 4],
+                Effect {
+                    quality,
+                    backdrop,
+                    opacity,
+                },
+            )
+        };
+        assert_eq!(quality(&[]), None);
+        assert_eq!(quality(&[draw(Quality::Light, None, 1.)]), None);
+        assert_eq!(quality(&[draw(Quality::Full, Some(Layer::Base), 0.)]), None);
+        assert_eq!(
+            quality(&[draw(Quality::Light, Some(Layer::Panel), 1.)]),
+            Some(Quality::Light)
+        );
+        assert_eq!(
+            quality(&[
+                draw(Quality::Light, Some(Layer::Base), 1.),
+                draw(Quality::Full, Some(Layer::Panel), 1.)
+            ]),
+            Some(Quality::Full)
+        );
     }
 }
 
@@ -310,6 +385,7 @@ mod invalidation_tests {
             Effect {
                 opacity: 1.,
                 backdrop: Some(Layer::Panel),
+                quality: Quality::Full,
             },
         );
         let p = plan(

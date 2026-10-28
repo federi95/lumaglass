@@ -143,17 +143,26 @@ pub struct Scene {
     pub modal: Option<Rect>,
     accent: crate::features::appearance::Accent,
     liquid_glass: bool,
+    glass_quality: crate::render::backdrop::Quality,
     modal_chrome: bool,
     glass_layer: Option<crate::render::backdrop::Layer>,
 }
 impl Scene {
-    fn new(accent: crate::features::appearance::Accent, liquid_glass: bool) -> Self {
+    fn new(
+        accent: crate::features::appearance::Accent,
+        glass: crate::features::appearance::Glass,
+    ) -> Self {
         Self {
             draw: Vec::new(),
             controls: Vec::new(),
             modal: None,
             accent,
-            liquid_glass,
+            liquid_glass: glass.enabled(),
+            glass_quality: if glass == crate::features::appearance::Glass::Light {
+                crate::render::backdrop::Quality::Light
+            } else {
+                crate::render::backdrop::Quality::Full
+            },
             modal_chrome: false,
             glass_layer: Some(crate::render::backdrop::Layer::Base),
         }
@@ -224,6 +233,7 @@ impl Scene {
             crate::render::backdrop::Effect {
                 opacity: 1.,
                 backdrop: self.glass_layer,
+                quality: self.glass_quality,
             },
         ));
     }
@@ -603,11 +613,7 @@ pub fn scene_with_pill(
             c(
                 0x080b12,
                 if floating {
-                    if state.preferences.appearance.liquid_glass {
-                        0.38
-                    } else {
-                        0.50
-                    }
+                    if out.liquid_glass { 0.38 } else { 0.50 }
                 } else {
                     0.70
                 },
@@ -3352,11 +3358,7 @@ fn appearance_settings(out: &mut Scene, state: &State, assets: &Assets) {
             Setting::Accent => language.t(state.preferences.appearance.accent.key()),
             Setting::Dimming => language.t(state.preferences.appearance.dimming.key()),
             Setting::Blur => language.t(state.preferences.appearance.blur.key()),
-            Setting::LiquidGlass => language.t(if state.preferences.appearance.liquid_glass {
-                "stateOn"
-            } else {
-                "stateOff"
-            }),
+            Setting::LiquidGlass => language.t(state.preferences.appearance.liquid_glass.key()),
         };
         let target = Target::AppearanceOption(option);
         if let Some((step, labels)) = state.slider_values(&target) {
@@ -3372,7 +3374,8 @@ fn appearance_settings(out: &mut Scene, state: &State, assets: &Assets) {
             y += crate::features::sliders::HEIGHT + 12.;
             continue;
         }
-        let description = (option == Setting::LiquidGlass).then_some(language.t("liquidGlassHint"));
+        let description = (option == Setting::LiquidGlass)
+            .then_some(language.t(state.preferences.appearance.liquid_glass.hint()));
         let height = if description.is_some() { 112. } else { 72. };
         row(
             out,

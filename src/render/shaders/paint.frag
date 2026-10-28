@@ -2,7 +2,7 @@
 // c75d171e0626c78f4bdb5030191d2af6795cd892, glass-core/src/renderer/glass.wgsl.
 // Copyright (c) 2026 ziuus. Full notice: assets/licenses/ziuus-liquid-glass.txt.
 // Lumaglass modifications: GLSL ES 1.00, analytic normals, bounded offsets,
-// three backdrop samples, cached HD layers, independent tint/fade opacity.
+// full/light optical paths, bounded cached layers, independent tint/fade opacity.
 uniform sampler2D u_texture;
 uniform float u_aa;
 #if GLASS_OPTICS
@@ -30,6 +30,23 @@ float edge_coverage() {
     return edge;
 }
 #if GLASS_OPTICS
+// Original Lumaglass light path: one texture read, no RGB dispersion, lens zoom,
+// normalized 3D normal or Fresnel. It shares the full path's tint and fade contract.
+vec3 light_glass(float d, vec2 half_size, float radius) {
+    float inside = max(-d, 0.0);
+    float bevel = clamp(min(radius, min(half_size.x, half_size.y) * 0.55), 4.0, 14.0);
+    float edge = 1.0 - clamp(inside / bevel, 0.0, 1.0);
+    vec2 local = v_shape.xy / max(half_size, vec2(1.0));
+    vec2 direction = local / max(max(abs(local.x), abs(local.y)), 0.001);
+    vec2 ray = direction * edge * edge * 2.5;
+    vec2 uv = vec2(v_logical_x / 1920.0, 1.0 - v_logical_y / 1080.0);
+    uv = clamp(uv + ray * vec2(1.0 / 1920.0, -1.0 / 1080.0),
+               u_backdrop_bounds.xy, u_backdrop_bounds.zw);
+    vec3 color = mix(texture2D(u_backdrop, uv).rgb, v_color.rgb, clamp(v_color.a, 0.0, 1.0));
+    float rim = 1.0 - smoothstep(0.35, 1.5, inside);
+    float light = clamp(0.55 - local.y * 0.32 - local.x * 0.18, 0.0, 1.0);
+    return clamp(color + vec3(rim * (0.04 + light * 0.08)), vec3(0.0), vec3(1.0));
+}
 // Adapted optical model: lens magnification, IOR ray deflection and dispersion.
 // The normal is analytic; five height-field evaluations and continuous ripples
 // from the upstream shader are deliberately omitted for older TV GPUs.
@@ -84,7 +101,7 @@ void main() {
         gl_FragColor = color * vec4(1.0, 1.0, 1.0, edge_coverage());
         return;
     }
-    // -1024 is a constant vertex flag, so neighbouring glass quads still batch.
+    // Constant per-quad flags (-1024 full, -2048 light) preserve paint batching.
     // Fixed analytic lighting: no time uniform, texture blur, derivatives or offscreen pass.
     bool glass = v_params.y < -1000.0;
     float blur = glass ? 0.0 : max(-v_params.y, 0.0);
@@ -108,7 +125,13 @@ void main() {
     if (glass) {
 #if GLASS_OPTICS
         if (u_optical > 0.5) {
-            gl_FragColor = vec4(optical_glass(d, half_size, radius), v_uv.x * alpha * edge_coverage());
+            vec3 optical;
+            if (v_params.y < -1500.0) {
+                optical = light_glass(d, half_size, radius);
+            } else {
+                optical = optical_glass(d, half_size, radius);
+            }
+            gl_FragColor = vec4(optical, v_uv.x * alpha * edge_coverage());
             return;
         }
 #endif

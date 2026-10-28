@@ -2979,7 +2979,7 @@ impl State {
                     }
                     AppearanceOption::LiquidGlass => {
                         self.preferences.appearance.liquid_glass =
-                            !self.preferences.appearance.liquid_glass;
+                            self.preferences.appearance.liquid_glass.next();
                     }
                 }
                 return vec![Effect::Save];

@@ -61,6 +61,8 @@ notice remains preserved and included in the package.
 
 ## Liquid Glass optics
 
+The optional single-sample Light path and 720p cache budget are original Lumaglass additions. The Full path retains the attribution below.
+
 The optical section of `src/render/shaders/paint.frag` is adapted from
 [ziuus/liquid-glass](https://github.com/ziuus/liquid-glass), revision
 `c75d171e0626c78f4bdb5030191d2af6795cd892`, specifically

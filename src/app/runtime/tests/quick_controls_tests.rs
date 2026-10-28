@@ -159,27 +159,51 @@ fn profile_and_quick_controls_have_distinct_actions() {
     assert!(state.overlay.is_none());
 }
 #[test]
-fn old_preferences_enable_glass_and_opaque_mode_removes_glass_commands() {
-    let prefs: Preferences = serde_json::from_str(r#"{"appearance":{"accent":"blue"}}"#).unwrap();
-    assert!(prefs.appearance.liquid_glass);
-    assert!(prefs.header.combined);
+fn glass_quality_cycles_locally_and_applies_to_home_and_floating_controls() {
+    use crate::{features::appearance::Glass, render::backdrop::Quality, renderer::Draw};
     let mut state = ready();
-    assert!(
-        scene(&state)
-            .draw
-            .iter()
-            .any(|draw| matches!(draw, crate::renderer::Draw::Glass(..)))
-    );
+    assert_eq!(state.preferences.appearance.liquid_glass, Glass::Full);
     state.open(2);
     state.subpage = Some(crate::state::Subpage::Appearance);
     state.focus = Target::AppearanceOption(Setting::LiquidGlass);
-    assert_eq!(state.activate(), vec![Effect::Save]);
-    assert!(
-        !scene(&state)
-            .draw
-            .iter()
-            .any(|draw| matches!(draw, crate::renderer::Draw::Glass(..)))
-    );
+    for (mode, expected) in [
+        (Glass::Off, None),
+        (Glass::Light, Some(Quality::Light)),
+        (Glass::Full, Some(Quality::Full)),
+    ] {
+        assert_eq!(state.activate(), vec![Effect::Save]);
+        assert_eq!(state.preferences.appearance.liquid_glass, mode);
+        assert_eq!(state.focus, Target::AppearanceOption(Setting::LiquidGlass));
+        for overlay in [
+            None,
+            Some(Overlay::ControlCenter {
+                restore: Target::Nav(2),
+            }),
+            Some(Overlay::Profile),
+        ] {
+            state.overlay = overlay;
+            let current = scene(&state);
+            let qualities: Vec<_> = current
+                .draw
+                .iter()
+                .filter_map(|draw| {
+                    if let Draw::Glass(_, _, _, _, effect) = draw {
+                        Some(effect.quality)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            match expected {
+                None => assert!(qualities.is_empty()),
+                Some(quality) => {
+                    assert!(!qualities.is_empty());
+                    assert!(qualities.iter().all(|q| *q == quality));
+                }
+            }
+        }
+        state.overlay = None;
+    }
 }
 
 #[test]
