@@ -142,7 +142,7 @@ jobs:
       fail-fast: false
       max-parallel: 5
       matrix:
-        suite: [home, brands, weather, translations, display, catalog]
+        suite: [home, brands, weather, translations, display, catalog, screensaver]
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: pnpm/action-setup@v6.1.0
