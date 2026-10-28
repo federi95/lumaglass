@@ -29,9 +29,10 @@ complete green result is available.
 ## Implemented pipeline changes
 
 The 28 October revision separates formatting/lint/unit tests, shared runtime
-preparation, five graphics jobs and the ARM package job. The Home, brand artwork,
+preparation, parallel graphics jobs and the ARM package job. The Home, brand artwork,
 mock weather, translation and real display-watchdog suites all remain enabled.
-Each graphics suite runs on its own runner and Xvfb instance with software GL;
+A sixth catalog/inspection suite now also checks the new native app-management
+view, disabled global actions and Back focus. Each graphics suite runs on its own runner and Xvfb instance with software GL;
 `fail-fast: false` retains diagnostics from the other suites if one fails.
 
 The prepare job builds the desktop binary once and shares a tar archive containing
@@ -42,7 +43,9 @@ assets and runs independently of graphics after preparation.
 
 Generated assets use an exact cache key covering the runner OS/architecture,
 Rust/Node versions, source assets, generator code, vector crates, Cargo manifests
-and lockfile, pnpm lockfile and app manifest. There are no stale-prefix restores
+and lockfile, pnpm lockfile and app manifest. Translation text is compiled into the binary and is not an
+input of the asset generator, so changing it does not rebuild fonts/wallpapers.
+There are no stale-prefix restores
 for generated assets. Only trusted main pushes save asset and Rust caches. A hit
 also skips installation of font-generation tools. The privileged PR Test IPK
 workflow is unchanged and continues to avoid shared caches.

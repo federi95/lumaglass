@@ -6,6 +6,7 @@ import { root } from '../lib/project.mjs';
 
 const suites = {
   home: 'smoke.mjs',
+  catalog: 'system-apps-smoke.mjs',
   brands: 'brands-smoke.mjs',
   weather: 'weather-smoke.mjs',
   translations: 'translations-smoke.mjs',

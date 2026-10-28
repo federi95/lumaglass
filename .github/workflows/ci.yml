@@ -90,7 +90,7 @@ jobs:
         uses: actions/cache/restore@v6.1.0
         with:
           path: .build/assets
-          key: ${{ runner.os }}-${{ runner.arch }}-native-assets-v1-rust1.93-node24-${{ hashFiles('assets/**', 'tools/assets/**', 'tools/vector-assets/**', 'crates/vector-geometry/**', 'tools/lib/project.mjs', '**/Cargo.toml', 'Cargo.lock', 'pnpm-lock.yaml', 'appinfo.json') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-native-assets-v2-rust1.93-node24-${{ hashFiles('assets/fonts/**', 'assets/wallpapers/**', 'assets/logos/**', 'assets/ui-icons/**', 'assets/app-icon.svg', 'tools/assets/**', 'tools/vector-assets/**', 'crates/vector-geometry/**', 'tools/lib/project.mjs', '**/Cargo.toml', 'Cargo.lock', 'pnpm-lock.yaml', 'appinfo.json') }}
       - name: Install desktop and optional asset dependencies
         timeout-minutes: 10
         env:
@@ -119,7 +119,7 @@ jobs:
         uses: actions/cache/save@v6.1.0
         with:
           path: .build/assets
-          key: ${{ runner.os }}-${{ runner.arch }}-native-assets-v1-rust1.93-node24-${{ hashFiles('assets/**', 'tools/assets/**', 'tools/vector-assets/**', 'crates/vector-geometry/**', 'tools/lib/project.mjs', '**/Cargo.toml', 'Cargo.lock', 'pnpm-lock.yaml', 'appinfo.json') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-native-assets-v2-rust1.93-node24-${{ hashFiles('assets/fonts/**', 'assets/wallpapers/**', 'assets/logos/**', 'assets/ui-icons/**', 'assets/app-icon.svg', 'tools/assets/**', 'tools/vector-assets/**', 'crates/vector-geometry/**', 'tools/lib/project.mjs', '**/Cargo.toml', 'Cargo.lock', 'pnpm-lock.yaml', 'appinfo.json') }}
       - name: Build the desktop renderer once
         run: cargo build --locked --package lumaglass
       - name: Archive runtime with executable permissions
@@ -142,7 +142,7 @@ jobs:
       fail-fast: false
       max-parallel: 5
       matrix:
-        suite: [home, brands, weather, translations, display]
+        suite: [home, brands, weather, translations, display, catalog]
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: pnpm/action-setup@v6.1.0
