@@ -579,10 +579,11 @@
   var request;
   var result;
   try {
+    var argument = typeof __filename === 'string' && process.argv[1] === __filename ? 2 : 1;
     request =
-      process.argv[1] === 'restore'
-        ? { action: 'restore', id: process.argv[2] }
-        : JSON.parse(process.argv[1] || 'null');
+      process.argv[argument] === 'restore'
+        ? { action: 'restore', id: process.argv[argument + 1] }
+        : JSON.parse(process.argv[argument] || 'null');
     result = createAdapter(VERIFIED).dispatch(request);
   } catch (error) {
     var allowed = [

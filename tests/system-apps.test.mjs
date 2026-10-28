@@ -160,7 +160,20 @@ function fixture(t, options = {}) {
     const plan = adapter.inspect(id);
     return adapter.dispatch({ action: 'hide', id, plan: plan.plan, expiresAt: Date.now() + 8000 });
   }
-  return { adapter, hide, state, calls, writes, original, put, real, output };
+  return {
+    adapter,
+    hide,
+    state,
+    calls,
+    writes,
+    original,
+    put,
+    real,
+    context,
+    get output() {
+      return output;
+    },
+  };
 }
 import requireCrypto from 'node:crypto';
 
@@ -282,4 +295,17 @@ test('tampered journals and live lock owners cannot trigger an unmount', (t) => 
   );
   locked.state.deadLock = true;
   assert.equal(locked.hide().status, 'owned');
+});
+
+test('the documented standalone file invocation restores only the owned mount without a qualified refresh', (t) => {
+  const f = fixture(t, { qualified: true });
+  assert.equal(f.hide().status, 'owned');
+  const blocks = f.calls.filter((call) => call.args[4]?.endsWith('/blockSystemApp')).length;
+  f.context.__filename = `${root}/system-apps.cjs`;
+  f.context.process.argv = ['node', f.context.__filename, 'restore', id];
+  vm.runInNewContext(source, f.context, { timeout: 2000 });
+  assert.equal(f.output.status, 'restored-pending');
+  assert.equal(f.state.mounted, false);
+  assert.deepEqual(fs.readFileSync(f.real(target)), f.original);
+  assert.equal(f.calls.filter((call) => call.args[4]?.endsWith('/blockSystemApp')).length, blocks);
 });
