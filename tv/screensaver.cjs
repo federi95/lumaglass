@@ -284,6 +284,12 @@
         )
           throw Error('conflict');
       });
+      if (
+        ['model', 'firmware', 'sdk'].some(function (k) {
+          return typeof j[k] !== 'string' || !j[k].length || j[k].length > 80;
+        })
+      )
+        throw Error('conflict');
       var stock = json(ROOT + '/original.json');
       if (stock.id !== ID) throw Error('conflict');
       if (j.photoHashes.length > 12) throw Error('conflict');
@@ -488,7 +494,13 @@
           j.blockIntent = false;
           save(j);
         }
-        if (qualified(context(), stock)) {
+        var observed = context();
+        if (
+          observed.model === j.model &&
+          observed.firmware === j.firmware &&
+          observed.sdk === j.sdk &&
+          qualified(observed, stock)
+        ) {
           refresh(stock);
           confirmed = true;
         } else confirmed = matches(stock);
@@ -558,6 +570,9 @@
         owner: OWNER,
         id: ID,
         install: report.install,
+        model: report.model,
+        firmware: report.firmware,
+        sdk: report.sdk,
         originalHash: hash(original),
         overrideHash: hash(replacement),
         configHash: hash(config),

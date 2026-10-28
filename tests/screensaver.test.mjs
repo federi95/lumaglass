@@ -420,3 +420,16 @@ test('recovery preserves updated stock files and releases its interrupted block 
     true,
   );
 });
+
+test('a newly qualified firmware still cannot refresh a transaction from an older firmware', (t) => {
+  const f = fixture(t);
+  f.apply();
+  f.state.newFirmware = true;
+  const adapter = f.context.module.exports.createAdapter([
+    profile,
+    { ...profile, firmware: '2.0.0' },
+  ]);
+  const blocks = f.calls.filter((c) => c.args[4]?.endsWith('/blockSystemApp')).length;
+  assert.equal(adapter.dispatch(f.request('restore')).status, 'restored');
+  assert.equal(f.calls.filter((c) => c.args[4]?.endsWith('/blockSystemApp')).length, blocks);
+});
