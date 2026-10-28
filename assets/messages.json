@@ -4475,5 +4475,159 @@
     "pl": "Ukrywa kafelek w LG Home. Aplikacja może przestać się otwierać; pliki zostaną zachowane.",
     "ru": "Скрывает плитку в LG Home. Приложение может перестать открываться; файлы сохраняются.",
     "zh": "从 LG Home 隐藏此磁贴。应用可能无法再打开，但文件会保留。"
+  },
+  "systemSaver": {
+    "en": "System screensaver",
+    "de": "System-Bildschirmschoner",
+    "zh": "系统屏幕保护程序",
+    "es": "Salvapantallas del sistema",
+    "pt": "Protetor de tela do sistema",
+    "it": "Salvaschermo di sistema",
+    "ru": "Системная заставка",
+    "pl": "Systemowy wygaszacz ekranu",
+    "fr": "Économiseur d’écran système"
+  },
+  "systemSaverDescription": {
+    "en": "Uses LG’s idle policy. Replacement requires an exact verified firmware profile; panel protections stay under LG control.",
+    "de": "Verwendet die LG-Leerlaufrichtlinie. Ein Ersatz erfordert ein geprüftes Firmwareprofil; LG steuert den Panelschutz.",
+    "zh": "使用 LG 的闲置策略。替换需要精确验证的固件配置；面板保护仍由 LG 控制。",
+    "es": "Usa la política de inactividad de LG. Requiere un perfil de firmware verificado; LG controla la protección del panel.",
+    "pt": "Usa a política de inatividade da LG. A substituição exige um perfil de firmware verificado; a LG controla a proteção do painel.",
+    "it": "Usa la politica di inattività LG. La sostituzione richiede un profilo firmware verificato; le protezioni del pannello restano gestite da LG.",
+    "ru": "Использует политику простоя LG. Для замены нужен проверенный профиль прошивки; защитой панели управляет LG.",
+    "pl": "Używa zasad bezczynności LG. Zastąpienie wymaga zweryfikowanego profilu firmware; ochroną panelu zarządza LG.",
+    "fr": "Utilise la politique d’inactivité LG. Le remplacement exige un profil de firmware vérifié ; LG conserve la protection de la dalle."
+  },
+  "systemSaverInspect": {
+    "en": "Inspect compatibility",
+    "de": "Kompatibilität prüfen",
+    "zh": "检查兼容性",
+    "es": "Comprobar compatibilidad",
+    "pt": "Verificar compatibilidade",
+    "it": "Verifica compatibilità",
+    "ru": "Проверить совместимость",
+    "pl": "Sprawdź zgodność",
+    "fr": "Vérifier la compatibilité"
+  },
+  "systemSaverRequest": {
+    "en": "Request LG screensaver",
+    "de": "LG-Bildschirmschoner anfordern",
+    "zh": "请求 LG 屏保",
+    "es": "Solicitar salvapantallas LG",
+    "pt": "Solicitar protetor de tela LG",
+    "it": "Richiedi il salvaschermo LG",
+    "ru": "Запросить заставку LG",
+    "pl": "Poproś o wygaszacz LG",
+    "fr": "Demander l’économiseur LG"
+  },
+  "systemSaverRequestHint": {
+    "en": "LG decides whether it can start now. No direct app launch or panel-policy override.",
+    "de": "LG entscheidet über den Start. Kein direkter App-Start und keine Änderung des Panelschutzes.",
+    "zh": "由 LG 决定是否可以启动。不直接启动应用或更改面板策略。",
+    "es": "LG decide si puede iniciarse. Sin lanzamiento directo ni cambios en la protección.",
+    "pt": "A LG decide se pode iniciar. Sem abrir o app diretamente ou alterar a proteção.",
+    "it": "LG decide se può avviarsi ora. Nessun avvio diretto dell’app o modifica alle protezioni.",
+    "ru": "LG решает, можно ли запустить заставку. Без прямого запуска приложения и изменения защиты.",
+    "pl": "LG decyduje o uruchomieniu. Bez bezpośredniego startu aplikacji i zmian ochrony panelu.",
+    "fr": "LG décide du démarrage. Aucun lancement direct ni modification de la protection."
+  },
+  "systemSaverRestore": {
+    "en": "Restore LG screensaver",
+    "de": "LG-Bildschirmschoner wiederherstellen",
+    "zh": "恢复 LG 屏保",
+    "es": "Restaurar salvapantallas LG",
+    "pt": "Restaurar protetor de tela LG",
+    "it": "Ripristina il salvaschermo LG",
+    "ru": "Восстановить заставку LG",
+    "pl": "Przywróć wygaszacz LG",
+    "fr": "Restaurer l’économiseur LG"
+  },
+  "systemSaverApply": {
+    "en": "Apply native screensaver",
+    "de": "Nativen Bildschirmschoner anwenden",
+    "zh": "应用原生屏保",
+    "es": "Aplicar salvapantallas nativo",
+    "pt": "Aplicar protetor de tela nativo",
+    "it": "Applica il salvaschermo nativo",
+    "ru": "Применить нативную заставку",
+    "pl": "Zastosuj natywny wygaszacz",
+    "fr": "Appliquer l’économiseur natif"
+  },
+  "systemSaverApplyHint": {
+    "en": "Experimental. Available only after firmware qualification and confirmation. Reapply after changing style or photos.",
+    "de": "Experimentell. Nur nach Firmwareprüfung und Bestätigung verfügbar. Nach Stil- oder Fotoänderungen erneut anwenden.",
+    "zh": "实验功能。仅在固件验证并确认后可用。更改样式或照片后需重新应用。",
+    "es": "Experimental. Solo tras verificar el firmware y confirmar. Vuelve a aplicar si cambias estilo o fotos.",
+    "pt": "Experimental. Disponível após verificar o firmware e confirmar. Aplique novamente ao mudar estilo ou fotos.",
+    "it": "Sperimentale. Disponibile solo dopo verifica del firmware e conferma. Riapplica dopo aver cambiato stile o foto.",
+    "ru": "Экспериментально. Доступно после проверки прошивки и подтверждения. Примените заново при смене стиля или фото.",
+    "pl": "Eksperymentalne. Wymaga weryfikacji firmware i potwierdzenia. Zastosuj ponownie po zmianie stylu lub zdjęć.",
+    "fr": "Expérimental. Exige un firmware vérifié et une confirmation. Réappliquez après un changement de style ou de photos."
+  },
+  "systemSaverPhotosHint": {
+    "en": "Copies up to 12 imported local photos, 32 MiB in total. No cloud access; missing images fall back to the clock.",
+    "de": "Kopiert bis zu 12 importierte lokale Fotos, insgesamt 32 MiB. Kein Cloudzugriff; bei fehlenden Bildern erscheint die Uhr.",
+    "zh": "复制最多 12 张已导入的本地照片，总计 32 MiB。无云访问；缺失图像时显示时钟。",
+    "es": "Copia hasta 12 fotos locales importadas, 32 MiB en total. Sin nube; si faltan imágenes se muestra el reloj.",
+    "pt": "Copia até 12 fotos locais importadas, 32 MiB no total. Sem nuvem; imagens ausentes dão lugar ao relógio.",
+    "it": "Copia fino a 12 foto locali già importate, 32 MiB complessivi. Nessun accesso cloud; se mancano le immagini mostra l’orologio.",
+    "ru": "Копирует до 12 импортированных фото, всего 32 МиБ. Без облака; при отсутствии изображений отображаются часы.",
+    "pl": "Kopiuje do 12 zaimportowanych zdjęć, łącznie 32 MiB. Bez chmury; brakujące obrazy zastępuje zegar.",
+    "fr": "Copie jusqu’à 12 photos locales importées, 32 Mio au total. Sans cloud ; les images manquantes sont remplacées par l’horloge."
+  },
+  "systemSaverConfirm": {
+    "en": "Confirm replacing the LG saver for this session? Cancel is selected first.",
+    "de": "LG-Bildschirmschoner für diese Sitzung ersetzen? Abbrechen ist vorausgewählt.",
+    "zh": "确认在本次会话替换 LG 屏保？默认选择取消。",
+    "es": "¿Reemplazar el salvapantallas LG durante esta sesión? Cancelar está preseleccionado.",
+    "pt": "Substituir o protetor LG nesta sessão? Cancelar vem selecionado.",
+    "it": "Confermi la sostituzione del salvaschermo LG per questa sessione? Annulla è preselezionato.",
+    "ru": "Заменить заставку LG в этом сеансе? По умолчанию выбрана отмена.",
+    "pl": "Zastąpić wygaszacz LG w tej sesji? Domyślnie wybrano anulowanie.",
+    "fr": "Remplacer l’économiseur LG pour cette session ? Annuler est présélectionné."
+  },
+  "systemSaverNoPhotos": {
+    "en": "Import photos before inspecting photo mode.",
+    "de": "Vor der Prüfung des Fotomodus Fotos importieren.",
+    "zh": "请先导入照片，再检查照片模式。",
+    "es": "Importa fotos antes de comprobar el modo de fotos.",
+    "pt": "Importe fotos antes de verificar o modo de fotos.",
+    "it": "Importa le foto prima di verificare la modalità foto.",
+    "ru": "Импортируйте фото перед проверкой режима фото.",
+    "pl": "Zaimportuj zdjęcia przed sprawdzeniem trybu zdjęć.",
+    "fr": "Importez des photos avant de vérifier le mode photo."
+  },
+  "systemSaverOwned": {
+    "en": "Native replacement mounted; hardware verification still required",
+    "de": "Nativer Ersatz eingebunden; Hardwareprüfung weiterhin erforderlich",
+    "zh": "已挂载原生替代程序；仍需硬件验证",
+    "es": "Reemplazo nativo montado; requiere comprobación en TV",
+    "pt": "Substituição nativa montada; verificação na TV ainda necessária",
+    "it": "Sostituzione nativa montata; resta necessaria la verifica su TV",
+    "ru": "Нативная замена подключена; нужна проверка на ТВ",
+    "pl": "Natywne zastąpienie zamontowane; wymagana weryfikacja na TV",
+    "fr": "Remplacement natif monté ; vérification sur TV encore nécessaire"
+  },
+  "systemSaverRequested": {
+    "en": "LG reports screensaver state",
+    "de": "LG meldet Bildschirmschonerstatus",
+    "zh": "LG 报告已进入屏保状态",
+    "es": "LG indica estado de salvapantallas",
+    "pt": "A LG informa o estado de protetor de tela",
+    "it": "LG segnala lo stato salvaschermo",
+    "ru": "LG сообщает о состоянии заставки",
+    "pl": "LG zgłasza stan wygaszacza",
+    "fr": "LG signale l’état économiseur"
+  },
+  "systemSaverLoading": {
+    "en": "Inspecting screensaver…",
+    "de": "Bildschirmschoner wird geprüft…",
+    "zh": "正在检查屏保…",
+    "es": "Comprobando salvapantallas…",
+    "pt": "Verificando protetor de tela…",
+    "it": "Verifica del salvaschermo…",
+    "ru": "Проверка заставки…",
+    "pl": "Sprawdzanie wygaszacza…",
+    "fr": "Vérification de l’économiseur…"
   }
 }

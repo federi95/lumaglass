@@ -97,14 +97,21 @@ for (const file of await fs.readdir(path.join(out, 'assets/splash')))
   await fs.copyFile(path.join(out, 'assets/splash', file), path.join(stage, 'splash', file));
 await fs.copyFile(path.join(out, 'assets/splash/dunes.png'), path.join(stage, 'splash.png'));
 await fs.chmod(path.join(stage, 'autostart.sh'), 0o755);
-for (const file of ['home.sh', 'home.cjs', 'home-mounts.cjs', 'blocker.cjs', 'system-apps.cjs']) {
+for (const file of [
+  'home.sh',
+  'home.cjs',
+  'home-mounts.cjs',
+  'blocker.cjs',
+  'system-apps.cjs',
+  'screensaver.cjs',
+]) {
   await fs.copyFile(path.join(root, 'tv', file), path.join(stage, file));
   await fs.chmod(path.join(stage, file), file.endsWith('.sh') ? 0o755 : 0o644);
 }
 await fs.copyFile(path.join(root, 'LICENSE'), path.join(stage, 'LICENSE'));
 await fs.copyFile(path.join(root, 'NOTICE.md'), path.join(stage, 'NOTICE.md'));
 await fs.mkdir(path.join(stage, 'docs'));
-for (const file of ['assets.md', 'licensing.md', 'appearance.md']) {
+for (const file of ['assets.md', 'licensing.md', 'appearance.md', 'system-screensaver.md']) {
   await fs.copyFile(path.join(root, 'docs', file), path.join(stage, 'docs', file));
 }
 const assetNotices = await fs.readFile(path.join(root, 'docs/assets.md'), 'utf8');

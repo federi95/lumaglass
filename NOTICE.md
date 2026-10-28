@@ -66,6 +66,15 @@ at revision `d6905c4d84d5282e3a95ebe611c0493f88ac164c`; its original MIT notice
 remains preserved. No SAM restart, regional-list rewrite or boot hook is ported,
 and no firmware is qualified by this reference alone.
 
+`tv/screensaver.cjs` and `src/features/screensaver/{system,runtime}.rs` are
+original Lumaglass implementations. Glasshouse’s `server/lib/screensavers.js`,
+`power.js` and `samrescan.js` at revision
+`d6905c4d84d5282e3a95ebe611c0493f88ac164c` informed the stock saver ID, directory
+bind strategy, fixed per-app refresh endpoints and observed LG power-state labels.
+The complete Rory Gallagher MIT notice remains preserved and distributed. No QML
+assets, panel-policy overrides, global key hooks or direct-launch fallback are copied.
+This reference does not qualify a firmware profile.
+
 ## Liquid Glass optics
 
 The optional single-sample Light path and 720p cache budget are original Lumaglass additions. The Full path retains the attribution below.

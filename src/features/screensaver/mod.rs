@@ -1,4 +1,6 @@
 //! App-local idle presentation; leaves LG power and panel protection untouched.
+pub(crate) mod runtime;
+pub(crate) mod system;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 #[derive(Clone, Copy, Debug, Default, PartialEq, Deserialize, Serialize)]
@@ -70,6 +72,7 @@ impl Timeout {
 pub struct Preferences {
     pub timeout: Timeout,
     pub photos: bool,
+    pub system_photos: bool,
 }
 pub fn deserialize<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Preferences, D::Error> {
     Ok(serde_json::from_value(serde_json::Value::deserialize(d)?).unwrap_or_default())

@@ -243,6 +243,9 @@ fn effects(
 ) -> bool {
     for effect in effects {
         match effect {
+            Effect::SystemScreensaver { generation, intent } => {
+                platform.send(Request::SystemScreensaver { generation, intent })
+            }
             Effect::AppCatalog { generation } => platform.send(Request::AppCatalog { generation }),
             Effect::SystemVisibility {
                 generation,
@@ -999,6 +1002,9 @@ fn run() -> Result<(), String> {
         state.dirty |= assets.artwork.poll();
         while let Ok(response) = platform.receiver.try_recv() {
             match response {
+                Response::SystemScreensaver { generation, result } => {
+                    state.system_saver_accept(generation, result)
+                }
                 Response::SystemVisibility {
                     generation,
                     id,
@@ -2012,7 +2018,8 @@ fn run() -> Result<(), String> {
         let state = serde_json::json!({ "page": state.page, "focus": state.focus, "query": state.query,
             "filter": state.filter, "preferences": state.preferences, "apps": state.apps().iter().map(|a| &a.id).collect::<Vec<_>>(),
             "error": state.error, "scroll": state.scroll, "home_scroll": state.home_scroll, "subpage": state.subpage, "modal": state.overlay.is_some(), "weather": state.weather,
-            "inventory": state.inventory.apps, "app_catalog": { "report": state.catalog.report, "system_visibility": state.catalog.system_visibility },
+            "inventory": state.inventory.apps, "system_saver": state.system_saver,
+            "app_catalog": { "report": state.catalog.report, "system_visibility": state.catalog.system_visibility },
             "webos": state.webos, "system_info": state.system,
             "recents": state.recents.entries, "recents_pending": state.recents.pending, "recents_error": state.recents.error, "recents_visibility": state.recents.visibility,
             "ui_text": scene.draw.iter().filter_map(|draw| match draw { renderer::Draw::Text(value, ..) => Some(value), _ => None }).collect::<Vec<_>>() });

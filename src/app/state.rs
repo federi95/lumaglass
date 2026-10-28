@@ -37,6 +37,7 @@ pub enum Page {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum Target {
+    SystemSaver(usize),
     CatalogRefresh,
     CatalogFilter,
     CatalogPrevious,
@@ -194,6 +195,7 @@ pub enum Overlay {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum Subpage {
+    SystemScreensaver,
     AppManagement,
     ManagedApp(String),
     Display,
@@ -238,6 +240,10 @@ pub enum Direction {
 
 #[derive(Debug, PartialEq)]
 pub enum Effect {
+    SystemScreensaver {
+        generation: u64,
+        intent: crate::features::screensaver::system::Intent,
+    },
     SystemVisibility {
         generation: u64,
         id: String,
@@ -288,6 +294,7 @@ pub struct State {
     pub display_keep: bool,
     pub display_trial: bool,
     pub display_report: String,
+    pub system_saver: crate::features::screensaver::system::Session,
     pub screensaver: crate::features::screensaver::Session,
     pub rotation: crate::features::wallpapers::rotation::Session,
     pub wallpapers: crate::features::wallpapers::Session,
@@ -346,6 +353,7 @@ impl State {
             display_keep: false,
             display_trial: false,
             display_report: String::new(),
+            system_saver: crate::features::screensaver::system::Session::default(),
             screensaver: crate::features::screensaver::Session::default(),
             rotation: crate::features::wallpapers::rotation::Session::default(),
             page: Page::Home,
@@ -540,6 +548,29 @@ impl State {
             return false;
         }
         match target {
+            Target::SystemSaver(index) => {
+                if self.subpage != Some(Subpage::SystemScreensaver) || self.system_saver.loading {
+                    return false;
+                }
+                if self.system_saver.confirming {
+                    return matches!(index, 4 | 5);
+                }
+                match index {
+                    0 | 1 => true,
+                    2 => self.webos,
+                    3 => self
+                        .system_saver
+                        .report
+                        .as_ref()
+                        .is_some_and(|r| r.can_restore),
+                    4 => self
+                        .system_saver
+                        .report
+                        .as_ref()
+                        .is_some_and(crate::features::screensaver::system::Report::can_apply),
+                    _ => false,
+                }
+            }
             Target::CatalogLgHome => {
                 !self.catalog.system_visibility.loading
                     && self
@@ -1523,6 +1554,9 @@ impl State {
     }
 
     fn close_subpage(&mut self) {
+        if self.subpage == Some(Subpage::SystemScreensaver) {
+            self.system_saver.invalidate();
+        }
         if matches!(self.subpage, Some(Subpage::ManagedApp(_))) {
             self.catalog_back();
             return;
@@ -1533,6 +1567,7 @@ impl State {
         self.panel_started = None;
         self.pointer = false;
         self.focus = match self.subpage.take() {
+            Some(Subpage::SystemScreensaver) => Target::Setting(23),
             Some(Subpage::AppNames) => Target::Setting(0),
             Some(Subpage::Greeting) if self.greeting_from_home => {
                 self.subpage = Some(Subpage::Home);
@@ -1807,6 +1842,30 @@ impl State {
             }
             if matches!(direction, Direction::Down) {
                 self.focus(Target::StartupFocus(StartupFocus::Auto), controls);
+                return vec![];
+            }
+        }
+        if self.overlay.is_none() && self.subpage == Some(Subpage::SystemScreensaver) {
+            let rows = if self.system_saver.confirming {
+                vec![0, 1, 2, 3, 5, 4]
+            } else {
+                vec![0, 1, 2, 3, 4]
+            };
+            if self.focus == Target::Nav(2) && matches!(direction, Direction::Down) {
+                self.focus(Target::SystemSaver(0), controls);
+                return vec![];
+            }
+            if let Target::SystemSaver(current) = self.focus {
+                let index = rows.iter().position(|v| *v == current).unwrap_or(0);
+                match direction {
+                    Direction::Left => self.close_subpage(),
+                    Direction::Up if index == 0 => self.focus(Target::Nav(2), controls),
+                    Direction::Up => self.focus(Target::SystemSaver(rows[index - 1]), controls),
+                    Direction::Down if index + 1 < rows.len() => {
+                        self.focus(Target::SystemSaver(rows[index + 1]), controls)
+                    }
+                    _ => {}
+                }
                 return vec![];
             }
         }
@@ -2153,7 +2212,7 @@ impl State {
             }
             if matches!(
                 self.focus,
-                Target::Setting(0 | 1 | 4 | 6 | 7 | 8 | 9 | 11..=22)
+                Target::Setting(0 | 1 | 4 | 6 | 7 | 8 | 9 | 11..=23)
                     | Target::InputMode(_)
                     | Target::WeatherLocation
                     | Target::WeatherTemperature
@@ -3266,6 +3325,7 @@ impl State {
                 self.subpage = None;
                 self.focus = self.section_entry();
             }
+            Target::SystemSaver(index) => return self.system_saver_action(index),
             Target::SystemRefresh => {
                 return self
                     .system
@@ -3283,6 +3343,15 @@ impl State {
             }
             Target::Setting(index) => {
                 match index {
+                    23 => {
+                        self.system_saver.invalidate();
+                        self.subpage = Some(Subpage::SystemScreensaver);
+                        self.focus = Target::SystemSaver(0);
+                        self.scroll = 0.;
+                        return self.system_saver_request(
+                            crate::features::screensaver::system::Command::Inspect,
+                        );
+                    }
                     22 => return self.open_app_catalog(),
                     21 => {
                         self.subpage = Some(Subpage::Display);
@@ -3460,7 +3529,8 @@ impl State {
             Target::Choice(index) => {
                 match self.subpage.clone() {
                     Some(
-                        Subpage::SystemInfo
+                        Subpage::SystemScreensaver
+                        | Subpage::SystemInfo
                         | Subpage::Privacy
                         | Subpage::AppManagement
                         | Subpage::ManagedApp(_),

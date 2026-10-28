@@ -24,6 +24,7 @@ mod control_center;
 mod profile;
 mod recents_view;
 mod slider;
+mod system_saver;
 
 pub struct Assets {
     pub root: PathBuf,
@@ -2337,6 +2338,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 Some(Subpage::Temperature) => language.t("temperature"),
                 Some(Subpage::Language) => language.t("language"),
                 Some(Subpage::TextRendering) => language.t("textRendering"),
+                Some(Subpage::SystemScreensaver) => language.t("systemSaver"),
                 Some(Subpage::SystemInfo) => language.t("tvInformation"),
                 Some(Subpage::Privacy) => language.t("privacy"),
                 Some(Subpage::AppManagement | Subpage::ManagedApp(_)) => language.t("catalogTitle"),
@@ -2425,9 +2427,11 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 | Subpage::SystemInfo
                 | Subpage::Privacy
                 | Subpage::AppManagement
+                | Subpage::SystemScreensaver
                 | Subpage::ManagedApp(_)
         ) {
             match subpage {
+                Subpage::SystemScreensaver => system_saver::render(out, state, assets),
                 Subpage::WeatherLocation => location_settings(out, state, assets),
                 Subpage::Greeting => greeting_settings(out, state, assets),
                 Subpage::Home => home_settings(out, state, assets),
@@ -2510,6 +2514,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             | Subpage::Clock
             | Subpage::SystemInfo
             | Subpage::AppManagement
+            | Subpage::SystemScreensaver
             | Subpage::ManagedApp(_) => {
                 unreachable!()
             }
@@ -2595,6 +2600,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                     })),
                     false,
                 ),
+                (23, "systemSaver", "grid", None, true),
             ]
             .into_iter()
             .enumerate()
@@ -2628,7 +2634,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                             640.,
                             164.8
                                 + position as f32 * 84.
-                                + if index == 20 {
+                                + if index >= 20 {
                                     crate::features::sliders::HEIGHT - 72.
                                 } else {
                                     0.

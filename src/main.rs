@@ -35,5 +35,8 @@ fn main() {
         }
         return;
     }
+    if features::screensaver::runtime::entry() {
+        return;
+    }
     app::runtime::main();
 }

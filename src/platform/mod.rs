@@ -143,6 +143,10 @@ pub fn redirect_to_home() -> Result<bool, String> {
 }
 
 pub enum Request {
+    SystemScreensaver {
+        generation: u64,
+        intent: crate::features::screensaver::system::Intent,
+    },
     SystemVisibility {
         generation: u64,
         id: String,
@@ -180,6 +184,10 @@ pub enum Request {
     },
 }
 pub enum Response {
+    SystemScreensaver {
+        generation: u64,
+        result: Result<crate::features::screensaver::system::Report, String>,
+    },
     SystemVisibility {
         generation: u64,
         id: String,
@@ -220,6 +228,7 @@ pub enum Response {
 }
 
 enum ObservationRequest {
+    SystemScreensaver(u64, crate::features::screensaver::system::Intent),
     SystemVisibility(
         u64,
         String,
@@ -294,6 +303,16 @@ impl Platform {
         thread::spawn(move || {
             for job in jobs {
                 let response = match job {
+                    ObservationRequest::SystemScreensaver(generation, intent) => {
+                        Response::SystemScreensaver {
+                            generation,
+                            result: if webos {
+                                system_screensaver(&intent)
+                            } else {
+                                Ok(crate::features::screensaver::system::Report::preview())
+                            },
+                        }
+                    }
                     ObservationRequest::SystemVisibility(generation, id, command, plan) => {
                         Response::SystemVisibility {
                             generation,
@@ -357,6 +376,10 @@ impl Platform {
             };
             while let Ok(request) = requests.recv() {
                 let response = match request {
+                    Request::SystemScreensaver { generation, .. } => Response::SystemScreensaver {
+                        generation,
+                        result: Err("Wrong worker".into()),
+                    },
                     Request::SystemVisibility { generation, id, .. } => {
                         Response::SystemVisibility {
                             generation,
@@ -493,6 +516,9 @@ impl Platform {
             return;
         }
         let job = match request {
+            Request::SystemScreensaver { generation, intent } => {
+                ObservationRequest::SystemScreensaver(generation, intent)
+            }
             Request::SystemVisibility {
                 generation,
                 id,
@@ -517,6 +543,12 @@ impl Platform {
             };
             let error = "Observation worker unavailable".to_owned();
             let response = match job {
+                ObservationRequest::SystemScreensaver(generation, _) => {
+                    Response::SystemScreensaver {
+                        generation,
+                        result: Err(error),
+                    }
+                }
                 ObservationRequest::SystemVisibility(generation, id, _, _) => {
                     Response::SystemVisibility {
                         generation,
@@ -613,6 +645,53 @@ fn control_command(
         json!({"command":command}),
     )?;
     serde_json::from_value(command_reply(&envelope)?).map_err(|_| "Invalid control response".into())
+}
+
+pub fn screensaver_power(wake: bool) -> Result<String, String> {
+    let uri = "luna://com.webos.service.tvpower/power/";
+    let before = call(&format!("{uri}getPowerState"), json!({}))?["state"]
+        .as_str()
+        .ok_or("Power state unavailable")?
+        .to_owned();
+    if wake && before == "Screen Saver" {
+        call(&format!("{uri}turnOnScreen"), json!({}))?;
+        return call(&format!("{uri}getPowerState"), json!({}))?["state"]
+            .as_str()
+            .map(str::to_owned)
+            .ok_or("Power state unavailable".into());
+    }
+    Ok(before)
+}
+fn system_screensaver(
+    intent: &crate::features::screensaver::system::Intent,
+) -> Result<crate::features::screensaver::system::Report, String> {
+    use crate::features::screensaver::system::{Command, ID, Report};
+    let quote = |value: &str| format!("'{}'", value.replace('\'', "'\\''"));
+    let mut payload = serde_json::to_value(intent).map_err(|e| e.to_string())?;
+    payload["id"] = json!(ID);
+    payload["action"] = json!(intent.command);
+    if matches!(intent.command, Command::Apply | Command::Request) {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| "System clock unavailable")?
+            .as_millis();
+        payload["expiresAt"] = json!(
+            u64::try_from(now)
+                .map_err(|_| "Invalid clock")?
+                .saturating_add(8000)
+        );
+    }
+    let script = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tv/screensaver.cjs"));
+    let shell = format!(
+        "/usr/bin/node -e {} {}",
+        quote(script),
+        quote(&serde_json::to_string(&payload).map_err(|e| e.to_string())?)
+    );
+    let reply = call(
+        "luna://org.webosbrew.hbchannel.service/exec",
+        json!({"command":shell}),
+    )?;
+    Report::parse(&command_reply(&reply)?)
 }
 
 fn system_visibility(
