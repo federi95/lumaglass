@@ -40,7 +40,7 @@ pub fn render(out: &mut Scene, state: &State, assets: &Assets) {
     y += height + 24.;
     for (index, key, description) in [
         (0, "systemSaverInspect", None),
-        (1, "saverStyle", Some("systemSaverPhotosHint")),
+        (1, "systemSaverStyle", Some("systemSaverPhotosHint")),
         (2, "systemSaverRequest", Some("systemSaverRequestHint")),
         (3, "systemSaverRestore", None),
         (5, "cancel", Some("systemSaverConfirm")),

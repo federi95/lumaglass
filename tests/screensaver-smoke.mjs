@@ -96,6 +96,8 @@ try {
   assert.equal(state.system_saver.report.status, 'unavailable');
   assert.equal(state.system_saver.confirming, false);
   assert.ok(state.ui_text.includes('Apply native screensaver'));
+  assert.ok(state.ui_text.includes('System screensaver style'));
+  assert.ok(!state.ui_text.includes('Local screensaver style'));
   assert.equal(state.system_saver.report.can_restore, false);
   console.log(
     'Dedicated native saver, moving clock, photos, fallback, no-glass rendering and firmware-gated settings verified.',

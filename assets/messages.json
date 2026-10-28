@@ -4629,5 +4629,16 @@
     "ru": "Проверка заставки…",
     "pl": "Sprawdzanie wygaszacza…",
     "fr": "Vérification de l’économiseur…"
+  },
+  "systemSaverStyle": {
+    "en": "System screensaver style",
+    "de": "Stil des System-Bildschirmschoners",
+    "zh": "系统屏保样式",
+    "es": "Estilo del salvapantallas del sistema",
+    "pt": "Estilo do protetor de tela do sistema",
+    "it": "Stile salvaschermo di sistema",
+    "ru": "Стиль системной заставки",
+    "pl": "Styl systemowego wygaszacza",
+    "fr": "Style de l’économiseur système"
   }
 }
