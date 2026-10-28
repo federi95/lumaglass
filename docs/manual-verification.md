@@ -47,12 +47,20 @@ Verify that the avatar opens the local profile on the current page. Edit/clear i
 
 Check refraction on a detailed wallpaper, the moving selected-tab lens, sliders
 and control-center tiles. Labels must remain sharp without reflected duplicates.
-Compare glass Off and the supported optical/fallback paths. Verify stationary
+Compare Off, Light and Full on the supported optical/fallback paths. Confirm
+legacy booleans preserve their saved choice and each mode persists after restart.
+Check Light retains readable transparency without colored edge separation, while
+Full retains the existing lens effect. Compare presentation p95, frame misses and
+input response on the same transitions, independently at 1080p and experimental
+4K; do not interpret CPU submission time as GPU execution time. Verify stationary
 backdrops report zero `glass_background_refreshes` while foreground clock/labels
 change outside their coverage; wallpaper or relevant lower-content changes must
 refresh the affected cache. Check no stale lens pixels with partial redraw.
-At experimental 4K, confirm target texel memory stays at or below 15.82 MiB and
-accept the deliberately HD optical backdrop while foreground text remains 4K.
+At experimental 4K, confirm target texel memory stays at or below 7.03 MiB in
+Light and 15.82 MiB in Full, shrinks when switching Full → Light and reaches zero
+after rendering Off. Accept the deliberately 720p/1080p optical backdrop while
+foreground text remains at the main drawable resolution. Check no stale lenses
+when switching quality with partial redraw enabled.
 Verify orientation, letterboxing, resized windows, modal fades, Recents, allocation
 failure fallback and input latency on TV. These checks have not been executed.
 

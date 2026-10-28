@@ -1,9 +1,22 @@
 # Liquid Glass appearance
 
-**Settings → General → Appearance → Liquid Glass** enables the treatment, On by
-default. Off selects opaque controls and releases the optical backdrop caches.
-Saved explicit choices remain respected. The native Rust/OpenGL renderer keeps
-its SDL window, OpenGL ES 2.0 path, existing controls and remote navigation.
+**Settings → General → Appearance → Liquid Glass** cycles Off, Light and Full.
+Full preserves the existing effect and remains the default. Saved explicit choices
+remain respected: legacy booleans `true`/`false` load as Full/Off, and new saves
+use `"full"`, `"off"` or `"light"`. Missing/invalid choices retain Full without
+resetting unrelated appearance settings. There is no automatic TV-model heuristic.
+The native Rust/OpenGL renderer keeps its SDL window, OpenGL ES 2.0 path,
+existing controls and remote navigation.
+
+| Mode  | Optical work per glass pixel                                                                               | Maximum dedicated target texels        |
+| ----- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Off   | None; opaque controls                                                                                      | None after the next render             |
+| Light | One backdrop sample, bounded edge displacement and simple highlights                                       | Two 1280×720 RGBA8 targets: 7.03 MiB   |
+| Full  | Three backdrop samples, magnification, IOR displacement, RGB dispersion and directional/Fresnel highlights | Two 1920×1080 RGBA8 targets: 15.82 MiB |
+
+These are implementation bounds, not measured GPU times. Driver overhead,
+artwork and the main surface are additional. Light reduces maximum target texel
+payload by about 56%; that is not a 56% frame-time or overall-memory improvement.
 
 ## Optical effect
 
@@ -12,8 +25,13 @@ The optical section of the shader is a selective port from
 It adds local lens magnification, index-of-refraction edge displacement, subtle
 RGB dispersion and directional/Fresnel edge highlights. Analytic rounded-rectangle
 normals replace the upstream five height-field evaluations. Three backdrop texture
-samples produce the optical color; offsets, including dispersion, stay within the
-14 logical pixel cache margin. No continuous ripples or physics timer is added.
+samples produce the Full optical color; offsets, including dispersion, stay within
+the 14 logical pixel cache margin. The original Lumaglass Light shader uses a
+single RGB sample, a bounded 2.5 logical pixel edge displacement and simple rim
+lighting. It omits RGB dispersion, lens magnification, a normalized 3D normal,
+luminance-dependent highlights and Fresnel calculations. A constant per-quad
+quality flag preserves batching and routes the optical branch. No continuous
+ripples or physics timer is added.
 The selected tab uses its existing position/width animation, so its lens moves
 with the selection. The tab track, active pill, separate hover pill, combined
 clock/avatar capsule, dedicated Control Center button and optional favorites dock
@@ -28,10 +46,15 @@ they are not included in their own lens backdrop.
 
 ## Backdrop cache and rendering budget
 
-There are at most two RGBA8 GPU targets, each capped at 1920×1080 even when the
-main UI draws at 4K. The maximum texel payload is 15.82 MiB total, excluding driver
-overhead and existing artwork buffers. Smaller windows/driver limits use smaller
-16:9 targets. Text and icons continue rendering at the original drawable density.
+There are at most two RGBA8 GPU targets, each capped at 1280×720 in Light or
+1920×1080 in Full even when the main UI draws at 4K. Switching quality resizes
+and refreshes the targets when their capped dimensions differ. If the drawable
+or driver already forces a smaller size, both modes may allocate the same texel
+payload; the shader still follows the selected mode. Off emits no glass commands
+and drops both targets on the next render. Smaller windows/driver limits use
+smaller 16:9 targets. Text and icons continue rendering at the original drawable
+density. In a mixed-quality scene the targets use the highest requested optical
+quality; the ordinary UI applies one mode consistently across all glass controls.
 
 The base target captures lower content before the first glass surface. The
 control-center target captures the attenuated parent interface with a 38% contrast
@@ -60,7 +83,8 @@ one paint pass. Compatible quads batch when their texture, clipping, fade and
 backdrop layer match. Focus outlines and shadows remain separate primitives.
 Snapshot passes are additional work when a backdrop needs refreshing. They are
 scissored to the required region, and do not run continuously over unchanged
-content. At 4K the HD backdrop is intentionally upsampled to bound memory/bandwidth.
+content. At 4K the 720p/1080p backdrop is intentionally upsampled to bound memory/bandwidth;
+the final glass shader still shades the control at the main drawable resolution.
 
 The clear treatment respects the user's wallpaper blur preference. Chrome resting
 tint opacity is 0.10–0.18; selected chrome uses 0.18–0.20; focus uses 0.24;
@@ -77,13 +101,15 @@ idle animation loop.
 
 Optics require a fragment high-precision path and a complete RGBA8 framebuffer.
 The renderer retries compilation with the analytic shader if optical compilation
-fails. Unsupported precision, failed/capped framebuffer allocation or disabling
-glass uses the lightweight material without optical targets. An allocation failure
+fails. Unsupported precision or failed/capped framebuffer allocation keeps analytic
+glass without optical targets in both Light and Full. Off instead uses opaque
+controls without glass shader commands. An allocation failure
 is not retried on every frame at the same size. No new GPU extension is required.
 
 Rendering diagnostics include:
 
 - `optical_glass_supported`: optical shader path compiled and precision supported.
+- `glass_quality`: highest requested optical quality (`light`/`full`, null without optical commands); this does not establish successful driver support.
 - `glass_background_bytes`: allocated RGBA target texel bytes.
 - `glass_background_refreshes`: targets refreshed during this frame.
 - `glass_background_ms`: CPU preparation/submission time, not a GPU timestamp.
@@ -91,6 +117,11 @@ Rendering diagnostics include:
 No tests, graphical preview or CI were run for this revision, as requested.
 Compilation and packaging do not establish visual correctness, a TV frame-rate
 guarantee or driver compatibility. Those require the pending hardware checks.
+The intended next performance step is a controlled Off/Light/Full comparison on
+the target TV, using actual presentation pacing and input responsiveness during
+navigation and modal transitions. CPU submission time alone cannot establish
+GPU cost. Automatic quality selection remains deferred until real measurements
+justify a policy; OLED/QNED branding or an Alpha generation is insufficient.
 
 ## Provenance and references
 

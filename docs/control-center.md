@@ -6,7 +6,7 @@ has a large power tile, network/audio capsules, screensaver/timer capsules and
 four circular shortcuts. There is no large enclosing backplate. The parent page
 is attenuated before backdrop capture, with a contrast scrim so its rows/text
 cannot compete with quick controls. The controls themselves keep the clear,
-lightly tinted glass used by the header. The panel uses the shared [Liquid Glass appearance](liquid-glass.md), the chosen wallpaper and explicit focus outlines. Disabling glass selects opaque surfaces. Optical tiles use a cached GPU backdrop with bounded lens refraction. Backdrop updates are conditional; there is no per-frame blur engine.
+lightly tinted glass used by the header. The panel uses the shared [Liquid Glass appearance](liquid-glass.md), the chosen wallpaper and explicit focus outlines. Off selects opaque surfaces; Light uses simpler reflections and Full retains lens refraction and RGB dispersion. Both optical modes use a bounded cached GPU backdrop. Backdrop updates are conditional; there is no per-frame blur engine.
 
 ## Opening and closing
 

@@ -46,4 +46,13 @@ selected stock image. Personal image sources are a separate planned feature.
 
 ## Liquid Glass
 
-The Liquid Glass toggle defaults to On. It applies the shared translucent material to navigation, controls and the control center; Off selects opaque surfaces. See [the rendering budget and design references](liquid-glass.md).
+Cycle **Off → Light → Full**. Full is the existing appearance and remains the default.
+Light keeps translucent controls with simpler reflections and a smaller backdrop
+cache. Off selects opaque surfaces and releases the optical targets on the next
+render. The choice applies to navigation, clock/avatar, the dock, settings,
+Control Center and profile controls without changing their layout or navigation.
+
+Legacy `liquid_glass: true` loads as Full and `false` as Off. New saves use
+`"off"`, `"light"` or `"full"`; missing/invalid values keep the existing Full default.
+No TV-model heuristic or automatic quality change overrides the selected mode.
+See [the rendering budget and design references](liquid-glass.md).
