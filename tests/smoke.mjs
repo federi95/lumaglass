@@ -336,7 +336,13 @@ try {
   assert.ok(systemTop.ui_text.includes('TV information'));
   assert.ok(systemTop.ui_text.includes('Privacy'));
   assert.ok(systemTop.ui_text.includes('Render resolution'));
-  assert.ok(system.ui_text.includes('LG ads & telemetry blocker: refresh status'));
+  assert.ok(system.controls.some((c) => c.target.Setting === 14));
+  const blockerFocus = await scenario(
+    'system-blocker-focus',
+    `settings,down,down,down,down,down,right,${Array(6).fill('down').join(',')}`,
+  );
+  assert.deepEqual(blockerFocus.focus, { Setting: 14 });
+  assert.ok(blockerFocus.ui_text.includes('LG ads & telemetry blocker: refresh status'));
   assert.ok(system.ui_text.includes('Enable LG ads & telemetry blocker'));
   assert.ok(system.ui_text.includes('Disable LG blocker and restore hosts'));
   const textOptions = 'settings,down,down,down,down,down,right,down,enter';

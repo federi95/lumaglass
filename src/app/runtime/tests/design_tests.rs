@@ -89,3 +89,19 @@ fn settings_header_back_is_reachable_and_returns_home_at_root() {
     state.activate();
     assert_eq!(state.page, Page::Home);
 }
+
+#[test]
+fn weather_remote_follows_the_vertical_query_search_result_order() {
+    let mut state = ready();
+    state.open(2);
+    state.settings_category = true;
+    state.subpage = Some(crate::state::Subpage::WeatherLocation);
+    state.focus = Target::WeatherQuery;
+    state.direction(Direction::Down, &controls(&state));
+    assert_eq!(state.focus, Target::WeatherSearch);
+    state.direction(Direction::Up, &controls(&state));
+    assert_eq!(state.focus, Target::WeatherQuery);
+    state.focus = Target::WeatherResult(0);
+    state.direction(Direction::Up, &controls(&state));
+    assert_eq!(state.focus, Target::WeatherSearch);
+}

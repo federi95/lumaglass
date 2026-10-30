@@ -234,7 +234,7 @@ try {
   );
   const latest = await scenario(
     'latest-search',
-    `${locationPage},type:slow,back,enter,tap:"WeatherQuery",type:Paris,back,enter,await-search,down,enter`,
+    `${locationPage},type:slow,back,enter,tap:"WeatherQuery",tap:{"Key":38},type:Paris,back,enter,await-search,down,enter`,
   );
   assert.equal(latest.preferences.weather_location.name, 'Paris');
   assert.ok(latest.weather.results.length === 0);

@@ -2335,8 +2335,10 @@ impl State {
                     }
                     Direction::Up => {
                         self.focus(
-                            if self.preferences.weather_location.is_some()
-                                && self.focus != Target::WeatherClear
+                            if self.focus == Target::WeatherSearch {
+                                Target::WeatherQuery
+                            } else if self.focus == Target::WeatherQuery
+                                && self.preferences.weather_location.is_some()
                             {
                                 Target::WeatherClear
                             } else {
@@ -2349,10 +2351,10 @@ impl State {
                     Direction::Down => {
                         let target = if self.focus == Target::WeatherClear {
                             Some(Target::WeatherQuery)
-                        } else if !self.weather.results.is_empty() {
-                            Some(Target::WeatherResult(0))
                         } else if self.focus == Target::WeatherQuery {
                             Some(Target::WeatherSearch)
+                        } else if !self.weather.results.is_empty() {
+                            Some(Target::WeatherResult(0))
                         } else {
                             None
                         };
@@ -2369,7 +2371,7 @@ impl State {
                     Direction::Left => self.close_subpage(),
                     Direction::Up => self.focus(
                         if index == 0 {
-                            Target::WeatherQuery
+                            Target::WeatherSearch
                         } else {
                             Target::WeatherResult(index - 1)
                         },

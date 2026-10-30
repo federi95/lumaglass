@@ -70,6 +70,21 @@ fn clipped_line(assets: &Assets, value: &str, style: TextStyle, width: f32) -> S
     }
     format!("{text}…")
 }
+pub(super) fn section(out: &mut Scene, title: &str) {
+    let Some(form) = out.form.as_mut() else {
+        return;
+    };
+    let rect = form.rect(40., false, false);
+    form.painting = true;
+    out.text(
+        title,
+        Rect::new(rect.x + 28., rect.y + 10., rect.w - 56., 28.),
+        text(18., 550, 0.),
+        c(0xffffff, 0.60),
+        false,
+    );
+    out.form.as_mut().unwrap().painting = false;
+}
 pub(super) fn item(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
     let form = out.form.as_mut().expect("settings form");
     let half = row.rect.w < 700.;

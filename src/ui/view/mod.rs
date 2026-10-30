@@ -1632,7 +1632,7 @@ fn library(out: &mut Scene, state: &State, assets: &Assets) {
     let mut x = 84.;
     for (index, label) in CATEGORIES.into_iter().enumerate() {
         let label = language.category(label);
-        let width = assets.width(label, text(16., 400, 0.)) + 35.6;
+        let width = assets.width(label, text(18., 500, 0.)) + 35.6;
         let rect = Rect::new(x, 171.4 - s, width, 42.8);
         filter(
             out,
@@ -1649,7 +1649,7 @@ fn library(out: &mut Scene, state: &State, assets: &Assets) {
         let rect = Rect::new(
             x,
             171.4 - s,
-            assets.width(&label, text(16., 400, 0.)) + 35.6,
+            assets.width(&label, text(18., 500, 0.)) + 35.6,
             42.8,
         );
         filter(
@@ -1664,11 +1664,14 @@ fn library(out: &mut Scene, state: &State, assets: &Assets) {
     }
     if state.filter != 0 {
         let rect = Rect::new(x, 176.8 - s, 32., 32.);
-        out.shape(rect, 16., c(0x23282c, 0.5));
-        out.icon(assets, "close", rect.inset(8.), c(0xeeeeee, 0.73));
-        if state.focus == Target::ClearFilter {
-            out.border(rect.inset(-2.), 18., 2., out.accent_color(WHITE));
-        }
+        let color = out.chrome(
+            rect,
+            16.,
+            state.focus == Target::ClearFilter,
+            false,
+            state.pressed.as_ref() == Some(&Target::ClearFilter),
+        );
+        out.icon(assets, "close", rect.inset(8.), color);
         out.control(Target::ClearFilter, rect, true);
     }
     let search = Rect::new(1532., 164.8 - s, 304., 56.);
@@ -1706,9 +1709,9 @@ fn library(out: &mut Scene, state: &State, assets: &Assets) {
     if !state.query.is_empty() {
         let clear = Rect::new(search.x + search.w - 45.8, search.y + 14.8, 26.4, 26.4);
         out.shape(clear, 13.2, c(0xffffff, 0.055));
-        out.icon(assets, "close", clear.inset(5.2), WHITE);
+        out.icon(assets, "close", clear.inset(5.2), search_color);
         if state.focus == Target::ClearSearch {
-            out.border(clear.inset(-2.), 15.2, 2., out.accent_color(WHITE));
+            out.border(clear.inset(-2.), 15.2, 2., search_color);
         }
         out.control(Target::ClearSearch, clear, true);
     }
@@ -1779,26 +1782,18 @@ fn library(out: &mut Scene, state: &State, assets: &Assets) {
 }
 
 fn filter(out: &mut Scene, state: &State, target: Target, rect: Rect, label: &str, selected: bool) {
-    if selected {
-        out.shape(rect, 32., out.accent_color(c(0xffffff, 0.11)));
-        out.border(rect, 32., 1., out.accent_color(c(0xffffff, 0.07)));
-    }
-    if state.focus == target && !state.pointer {
-        out.border(
-            rect.inset(-7.),
-            39.,
-            2.,
-            out.accent_color(c(0xf0f0f0, 0.95)),
-        );
-    }
+    let color = out.chrome(
+        state.feedback_rect(&target, rect, false),
+        rect.h / 2.,
+        state.focus == target,
+        selected,
+        state.pressed.as_ref() == Some(&target),
+    );
     out.text(
         label,
-        Rect::new(rect.x, rect.y + 11.4, rect.w, 20.),
-        text(16., 400, 0.),
-        c(
-            if selected { 0xf5f5f5 } else { 0xf0f0f0 },
-            if selected { 1. } else { 0.66 },
-        ),
+        Rect::new(rect.x, rect.y + 10.4, rect.w, 24.),
+        text(18., 500, 0.),
+        color,
         true,
     );
     out.control(target, rect, true);
@@ -1992,30 +1987,12 @@ fn weather_settings(out: &mut Scene, state: &State, assets: &Assets) {
             rect,
             title: language.t("location"),
             icon: Some("location"),
-            value: None,
+            value: city,
             description: None,
             selected: false,
             chevron: true,
         },
     );
-    if let Some(city) = city {
-        out.text(
-            city,
-            Rect::new(
-                rect.x + rect.w - 508.6,
-                rect.y + (height - city_lines as f32 * 25.76) / 2.,
-                450.,
-                city_lines as f32 * 25.76,
-            ),
-            style.right(),
-            if state.focus == Target::WeatherLocation {
-                c(0x444444, 1.)
-            } else {
-                c(0xeeeeee, 0.73)
-            },
-            false,
-        );
-    }
     let y = rect.y + height + 12.;
     row(
         out,
@@ -3115,13 +3092,7 @@ fn home_settings(out: &mut Scene, state: &State, assets: &Assets) {
             if option != Setting::TwoRows {
                 y += 20.;
             }
-            out.text(
-                language.t(key),
-                Rect::new(664., y, 1040., 26.),
-                text(17., 550, 0.),
-                c(0xffffff, 0.88),
-                false,
-            );
+            settings_ui::section(out, language.t(key));
             y += 38.;
         }
         let enabled = |flag| language.t(if flag { "stateOn" } else { "stateOff" });

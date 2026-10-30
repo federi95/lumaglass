@@ -2066,7 +2066,7 @@ fn run() -> Result<(), String> {
                 .iter()
                 .any(|c| matches!(c.target, Target::Immich(_) | Target::ImmichAlbum(_)));
         let state = serde_json::json!({ "page": state.page, "focus": if matches!(state.focus,Target::ImmichAlbum(_)){serde_json::json!("ImmichAlbum")}else{serde_json::to_value(&state.focus).map_err(|e|e.to_string())?}, "query": state.query,
-            "settings_category":state.settings_category, "controls":scene.controls.iter().map(|c|serde_json::json!({"target":if matches!(c.target,Target::ImmichAlbum(_)){serde_json::json!("ImmichAlbum")}else{serde_json::to_value(&c.target).unwrap_or(serde_json::Value::Null)},"rect":[c.rect.x,c.rect.y,c.rect.w,c.rect.h],"enabled":state.target_enabled(&c.target)})).collect::<Vec<_>>(),
+            "section":state.section, "settings_category":state.settings_category, "controls":scene.controls.iter().map(|c|serde_json::json!({"target":if matches!(c.target,Target::ImmichAlbum(_)){serde_json::json!("ImmichAlbum")}else{serde_json::to_value(&c.target).unwrap_or(serde_json::Value::Null)},"rect":[c.rect.x,c.rect.y,c.rect.w,c.rect.h],"enabled":state.target_enabled(&c.target)})).collect::<Vec<_>>(),
             "filter": state.filter, "preferences": state.preferences, "apps": state.apps().iter().map(|a| &a.id).collect::<Vec<_>>(),
             "error": state.error, "scroll": state.scroll, "home_scroll": state.home_scroll, "subpage": state.subpage, "modal": state.overlay.is_some(), "weather": state.weather,
             "inventory": state.inventory.apps, "system_saver": state.system_saver,
