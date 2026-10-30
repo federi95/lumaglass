@@ -49,7 +49,9 @@ not cause catch-up changes. Random order avoids immediate repeats. Reduced
 motion disables the existing crossfade. Only actual changes are persisted.
 The Home timer and screensaver presentation are independent.
 
-Immich, Google Photos/Drive and any iCloud integration remain later optional
-connectors; no cloud account flow is included in this milestone. This original
+[Immich](immich.md) now adds an optional read-only album connector under My images,
+with a private connection file, explicit imports and the same offline cache.
+Google Photos/Drive and any iCloud integration remain later optional connectors.
+This original
 implementation does not import code from upstream Luma PR #92; upstream and
 Glasshouse provenance remain in NOTICE.md.

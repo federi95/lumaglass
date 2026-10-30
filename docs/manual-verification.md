@@ -135,3 +135,16 @@ Check that restoring the native candidate is unavailable without a proven owned
 transaction. Hardware qualification of the replacement requires the complete
 [startup, wake, policy and recovery checks](system-screensaver.md#qualification-before-enabling-a-profile);
 no firmware allowlist is enabled by this revision.
+
+## Immich connector
+
+Use a separate API key with only album.read, asset.read and asset.view on a
+controlled Immich library. Check the actual native jail’s persistent preferences
+path and file ownership before adding the private connection file. Loading albums
+must be explicit; startup and both screensaver modes must make no Immich request.
+Select albums, import and verify that only their eligible previews are requested,
+then disconnect the server and check wallpaper/rotation/local saver playback from
+cache. Test denied permissions, TLS failure, redirects, server/key changes and
+malformed images. An unsuccessful import must retain the old catalog and current
+wallpaper. Confirm Cancel-first removal deletes only the connection file and keeps
+cached images. Neither real-server integration nor these TV checks have been run.

@@ -36,7 +36,9 @@ apps, with protected identities and inventory verification. Hide in Lumaglass
 remains a separate local preference. TV behavior still needs hardware verification.
 Confirmed Live Plus/limit-ad-tracking changes and an optional reversible LG hosts
 blocker are available through System settings. Personal local/HTTPS wallpapers,
-rotation and an app-local clock/photo screensaver are configurable. Render
+rotation and an app-local clock/photo screensaver are configurable. An optional
+[Immich album connector](docs/immich.md) imports explicitly selected albums into the
+offline image cache, with credentials kept outside preferences. Render
 resolution includes an experimental guarded 4K trial.
 **Settings → General → System screensaver** adds compatibility inspection, a request
 through LG’s idle policy, and ownership-scoped recovery. A dedicated native clock/photo

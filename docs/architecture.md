@@ -243,3 +243,13 @@ clients or preference writes. Native settings transport inspect/apply/restore/re
 intents through the bounded observation worker with generation checks. The Node 8
 adapter has an empty firmware registry, a content-bound plan, root ownership checks,
 per-app refresh and journalled recovery. See [system screensaver](system-screensaver.md).
+
+The optional Immich connector shares the existing image worker and cache serializer
+with local imports. Startup reads cached images only; connection files and the
+network are accessed only by explicit user commands. Browse replies carry a
+connection identity and a bounded album page, not a credential object. The immutable
+import intent pins that identity and the chosen album IDs; a changed connection
+refuses the old intent. Native state stores selections only in memory until import
+updates the private connection file. A separate file owns server/key/album selection;
+none is added to the preference schema. Album names and IDs are redacted from native
+state dumps. See [Immich](immich.md) for API limits and configuration.
