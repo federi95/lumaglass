@@ -5090,7 +5090,7 @@
     "pt": "Carregando fonte de fotos…",
     "ru": "Загрузка источника фото…",
     "zh": "正在加载照片来源…",
-    "ko": "사진 소스를 불러오는 중…"
+    "fr": "Chargement de la source photo…"
   },
   "cloudSelectionLimit": {
     "en": "Select up to three folders",
@@ -5200,7 +5200,7 @@
     "pt": "Somente prévia; conexão e importação desativadas",
     "ru": "Только просмотр; подключение и импорт отключены",
     "zh": "仅供预览；连接和导入已禁用",
-    "ko": "미리 보기 전용; 연결 및 가져오기 비활성화"
+    "fr": "Aperçu uniquement ; connexion et importation désactivées"
   },
   "cloudPhotosLoad": {
     "en": "Load exported photos",
@@ -5211,7 +5211,7 @@
     "pt": "Carregar fotos exportadas",
     "ru": "Загрузить экспортированные фото",
     "zh": "加载已导出的照片",
-    "ko": "내보낸 사진 불러오기"
+    "fr": "Charger les photos exportées"
   },
   "cloudPhotosExportHint": {
     "en": "Use an export made on your computer. Imported photos stay available offline; this TV does not contact Google Photos.",
@@ -5222,7 +5222,7 @@
     "pt": "Use uma exportação do computador. As fotos ficam offline; esta TV não acessa o Google Photos.",
     "ru": "Используйте экспорт с компьютера. Фото остаются офлайн; телевизор не обращается к Google Photos.",
     "zh": "使用在电脑上创建的导出。导入的照片可离线使用；此电视不会连接 Google Photos。",
-    "ko": "컴퓨터에서 내보낸 사진을 사용하세요. 가져온 사진은 오프라인으로 유지되며 TV는 Google Photos에 연결하지 않습니다."
+    "fr": "Utilisez un export créé sur votre ordinateur. Les photos restent disponibles hors ligne ; ce téléviseur ne contacte pas Google Photos."
   },
   "cloudExportInvalid": {
     "en": "Export folder or manifest unavailable",
@@ -5233,6 +5233,6 @@
     "pt": "Pasta ou manifesto de exportação indisponível",
     "ru": "Папка экспорта или манифест недоступны",
     "zh": "导出文件夹或清单不可用",
-    "ko": "내보내기 폴더 또는 목록을 사용할 수 없음"
+    "fr": "Dossier d’export ou manifeste indisponible"
   }
 }

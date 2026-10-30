@@ -259,6 +259,11 @@ impl Net {
                     .header("X-Requested-With", "XMLHttpRequest");
             }
             let req = req.body(body).map_err(|_| "cloudUnavailable")?;
+            let req = self
+                .agent
+                .configure_request(req)
+                .allow_non_standard_methods(method == "PROPFIND")
+                .build();
             self.agent.run(req)
         };
         let mut response = response.map_err(|e| match e {

@@ -48,6 +48,9 @@ pub(super) fn root(url: &str) -> Result<String> {
     ))
 }
 fn href(base: &str, value: &str) -> Result<String> {
+    if value.starts_with("//") {
+        return Err("cloudInvalidServer");
+    }
     let authority = https(base)?
         .authority()
         .ok_or("cloudInvalidServer")?

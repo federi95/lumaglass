@@ -72,7 +72,7 @@ try {
         .every((c) => !c.enabled),
     );
   }
-  for (const language of ['it', 'zh', 'ko']) {
+  for (const language of ['it', 'zh', 'fr']) {
     await fs.writeFile(
       preferences,
       JSON.stringify({ reduced_motion: true, show_weather: false, language }),
