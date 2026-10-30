@@ -1685,6 +1685,13 @@ fn run() -> Result<(), String> {
                             {
                                 pending = state.activate()
                             }
+                            None if matches!(
+                                state.overlay,
+                                Some(Overlay::Profile | Overlay::ControlCenter { .. })
+                            ) && hit(&scene.controls, &window, x, y, &state).is_none() =>
+                            {
+                                pending = state.dismiss_overlay()
+                            }
                             None if scene.modal.is_some_and(|rect| {
                                 pointer_position(&window, x, y)
                                     .is_some_and(|(x, y)| !rect.contains(x, y))

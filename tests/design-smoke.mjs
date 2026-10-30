@@ -89,6 +89,11 @@ try {
   const outside = await scenario('design-profile-outside', 'tap:"Profile",click:100:540');
   assert.equal(outside.state.modal, false);
   assert.equal(outside.state.focus, 'Profile');
+  const profileBackground = await scenario(
+    'design-profile-background',
+    'tap:"Profile",click:960:850',
+  );
+  assert.equal(profileBackground.state.modal, false);
   const quickOutside = await scenario('design-center-outside', 'control-center,click:100:540');
   assert.equal(quickOutside.state.modal, false);
   const quickToggle = await scenario('design-center-toggle', 'control-center,tap:"ControlCenter"');
