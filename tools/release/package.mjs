@@ -111,7 +111,13 @@ for (const file of [
 await fs.copyFile(path.join(root, 'LICENSE'), path.join(stage, 'LICENSE'));
 await fs.copyFile(path.join(root, 'NOTICE.md'), path.join(stage, 'NOTICE.md'));
 await fs.mkdir(path.join(stage, 'docs'));
-for (const file of ['assets.md', 'licensing.md', 'appearance.md', 'system-screensaver.md']) {
+for (const file of [
+  'assets.md',
+  'licensing.md',
+  'appearance.md',
+  'system-screensaver.md',
+  'immich.md',
+]) {
   await fs.copyFile(path.join(root, 'docs', file), path.join(stage, 'docs', file));
 }
 const assetNotices = await fs.readFile(path.join(root, 'docs/assets.md'), 'utf8');

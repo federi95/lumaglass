@@ -37,6 +37,9 @@ pub enum Page {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum Target {
+    PhotoImmich,
+    Immich(usize),
+    ImmichAlbum(String),
     SystemSaver(usize),
     CatalogRefresh,
     CatalogFilter,
@@ -195,6 +198,7 @@ pub enum Overlay {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum Subpage {
+    Immich,
     SystemScreensaver,
     AppManagement,
     ManagedApp(String),
@@ -299,6 +303,7 @@ pub struct State {
     pub rotation: crate::features::wallpapers::rotation::Session,
     pub wallpapers: crate::features::wallpapers::Session,
     pub photo_draft: String,
+    pub immich: crate::features::wallpapers::immich::Session,
     pub controls: crate::features::controls::Controls,
     pub page: Page,
     pub focus: Target,
@@ -347,6 +352,7 @@ impl State {
             controls: crate::features::controls::Controls::default(),
             wallpapers: crate::features::wallpapers::Session::default(),
             photo_draft: String::new(),
+            immich: crate::features::wallpapers::immich::Session::default(),
             sleep_draft: 0,
             cc_timer: false,
             display_change: None,
@@ -535,6 +541,17 @@ impl State {
 
     /// Disabled rows remain focusable so the reason can be read, but cannot mutate.
     pub fn target_enabled(&self, target: &Target) -> bool {
+        if self.immich.importing
+            && matches!(
+                target,
+                Target::Photo(_)
+                    | Target::PhotoStock
+                    | Target::Background(_)
+                    | Target::RotationNext
+            )
+        {
+            return false;
+        }
         if self.catalog.system_visibility.confirming
             && matches!(self.subpage, Some(Subpage::ManagedApp(_)))
             && matches!(
@@ -548,6 +565,15 @@ impl State {
             return false;
         }
         match target {
+            Target::Immich(index) => self.immich_enabled(*index),
+            Target::ImmichAlbum(id) => {
+                self.subpage == Some(Subpage::Immich)
+                    && !self.immich.loading
+                    && !self.immich.confirming
+                    && !self.wallpapers.loading
+                    && self.immich.albums.iter().any(|a| &a.id == id)
+            }
+            Target::PhotoImport => !self.wallpapers.loading && !self.wallpapers.pending,
             Target::SystemSaver(index) => {
                 if self.subpage != Some(Subpage::SystemScreensaver) || self.system_saver.loading {
                     return false;
@@ -1049,6 +1075,9 @@ impl State {
         pool
     }
     pub fn rotate_background(&mut self) -> Vec<Effect> {
+        if self.immich.importing {
+            return vec![];
+        }
         let pool = self.rotation_pool();
         let current = self.current_background().to_owned();
         let Some(next) = self
@@ -1110,6 +1139,7 @@ impl State {
             Target::PhotoStock,
             Target::PhotoClearSources,
         ];
+        rows.push(Target::PhotoImmich);
         rows.extend((0..self.wallpapers.photos.len()).map(Target::Photo));
         rows
     }
@@ -1554,6 +1584,19 @@ impl State {
     }
 
     fn close_subpage(&mut self) {
+        if self.subpage == Some(Subpage::Immich) {
+            if self.immich.confirming {
+                self.immich.confirming = false;
+                self.focus = Target::Immich(2);
+                self.dirty = true;
+                return;
+            }
+            self.immich.confirming = false;
+            self.subpage = Some(Subpage::Wallpapers);
+            self.focus = Target::PhotoImmich;
+            self.scroll = self.immich.return_scroll;
+            return;
+        }
         if self.subpage == Some(Subpage::SystemScreensaver) {
             self.system_saver.invalidate();
         }
@@ -1567,6 +1610,7 @@ impl State {
         self.panel_started = None;
         self.pointer = false;
         self.focus = match self.subpage.take() {
+            Some(Subpage::Immich) => unreachable!(),
             Some(Subpage::SystemScreensaver) => Target::Setting(23),
             Some(Subpage::AppNames) => Target::Setting(0),
             Some(Subpage::Greeting) if self.greeting_from_home => {
@@ -1713,10 +1757,12 @@ impl State {
         if self.overlay.is_none()
             && matches!(
                 self.subpage,
-                Some(Subpage::Wallpapers | Subpage::Rotation | Subpage::Display)
+                Some(Subpage::Immich | Subpage::Wallpapers | Subpage::Rotation | Subpage::Display)
             )
         {
-            let rows = if self.subpage == Some(Subpage::Display) {
+            let rows = if self.subpage == Some(Subpage::Immich) {
+                self.immich_rows()
+            } else if self.subpage == Some(Subpage::Display) {
                 if self.display_trial {
                     vec![Target::DisplayHD, Target::DisplayKeep]
                 } else {
@@ -2937,6 +2983,14 @@ impl State {
         }
         if self.subpage == Some(Subpage::Wallpapers) && self.overlay.is_none() {
             match self.focus {
+                Target::PhotoImmich => {
+                    self.immich.return_scroll = self.scroll;
+                    self.subpage = Some(Subpage::Immich);
+                    self.focus = Target::Immich(0);
+                    self.scroll = 0.;
+                    self.dirty = true;
+                    return vec![];
+                }
                 Target::PhotoFolder => {
                     self.open_keyboard(TextField::PhotoFolder);
                     return vec![];
@@ -3325,6 +3379,8 @@ impl State {
                 self.subpage = None;
                 self.focus = self.section_entry();
             }
+            Target::Immich(index) => self.immich_action(index),
+            Target::ImmichAlbum(id) => self.immich_toggle(&id),
             Target::SystemSaver(index) => return self.system_saver_action(index),
             Target::SystemRefresh => {
                 return self
@@ -3529,7 +3585,8 @@ impl State {
             Target::Choice(index) => {
                 match self.subpage.clone() {
                     Some(
-                        Subpage::SystemScreensaver
+                        Subpage::Immich
+                        | Subpage::SystemScreensaver
                         | Subpage::SystemInfo
                         | Subpage::Privacy
                         | Subpage::AppManagement

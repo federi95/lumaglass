@@ -13,6 +13,7 @@ use std::{
 const MAX_SOURCE: u64 = 8 * 1024 * 1024;
 const MAX_CACHE: u64 = 64 * 1024 * 1024;
 const MAX_IMAGES: usize = 12;
+pub(crate) mod immich;
 pub(crate) mod rotation;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -53,28 +54,42 @@ impl Session {
         valid_id(id) && self.photos.iter().any(|p| p.id == id)
     }
 }
+enum Job {
+    Local(Preferences),
+    Immich(u64, immich::Command),
+}
+pub enum Reply {
+    Initial(Result<Vec<Photo>, String>),
+    Local(Result<Vec<Photo>, String>),
+    Immich(u64, Result<immich::Outcome, &'static str>),
+}
 pub struct Service {
-    sender: mpsc::SyncSender<Preferences>,
-    pub receiver: mpsc::Receiver<Result<Vec<Photo>, String>>,
+    sender: mpsc::SyncSender<Job>,
+    pub receiver: mpsc::Receiver<Reply>,
 }
 impl Service {
-    pub fn new(root: PathBuf) -> Self {
+    pub fn new(root: PathBuf, credentials: PathBuf) -> Self {
         let (sender, jobs) = mpsc::sync_channel(1);
         let (results, receiver) = mpsc::channel();
         thread::spawn(move || {
-            let initial = load(&root).map(|photos| previews(&root, photos));
-            if results.send(initial).is_err() {
+            if results
+                .send(Reply::Initial(load(&root).map(|p| previews(&root, p))))
+                .is_err()
+            {
                 return;
             }
-            for preferences in jobs {
-                if results
-                    .send(
+            for job in jobs {
+                let reply = match job {
+                    Job::Local(preferences) => Reply::Local(
                         import(&root, &preferences)
-                            .map(|photos| previews(&root, photos))
+                            .map(|p| previews(&root, p))
                             .map_err(|_| "Image import failed".into()),
-                    )
-                    .is_err()
-                {
+                    ),
+                    Job::Immich(generation, command) => {
+                        Reply::Immich(generation, immich::run(&credentials, &root, command))
+                    }
+                };
+                if results.send(reply).is_err() {
                     break;
                 }
             }
@@ -82,9 +97,15 @@ impl Service {
         Self { sender, receiver }
     }
     pub fn import(&self, preferences: Preferences) -> bool {
-        self.sender.try_send(preferences).is_ok()
+        self.sender.try_send(Job::Local(preferences)).is_ok()
+    }
+    pub fn immich(&self, generation: u64, command: immich::Command) -> bool {
+        self.sender
+            .try_send(Job::Immich(generation, command))
+            .is_ok()
     }
 }
+
 fn load(root: &Path) -> Result<Vec<Photo>, String> {
     if !root.exists() {
         return Ok(vec![]);
@@ -326,7 +347,7 @@ impl Decoder {
         self.sender.try_send(key).is_ok()
     }
 }
-fn import(root: &Path, preferences: &Preferences) -> Result<Vec<Photo>, String> {
+fn ensure_cache(root: &Path) -> Result<(), String> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::DirBuilderExt;
@@ -347,6 +368,10 @@ fn import(root: &Path, preferences: &Preferences) -> Result<Vec<Photo>, String> 
     {
         return Err("Invalid cache".into());
     }
+    Ok(())
+}
+fn import(root: &Path, preferences: &Preferences) -> Result<Vec<Photo>, String> {
+    ensure_cache(root)?;
     let previous = load(root)?;
     let mut photos = vec![];
     if !preferences.url.trim().is_empty() {
@@ -400,9 +425,17 @@ fn import(root: &Path, preferences: &Preferences) -> Result<Vec<Photo>, String> 
     if photos.is_empty() {
         return Err("No valid images; previous cache retained".into());
     }
+    finish_import(root, photos, previous, preferences.selected.as_deref())
+}
+fn finish_import(
+    root: &Path,
+    mut photos: Vec<Photo>,
+    previous: Vec<Photo>,
+    selected: Option<&str>,
+) -> Result<Vec<Photo>, String> {
     if let Some(old) = previous
         .into_iter()
-        .find(|p| Some(&p.id) == preferences.selected.as_ref())
+        .find(|p| Some(p.id.as_str()) == selected)
         && !photos.iter().any(|p| p.id == old.id)
     {
         photos.push(old);

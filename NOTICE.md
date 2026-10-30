@@ -130,3 +130,12 @@ for newly imported code/assets before packaging them. Keep source and generated
 derivatives under their applicable terms; do not relabel all bundled material as
 MIT. The packaging verification requires the notice files so they cannot be
 silently omitted from the IPK.
+
+## Immich API connector
+
+`src/features/wallpapers/immich/` and its native settings page are original
+Lumaglass code. API request/response shapes and permission names were checked
+against the official Immich OpenAPI specifications at tags `v3.3.5` and `v2.5.6`,
+and the `v3.3.5` album, search and asset-media controllers. No Immich server code,
+generated SDK, artwork or frontend assets are copied or bundled. The connector
+uses only the documented read endpoints and read-only metadata search.

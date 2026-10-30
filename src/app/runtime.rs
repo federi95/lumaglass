@@ -36,6 +36,7 @@ struct Options {
     profile_frames: Option<usize>,
     weather_test_server: Option<String>,
     test_extra_apps: usize,
+    immich_preview: bool,
 }
 
 impl Options {
@@ -76,6 +77,13 @@ impl Options {
                     "\n  Press Back / Escape on Home, or hold for 600 ms, to open Recent apps.\n  --script recents,await-recents  Open the desktop recent-app preview."
                 );
                 std::process::exit(0);
+            }
+            if arg == "--immich-preview" {
+                if cfg!(feature = "webos") {
+                    return Err("Immich demo albums are desktop-only".into());
+                }
+                result.immich_preview = true;
+                continue;
             }
             if arg == "--fullscreen" {
                 result.fullscreen = true;
@@ -385,6 +393,7 @@ fn script(
         "await-search" => vec![],
         "await-weather" => vec![],
         "await-recents" => vec![],
+        "await-immich" => vec![],
         _ => return Err(format!("Unknown scripted action: {action}")),
     })
 }
@@ -609,6 +618,9 @@ fn run() -> Result<(), String> {
     };
     let mut state = State::new(initial_preferences);
     state.webos = webos;
+    if options.immich_preview {
+        state.immich.demo();
+    }
     let mut display_guard = crate::features::display::Guard::begin(
         &preferences_path,
         state.preferences.display.four_k,
@@ -623,8 +635,10 @@ fn run() -> Result<(), String> {
     }
     state.wallpapers.root = preferences_path.with_extension("wallpapers");
     state.wallpapers.loading = true;
-    let wallpaper_service =
-        crate::features::wallpapers::Service::new(state.wallpapers.root.clone());
+    let wallpaper_service = crate::features::wallpapers::Service::new(
+        state.wallpapers.root.clone(),
+        crate::features::wallpapers::immich::credentials_path(&preferences_path),
+    );
     let wallpaper_decoder =
         crate::features::wallpapers::Decoder::new(state.wallpapers.root.clone());
     let mut preferences_writer = storage::Writer::new(preferences_path.clone())?;
@@ -1224,16 +1238,28 @@ fn run() -> Result<(), String> {
                 wallpaper_service.import(state.preferences.wallpapers.clone());
             state.dirty = true;
         }
-        while let Ok(result) = wallpaper_service.receiver.try_recv() {
-            state.wallpapers.loading = false;
-            match result {
-                Ok(photos) => {
-                    state.wallpapers.photos = photos;
-                    state.wallpapers.decoded.clear();
+        if let Some((generation, command)) = state.immich.pending.take()
+            && !wallpaper_service.immich(generation, command)
+        {
+            state.immich_accept(generation, Err("immichUnavailable"));
+        }
+        while let Ok(reply) = wallpaper_service.receiver.try_recv() {
+            use crate::features::wallpapers::Reply;
+            match reply {
+                Reply::Immich(generation, result) => state.immich_accept(generation, result),
+                Reply::Initial(result) | Reply::Local(result) => {
+                    // The initial cache response cannot clear an explicitly queued import.
+                    state.wallpapers.loading = state.immich.importing;
+                    match result {
+                        Ok(photos) => {
+                            state.wallpapers.photos = photos;
+                            state.wallpapers.decoded.clear();
+                        }
+                        Err(_) => state.notify(state.preferences.language.t("photoImportFailed")),
+                    }
+                    state.dirty = true;
                 }
-                Err(_) => state.notify(state.preferences.language.t("photoImportFailed")),
             }
-            state.dirty = true;
         }
         let suffix = view::wallpaper_blur(&state);
         let mut needed = vec![];
@@ -1749,6 +1775,7 @@ fn run() -> Result<(), String> {
                 (action == "await-search" && state.weather.searching)
                     || (action == "await-weather" && state.weather.fetching())
                     || (action == "await-recents" && state.recents.pending.is_some())
+                    || (action == "await-immich" && state.immich.loading)
             })
             && let Some(action) = options.script.pop_front()
         {
@@ -2015,14 +2042,22 @@ fn run() -> Result<(), String> {
         return Err("Frame budget ended before the input script completed".into());
     }
     if let Some(path) = options.dump {
-        let state = serde_json::json!({ "page": state.page, "focus": state.focus, "query": state.query,
+        // A stale scene can outlive a page transition. Suppress connector text
+        // based on both state and scene controls, including after local removal.
+        let private_scene = state.subpage == Some(state::Subpage::Immich)
+            || scene
+                .controls
+                .iter()
+                .any(|c| matches!(c.target, Target::Immich(_) | Target::ImmichAlbum(_)));
+        let state = serde_json::json!({ "page": state.page, "focus": if matches!(state.focus,Target::ImmichAlbum(_)){serde_json::json!("ImmichAlbum")}else{serde_json::to_value(&state.focus).map_err(|e|e.to_string())?}, "query": state.query,
             "filter": state.filter, "preferences": state.preferences, "apps": state.apps().iter().map(|a| &a.id).collect::<Vec<_>>(),
             "error": state.error, "scroll": state.scroll, "home_scroll": state.home_scroll, "subpage": state.subpage, "modal": state.overlay.is_some(), "weather": state.weather,
             "inventory": state.inventory.apps, "system_saver": state.system_saver,
+            "immich": {"loading":state.immich.loading,"configured":state.immich.connected(),"status":state.immich.status,"album_count":state.immich.albums.len(),"page":state.immich.page,"selection_count":state.immich.selected.len()},
             "app_catalog": { "report": state.catalog.report, "system_visibility": state.catalog.system_visibility },
             "webos": state.webos, "system_info": state.system,
             "recents": state.recents.entries, "recents_pending": state.recents.pending, "recents_error": state.recents.error, "recents_visibility": state.recents.visibility,
-            "ui_text": scene.draw.iter().filter_map(|draw| match draw { renderer::Draw::Text(value, ..) => Some(value), _ => None }).collect::<Vec<_>>() });
+            "ui_text": scene.draw.iter().filter_map(|draw| match draw { renderer::Draw::Text(value, ..) => (!private_scene).then_some(value.as_str()), _ => None }).collect::<Vec<_>>() });
         std::fs::write(
             path,
             serde_json::to_vec_pretty(&state).map_err(|e| e.to_string())?,

@@ -17,3 +17,6 @@ target/
 /docs/roadmap.md
 /docs/audits/
 /docs/fork-migration.md
+
+# Private Immich connection files never belong in source control.
+*.immich.json

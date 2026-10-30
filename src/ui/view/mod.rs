@@ -21,6 +21,7 @@ const RECENTS_BACKDROP_OPACITY: f32 = 0.86;
 
 mod app_management;
 mod control_center;
+mod immich;
 mod profile;
 mod recents_view;
 mod slider;
@@ -2338,6 +2339,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 Some(Subpage::Temperature) => language.t("temperature"),
                 Some(Subpage::Language) => language.t("language"),
                 Some(Subpage::TextRendering) => language.t("textRendering"),
+                Some(Subpage::Immich) => language.t("immichTitle"),
                 Some(Subpage::SystemScreensaver) => language.t("systemSaver"),
                 Some(Subpage::SystemInfo) => language.t("tvInformation"),
                 Some(Subpage::Privacy) => language.t("privacy"),
@@ -2427,10 +2429,12 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 | Subpage::SystemInfo
                 | Subpage::Privacy
                 | Subpage::AppManagement
+                | Subpage::Immich
                 | Subpage::SystemScreensaver
                 | Subpage::ManagedApp(_)
         ) {
             match subpage {
+                Subpage::Immich => immich::render(out, state, assets),
                 Subpage::SystemScreensaver => system_saver::render(out, state, assets),
                 Subpage::WeatherLocation => location_settings(out, state, assets),
                 Subpage::Greeting => greeting_settings(out, state, assets),
@@ -2514,6 +2518,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
             | Subpage::Clock
             | Subpage::SystemInfo
             | Subpage::AppManagement
+            | Subpage::Immich
             | Subpage::SystemScreensaver
             | Subpage::ManagedApp(_) => {
                 unreachable!()
@@ -3175,6 +3180,22 @@ fn photo_settings(out: &mut Scene, state: &State, assets: &Assets) {
         );
         y += 84.;
     }
+    row(
+        out,
+        state,
+        assets,
+        Row {
+            target: Target::PhotoImmich,
+            rect: Rect::new(640., y, 1120., 72.),
+            title: language.t("immichTitle"),
+            icon: Some("grid"),
+            value: None,
+            description: None,
+            selected: false,
+            chevron: true,
+        },
+    );
+    y += 84.;
     for (index, photo) in state.wallpapers.photos.iter().enumerate() {
         row(
             out,

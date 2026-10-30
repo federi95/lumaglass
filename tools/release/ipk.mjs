@@ -87,6 +87,7 @@ export function normalizeAndVerifyPackage(bytes, manifest) {
     'docs/licensing.md',
     'docs/appearance.md',
     'docs/system-screensaver.md',
+    'docs/immich.md',
     'licenses/luma.txt',
     'licenses/glasshouse.txt',
     'licenses/ziuus-liquid-glass.txt',
