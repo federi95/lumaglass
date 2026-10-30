@@ -9,6 +9,7 @@ const suites = {
   catalog: 'system-apps-smoke.mjs',
   screensaver: 'screensaver-smoke.mjs',
   photos: 'immich-smoke.mjs',
+  cloud: 'cloud-smoke.mjs',
   design: 'design-smoke.mjs',
   brands: 'brands-smoke.mjs',
   weather: 'weather-smoke.mjs',
