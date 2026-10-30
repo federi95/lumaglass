@@ -1,4 +1,4 @@
-//! Screen geometry and styling mirror the web UI's 1920×1080 / 16px-rem layout.
+//! Native 1920×1080 scene composition, shared materials and focus-driven TV layouts.
 use crate::{
     i18n::Language,
     model::{App, BACKGROUNDS, CATEGORIES, Input, InputMode},
@@ -24,6 +24,7 @@ mod control_center;
 mod immich;
 mod profile;
 mod recents_view;
+mod settings_ui;
 mod slider;
 mod system_saver;
 
@@ -148,6 +149,7 @@ pub struct Scene {
     glass_quality: crate::render::backdrop::Quality,
     modal_chrome: bool,
     glass_layer: Option<crate::render::backdrop::Layer>,
+    form: Option<settings_ui::Form>,
 }
 impl Scene {
     fn new(
@@ -155,6 +157,7 @@ impl Scene {
         glass: crate::features::appearance::Glass,
     ) -> Self {
         Self {
+            form: None,
             draw: Vec::new(),
             controls: Vec::new(),
             modal: None,
@@ -183,8 +186,16 @@ impl Scene {
         color: Color,
         center: bool,
     ) {
-        self.draw
-            .push(Draw::Text(text.into(), rect, style, color, center));
+        let text = text.into();
+        if let Some(form) = &mut self.form
+            && !form.painting
+        {
+            if !text.trim().is_empty() {
+                form.notes.push(text);
+            }
+            return;
+        }
+        self.draw.push(Draw::Text(text, rect, style, color, center));
     }
     fn image(&mut self, path: String, rect: Rect, radius: f32, contain: bool) {
         self.draw.push(Draw::Image(path, rect, radius, contain));
@@ -207,16 +218,10 @@ impl Scene {
     }
     fn ring(&mut self, rect: Rect, radius: f32) {
         self.border(
-            rect.inset(-6.9),
-            radius + 6.9,
-            3.7,
-            self.accent_color(c(0xffffff, 0.10)),
-        );
-        self.border(
-            rect.inset(-3.2),
-            radius + 3.2,
-            3.2,
-            self.accent_color(c(0xf0f0f0, 1.)),
+            rect.inset(-3.),
+            radius + 3.,
+            2.,
+            self.accent_color(c(0xffffff, 0.92)),
         );
     }
     fn accent_color(&self, neutral: Color) -> Color {
@@ -269,29 +274,23 @@ impl Scene {
     /// Shared control material. Glass is a single paint quad, including its rim.
     fn material(&mut self, rect: Rect, radius: f32, focused: bool, raised: bool) {
         if focused {
+            self.shadow(rect, radius, 20., 6., 0.22);
             self.selection_surface(rect, radius);
-        } else if self.liquid_glass {
-            let (top, bottom) = if raised {
-                (c(0x34444f, 0.56), c(0x16212b, 0.68))
-            } else {
-                (c(0x414d57, 0.22), c(0x1b232c, 0.34))
-            };
-            self.glass(rect, radius, top, bottom);
         } else {
             self.shape(
                 rect,
                 radius,
-                if raised {
-                    c(0x20262d, 1.)
+                if self.liquid_glass {
+                    c(0xd2dbe3, if raised { 0.18 } else { 0.115 })
+                } else if raised {
+                    c(0x343b44, 1.)
                 } else {
-                    c(0x171c20, 1.)
+                    c(0x2b313a, 1.)
                 },
             );
-            self.border(rect, radius, 1., c(0xffffff, 0.08));
         }
     }
-    /// Clear chrome keeps white content over a locally tinted lens. Selection,
-    /// hover/remote focus and press have distinct borders, tint and depth.
+    /// tvOS-inspired focus: a lifted light lens, persistent selection and press compression.
     fn chrome(
         &mut self,
         rect: Rect,
@@ -300,57 +299,50 @@ impl Scene {
         selected: bool,
         pressed: bool,
     ) -> Color {
-        if self.liquid_glass {
+        if focused {
             self.shadow(
                 rect,
                 radius,
-                if focused { 18. } else { 10. },
-                if pressed { 1. } else { 4. },
-                if focused { 0.28 } else { 0.12 },
+                22.,
+                if pressed { 2. } else { 7. },
+                if pressed { 0.12 } else { 0.30 },
             );
+            self.selection_surface(rect, radius);
+            self.border(rect, radius, 1.2, c(0xffffff, 0.86));
+            if pressed {
+                self.shape(rect, radius, c(0, 0.10));
+            }
+            return c(0x18212b, 1.);
+        }
+        if self.liquid_glass {
+            self.shadow(rect, radius, 12., 4., 0.16);
             let (top, bottom) = if self.modal_chrome {
-                if pressed {
-                    (c(0x182b3e, 0.54), c(0x0c1a2b, 0.64))
-                } else if focused {
-                    (self.accent_color(c(0x9fbcd8, 0.40)), c(0x344e69, 0.52))
-                } else {
-                    (c(0x3e5369, 0.34), c(0x152839, 0.50))
-                }
-            } else if pressed {
-                (c(0x142536, 0.32), c(0x101d2b, 0.38))
-            } else if focused {
-                (self.accent_color(c(0xbad4eb, 0.24)), c(0x586d88, 0.24))
+                (c(0x748b9e, 0.24), c(0x172a40, 0.48))
             } else if selected {
-                (c(0xb2c6da, 0.18), c(0x52677e, 0.20))
+                (c(0xc7d9e6, 0.28), c(0x64778c, 0.30))
             } else {
-                (c(0x899cb3, 0.10), c(0x24374a, 0.18))
+                (c(0x9fb5c9, 0.12), c(0x263c52, 0.26))
             };
             self.glass(rect, radius, top, bottom);
             self.border(
                 rect,
                 radius,
-                if focused { 2. } else { 1. },
-                if focused {
-                    self.accent_color(c(0xffffff, if pressed { 0.65 } else { 0.95 }))
+                1.,
+                c(0xe9f5ff, if selected { 0.42 } else { 0.20 }),
+            );
+        } else {
+            self.shape(
+                rect,
+                radius,
+                if selected {
+                    c(0x59616b, 1.)
                 } else {
-                    c(0xe4efff, if selected { 0.46 } else { 0.22 })
+                    c(0x202731, 1.)
                 },
             );
-            if focused && !pressed {
-                self.border(rect.inset(4.), (radius - 4.).max(0.), 1., c(0xffffff, 0.18));
-            }
-            WHITE
-        } else {
-            self.material(rect, radius, focused || selected, false);
-            if pressed {
-                self.shape(rect, radius, c(0, 0.16));
-            }
-            if focused || selected {
-                c(0x20242a, 1.)
-            } else {
-                WHITE
-            }
+            self.border(rect, radius, 1., c(0xffffff, 0.10));
         }
+        WHITE
     }
     /// Reuse the existing modal backdrop target. Inner rows composite analytically
     /// on the panel, avoiding recursive refraction of the same foreground labels.
@@ -433,7 +425,7 @@ pub struct Navigation {
 }
 pub fn navigation(assets: &Assets, language: Language) -> Navigation {
     let widths = ["home", "apps", "settings"]
-        .map(|key| (assets.width(language.t(key), text(20.8, 550, -0.02)) + 46.4).max(99.2));
+        .map(|key| (assets.width(language.t(key), text(23.2, 500, -0.02)) + 46.4).max(99.2));
     let width = widths.iter().sum::<f32>() + 25.6 + 19.6;
     let mut x = (1920. - width) / 2. + 9.8;
     let items = widths.map(|width| {
@@ -512,6 +504,9 @@ pub fn scene_with_pill(
         );
         out.controls.clear();
         return out;
+    }
+    if state.page == Page::Settings {
+        out.shape(Rect::new(0., 0., 1920., 1080.), 0., c(0x121820, 0.34));
     }
     let content_start = out.draw.len();
     if recents_replaces_page(state) {
@@ -603,7 +598,7 @@ pub fn scene_with_pill(
         if floating {
             // Fade the actual parent before capturing it: sharp Settings labels
             // must not compete with the modal's labels through clear lenses.
-            out.fade(content_start, 0.12, 0.65);
+            out.fade(content_start, 0.24, 0.68);
         }
         // The parent is already subdued. Keep Control Center/profile lenses as
         // clear as the header; only an enclosing app-options panel needs dense tint.
@@ -615,7 +610,7 @@ pub fn scene_with_pill(
             c(
                 0x080b12,
                 if floating {
-                    if out.liquid_glass { 0.38 } else { 0.50 }
+                    if out.liquid_glass { 0.25 } else { 0.44 }
                 } else {
                     0.70
                 },
@@ -689,8 +684,11 @@ pub fn scene_with_pill(
 }
 
 pub(crate) fn wallpaper_blur(state: &State) -> &'static str {
-    // Clear glass keeps the chosen wallpaper sharp unless the user requests blur.
-    state.preferences.appearance.blur.suffix()
+    if state.page == Page::Settings && !state.screensaver.active {
+        "-blur-strong"
+    } else {
+        state.preferences.appearance.blur.suffix()
+    }
 }
 
 fn header_identity(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
@@ -790,6 +788,10 @@ fn header(
     pill_x: f32,
     pill_width: f32,
 ) {
+    if state.page == Page::Settings {
+        settings_ui::header(out, state, assets, now);
+        return;
+    }
     let language = state.preferences.language;
     header_identity(out, state, assets, now);
     let layout = navigation(assets, language);
@@ -816,30 +818,16 @@ fn header(
             state.pressed.as_ref() == Some(&state.focus),
         );
     }
-    if matches!(state.focus, Target::Nav(_)) && !state.pointer {
-        // Follow the pill's animated position and width instead of jumping to
-        // the destination tab's control rectangle.
-        out.border(
-            pill.inset(-5.),
-            37.,
-            2.,
-            out.accent_color(c(0xf0f0f0, 0.95)),
-        );
-    }
     for (index, key) in ["home", "apps", "settings"].into_iter().enumerate() {
         let rect = layout.items[index];
         out.text(
             language.t(key),
             Rect::new(rect.x, 64.3, rect.w, 25.),
-            text(20.8, 550, -0.02),
+            text(23.2, 500, -0.02),
             if state.page_index() == index {
                 selected_color
             } else if state.focus == Target::Nav(index) {
-                if out.liquid_glass {
-                    WHITE
-                } else {
-                    c(0x20242a, 1.)
-                }
+                c(0x20242a, 1.)
             } else {
                 c(0xffffff, 0.86)
             },
@@ -900,12 +888,7 @@ fn tile(
     }
     let start = out.draw.len();
     let focused = state.focus == Target::App(app.id.clone());
-    let pressed = state.pressed.as_ref() == Some(&Target::App(app.id.clone()));
-    let rect = if focused && !pressed && !state.preferences.reduced_motion {
-        rect.inset(-5.)
-    } else {
-        rect
-    };
+    let rect = state.feedback_rect(&Target::App(app.id.clone()), rect, true);
     out.shadow(
         rect,
         19.2,
@@ -1357,7 +1340,7 @@ fn home_favorites(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> 
             strip_right - strip_left + 64.,
             grid_height + 40.,
         );
-        out.chrome(tray, 36., false, false, false);
+        out.chrome(tray, 46., false, false, false);
     }
     // Like Apple TV's rows, the favourites run to the screen edge: the next tile shows cut off
     // at the right (and a scrolled-away one at the left), so it is clear the row continues.
@@ -1435,32 +1418,14 @@ fn home_inputs(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> f32
             104.,
         );
         let focused = state.focus == Target::Input(input.id.clone());
-        out.shadow(
-            rect,
-            18.4,
-            if focused { 34. } else { 4. },
-            if focused { 14. } else { 1. },
-            if focused { 0.4 } else { 0.01 },
-        );
-        out.draw.push(Draw::RoundedGradient(
-            rect,
-            18.4,
-            if focused {
-                c(0x30363c, 0.70)
-            } else {
-                c(0x20252b, 0.60)
-            },
-            if focused {
-                c(0x242a30, 0.65)
-            } else {
-                c(0x171c22, 0.55)
-            },
-        ));
-        out.border(
-            rect,
-            18.4,
-            1.,
-            c(0xffffff, if focused { 0.24 } else { 0.063 }),
+        let target = Target::Input(input.id.clone());
+        let visual = state.feedback_rect(&target, rect, false);
+        let color = out.chrome(
+            visual,
+            32.,
+            focused,
+            false,
+            state.pressed.as_ref() == Some(&target),
         );
         let art = Rect::new(rect.x + 21., rect.y + 24., 56., 56.);
         out.draw.push(Draw::RoundedGradient(
@@ -1481,25 +1446,22 @@ fn home_inputs(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> f32
                 size,
                 size,
             ),
-            c(0xdedede, 1.),
+            color,
         );
         out.text(
             state.preferences.input_title(input),
             Rect::new(rect.x + 93., rect.y + 24.3, 450., 28.8),
             text(24., 500, -0.03),
-            WHITE,
+            color,
             false,
         );
         out.text(
             input_status(input, name.is_some(), language),
             Rect::new(rect.x + 93., rect.y + 58.7, 450., 20.),
             text(13.12, 400, 0.).leading(1.5),
-            c(0xe8e8e8, 0.48),
+            [color[0], color[1], color[2], color[3] * 0.65],
             false,
         );
-        if focused {
-            out.ring(rect, 18.4);
-        }
         out.control(Target::Input(input.id.clone()), rect, true);
     }
     55.1 + inputs.len().div_ceil(3).saturating_sub(1) as f32 * 126.4 + 104.
@@ -1711,29 +1673,18 @@ fn library(out: &mut Scene, state: &State, assets: &Assets) {
     }
     let search = Rect::new(1532., 164.8 - s, 304., 56.);
     let focused = matches!(state.focus, Target::Search | Target::ClearSearch);
-    out.shape(
+    let search_color = out.chrome(
         search,
-        48.,
-        if focused {
-            c(0x303438, 1.)
-        } else {
-            c(0x171c20, 0.72)
-        },
+        search.h / 2.,
+        focused,
+        false,
+        state.pressed.as_ref() == Some(&Target::Search),
     );
-    out.border(
-        search,
-        48.,
-        1.,
-        c(0xffffff, if focused { 0.70 } else { 0.07 }),
-    );
-    if focused {
-        out.border(search.inset(-3.), 51., 3., c(0xffffff, 0.063));
-    }
     out.icon(
         assets,
         "search",
         Rect::new(search.x + 19.4, search.y + 18.4, 19.2, 19.2),
-        c(0xeeeeee, 0.73),
+        search_color,
     );
     out.text(
         if state.query.is_empty() {
@@ -1748,7 +1699,7 @@ fn library(out: &mut Scene, state: &State, assets: &Assets) {
             22.,
         ),
         text(16.8, 400, -0.02),
-        c(0xeeeeee, if state.query.is_empty() { 0.73 } else { 1. }),
+        search_color,
         false,
     );
     out.control(Target::Search, search, true);
@@ -1864,12 +1815,16 @@ struct Row<'a> {
     chevron: bool,
 }
 fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
+    if out.form.is_some() {
+        settings_ui::item(out, state, assets, row);
+        return;
+    }
     let focused = state.focus == row.target;
     let enabled = state.target_enabled(&row.target);
     let floating = matches!(state.overlay, Some(Overlay::Profile));
-    let bright = focused && enabled && !(floating && out.liquid_glass);
+    let bright = focused && enabled;
     let radius = if row.description.is_some() {
-        20.
+        32.
     } else {
         row.rect.h / 2.
     };
@@ -1930,7 +1885,7 @@ fn row(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>) {
         if row.description.is_some() {
             text(20.8, 550, -0.02).leading(1.4)
         } else {
-            assets.fit_line(row.title, text(20.8, 550, -0.02), title_width)
+            assets.fit_line(row.title, text(24., 500, -0.02), title_width)
         },
         color,
         false,
@@ -2080,162 +2035,85 @@ fn weather_settings(out: &mut Scene, state: &State, assets: &Assets) {
 }
 
 fn location_settings(out: &mut Scene, state: &State, assets: &Assets) {
-    let language = state.preferences.language;
-    let mut y = 164.8 - state.scroll;
+    let l = state.preferences.language;
     if let Some(place) = &state.preferences.weather_location {
-        let rect = Rect::new(640., y, 1120., 76.2);
-        out.shape(rect, 20., c(0x171c20, 0.72));
-        out.border(rect, 20., 1., c(0xffffff, 0.04));
-        out.icon(
+        let detail = place.detail();
+        row(
+            out,
+            state,
             assets,
-            "location",
-            Rect::new(664.2, y + 29.1, 18., 18.),
-            c(0xcccccc, 1.),
-        );
-        out.text(
-            &place.name,
-            Rect::new(698.2, y + 17., 920., 25.),
-            text(18.4, 500, 0.),
-            WHITE,
-            false,
-        );
-        out.text(
-            place.detail(),
-            Rect::new(698.2, y + 42.3, 920., 22.),
-            text(14.4, 400, 0.),
-            c(0xf5f5f5, 0.56),
-            false,
-        );
-        let clear = Rect::new(1695.8, y + 18.1, 40., 40.);
-        out.shape(clear, 20., c(0x23282c, 0.5));
-        out.border(clear, 20., 1., c(0xffffff, 0.07));
-        out.icon(assets, "close", clear.inset(12.), WHITE);
-        if state.focus == Target::WeatherClear {
-            out.border(
-                clear.inset(-2.),
-                22.,
-                2.,
-                out.accent_color(c(0xf0f0f0, 0.95)),
-            );
-        }
-        out.control(Target::WeatherClear, clear, true);
-        y += 96.2;
-    }
-    let query = Rect::new(640., y, 1044., 64.);
-    let focused = state.focus == Target::WeatherQuery;
-    out.shape(
-        query,
-        48.,
-        if focused {
-            c(0x303438, 1.)
-        } else {
-            c(0x171c20, 0.72)
-        },
-    );
-    out.border(
-        query,
-        48.,
-        1.,
-        c(0xffffff, if focused { 0.70 } else { 0.07 }),
-    );
-    if focused {
-        out.border(query.inset(-3.), 51., 3., c(0xffffff, 0.063));
-    }
-    out.icon(
-        assets,
-        "search",
-        Rect::new(664.2, y + 21.2, 21.6, 21.6),
-        c(0xeeeeee, 0.73),
-    );
-    out.text(
-        if state.weather.query.is_empty() {
-            language.t("cityPostcode")
-        } else {
-            &state.weather.query
-        },
-        Rect::new(699.4, y + 20.9, 950., 24.),
-        text(18.4, 400, -0.02),
-        c(0xeeeeee, 0.73),
-        false,
-    );
-    out.control(Target::WeatherQuery, query, true);
-    let search = Rect::new(1696., y, 64., 64.);
-    out.shape(search, 32., c(0x171c20, 0.72));
-    out.border(search, 32., 1., c(0xffffff, 0.07));
-    out.icon(
-        assets,
-        if state.weather.searching {
-            "refresh"
-        } else {
-            "search"
-        },
-        search.inset(20.8),
-        WHITE,
-    );
-    if state.focus == Target::WeatherSearch {
-        out.border(
-            search.inset(-7.),
-            39.,
-            2.,
-            out.accent_color(c(0xf0f0f0, 0.95)),
-        );
-    }
-    out.control(Target::WeatherSearch, search, true);
-    y += 84.;
-    if state.weather.searching || state.weather.message.is_some() {
-        out.text(
-            if state.weather.searching {
-                language.t("searching")
-            } else {
-                language.t(state.weather.message.as_deref().unwrap_or(""))
+            Row {
+                target: Target::WeatherClear,
+                rect: Rect::new(640., 0., 1120., 72.),
+                title: &place.name,
+                icon: Some("location"),
+                value: Some(l.t("clear")),
+                description: Some(&detail),
+                selected: false,
+                chevron: false,
             },
-            Rect::new(664.2, y, 1071.6, 58.),
-            text(16., 400, 0.).leading(1.5),
-            c(0xe0e0e0, 0.68),
-            false,
         );
     }
+    let query = if state.weather.query.is_empty() {
+        l.t("cityPostcode")
+    } else {
+        &state.weather.query
+    };
+    row(
+        out,
+        state,
+        assets,
+        Row {
+            target: Target::WeatherQuery,
+            rect: Rect::new(640., 0., 1120., 72.),
+            title: query,
+            icon: Some("search"),
+            value: None,
+            description: None,
+            selected: false,
+            chevron: true,
+        },
+    );
+    row(
+        out,
+        state,
+        assets,
+        Row {
+            target: Target::WeatherSearch,
+            rect: Rect::new(640., 0., 1120., 72.),
+            title: l.t(if state.weather.searching {
+                "searching"
+            } else {
+                "designSearch"
+            }),
+            icon: Some("search"),
+            value: None,
+            description: state.weather.message.as_deref().map(|key| l.t(key)),
+            selected: false,
+            chevron: false,
+        },
+    );
     for (index, place) in state.weather.results.iter().enumerate() {
         let detail = place.detail();
-        let height = (34.
-            + assets.lines(&place.name, text(20.8, 550, -0.02), 992.6) as f32 * 29.12
-            + 4.8
-            + assets.lines(&detail, text(15.2, 400, 0.), 1020.) as f32 * 22.8)
-            .max(90.7);
-        let rect = Rect::new(640., y, 1120., height);
         row(
             out,
             state,
             assets,
             Row {
                 target: Target::WeatherResult(index),
-                rect,
+                rect: Rect::new(640., 0., 1120., 72.),
                 title: &place.name,
                 icon: Some("location"),
                 value: None,
                 description: Some(&detail),
-                selected: false,
+                selected: state
+                    .preferences
+                    .weather_location
+                    .as_ref()
+                    .is_some_and(|p| p.key() == place.key()),
                 chevron: false,
             },
         );
-        if state
-            .preferences
-            .weather_location
-            .as_ref()
-            .is_some_and(|saved| saved.key() == place.key())
-        {
-            out.icon(
-                assets,
-                "check",
-                Rect::new(1717.4, y + (height - 18.4) / 2., 18.4, 18.4),
-                if state.focus == Target::WeatherResult(index) {
-                    c(0x444444, 1.)
-                } else {
-                    c(0xe4e4e4, 0.61)
-                },
-            );
-        }
-        y += height + 12.;
     }
 }
 
@@ -2284,133 +2162,11 @@ fn paint_wallpaper(
 }
 
 fn settings(out: &mut Scene, state: &State, assets: &Assets) {
+    settings_ui::render(out, state, assets);
+}
+fn settings_content(out: &mut Scene, state: &State, assets: &Assets) {
     let language = state.preferences.language;
     let s = state.scroll;
-    for (index, key) in ["interface", "background", "weather", "inputs", "system"]
-        .into_iter()
-        .enumerate()
-    {
-        let label = language.t(key);
-        let rect = Rect::new(160., 164.8 + index as f32 * 84. - s, 403.2, 72.);
-        let focused = state.focus == Target::Sidebar(index);
-        out.pill(rect, focused, state.section == index);
-        let color = if focused {
-            c(0x2c2c2c, 1.)
-        } else if state.section == index {
-            out.accent_color(WHITE)
-        } else {
-            c(0xeeeeee, 0.73)
-        };
-        if state.section == index && state.subpage.is_some() {
-            let clock_path = match state.subpage {
-                Some(Subpage::ClockFormat) => Some(format!(
-                    "{} › {}",
-                    language.t("clock"),
-                    language.t("clockFormat")
-                )),
-                Some(Subpage::TimeFormat) => Some(format!(
-                    "{} › {}",
-                    language.t("clock"),
-                    language.t("timeFormat")
-                )),
-                _ => None,
-            };
-            let sub = match &state.subpage {
-                Some(Subpage::AppNames) => language.t("appNames"),
-                Some(Subpage::Greeting) => language.t("greeting"),
-                Some(Subpage::Home) => language.t("homeLabel"),
-                Some(Subpage::Appearance) => language.t("appearance"),
-                Some(Subpage::Display) => language.t("displayResolution"),
-                Some(Subpage::Rotation) => language.t("wallpaperRotation"),
-                Some(Subpage::Wallpapers) => language.t("myImages"),
-                Some(Subpage::Shortcuts) => language.t("remoteShortcuts"),
-                Some(Subpage::StartupFocus) => language.t("homeStartupFocus"),
-                Some(Subpage::Clock) => language.t("clock"),
-                Some(Subpage::ClockFormat | Subpage::TimeFormat) => clock_path.as_deref().unwrap(),
-                Some(Subpage::Input(id)) => state
-                    .inventory
-                    .inputs
-                    .iter()
-                    .find(|input| &input.id == id)
-                    .map_or(language.t("inputs"), |input| {
-                        state.preferences.input_title(input)
-                    }),
-                Some(Subpage::WeatherLocation) => language.t("location"),
-                Some(Subpage::Temperature) => language.t("temperature"),
-                Some(Subpage::Language) => language.t("language"),
-                Some(Subpage::TextRendering) => language.t("textRendering"),
-                Some(Subpage::Immich) => language.t("immichTitle"),
-                Some(Subpage::SystemScreensaver) => language.t("systemSaver"),
-                Some(Subpage::SystemInfo) => language.t("tvInformation"),
-                Some(Subpage::Privacy) => language.t("privacy"),
-                Some(Subpage::AppManagement | Subpage::ManagedApp(_)) => language.t("catalogTitle"),
-                None => "",
-            };
-            let parent_width = assets.width(label, text(20.8, 550, -0.02)) + 2.;
-            out.text(
-                label,
-                Rect::new(rect.x + 24.2, rect.y + 23.5, parent_width, 25.),
-                text(20.8, 550, -0.02),
-                [color[0], color[1], color[2], color[3] * 0.7],
-                false,
-            );
-            out.icon(
-                assets,
-                "right",
-                Rect::new(rect.x + 24.2 + parent_width + 5., rect.y + 27., 17., 17.),
-                [color[0], color[1], color[2], color[3] * 0.6],
-            );
-            let sub_width = rect.w - 24.2 - parent_width - 28. - 24.2;
-            let mut sub_style = text(20.8, 550, -0.02);
-            if clock_path.is_some()
-                || matches!(
-                    state.subpage,
-                    Some(
-                        Subpage::Home
-                            | Subpage::StartupFocus
-                            | Subpage::Shortcuts
-                            | Subpage::AppManagement
-                            | Subpage::ManagedApp(_)
-                    )
-                )
-            {
-                sub_style.size *= (sub_width / assets.width(sub, sub_style)).min(1.);
-            }
-            out.text(
-                sub,
-                Rect::new(
-                    rect.x + 24.2 + parent_width + 28.,
-                    rect.y + 23.5,
-                    sub_width,
-                    25.,
-                ),
-                sub_style,
-                color,
-                false,
-            );
-        } else {
-            out.text(
-                label,
-                Rect::new(rect.x + 24.2, rect.y + 23.5, 330., 25.),
-                text(20.8, 550, -0.02),
-                color,
-                false,
-            );
-            if state.section == index {
-                out.icon(
-                    assets,
-                    "right",
-                    Rect::new(rect.x + rect.w - 42.6, rect.y + 26.8, 18.4, 18.4),
-                    if focused {
-                        c(0x2c2c2c, 0.6)
-                    } else {
-                        c(0xeeeeee, 0.5)
-                    },
-                );
-            }
-        }
-        out.control(Target::Sidebar(index), rect, true);
-    }
     if let Some(subpage) = &state.subpage {
         let start = out.draw.len();
         if matches!(
@@ -2658,81 +2414,7 @@ fn settings(out: &mut Scene, state: &State, assets: &Assets) {
                 );
             }
         }
-        1 => {
-            for (index, (id, _title)) in BACKGROUNDS.iter().enumerate() {
-                let rect = Rect::new(
-                    640. + (index % 3) as f32 * 380.,
-                    164.8 + (index / 3) as f32 * 264.3 - s,
-                    360.,
-                    202.5,
-                );
-                out.shadow(rect, 16., 15., 3., 0.13);
-                out.image(
-                    assets.path(format!("thumbnails/{id}.jpg")),
-                    rect,
-                    16.,
-                    false,
-                );
-                out.border(rect, 16., 1., c(0xffffff, 0.086));
-                if state.current_background() == *id {
-                    out.border(rect.inset(-2.), 18., 2., out.accent_color(c(0xdedede, 1.)));
-                    out.border(
-                        rect.inset(-7.),
-                        23.,
-                        3.,
-                        out.accent_color(c(0xdedede, 0.10)),
-                    );
-                    let check = Rect::new(rect.x + rect.w - 28., rect.y + rect.h - 28., 21.6, 21.6);
-                    out.shape(check, 10.8, out.accent_color(c(0xf3f3f3, 1.)));
-                    out.icon(assets, "check", check.inset(3.6), c(0x333333, 1.));
-                }
-                if state.focus == Target::Background(index) {
-                    out.ring(rect, 16.);
-                }
-                out.text(
-                    language.wallpaper(id),
-                    Rect::new(rect.x + 4., rect.y + rect.h + 12., 352., 26.),
-                    text(18.4, 500, -0.02).leading(1.4),
-                    c(0xf0f0f0, 0.87),
-                    false,
-                );
-                out.control(
-                    Target::Background(index),
-                    Rect::new(rect.x, rect.y, rect.w, rect.h + 37.8),
-                    true,
-                );
-            }
-            row(
-                out,
-                state,
-                assets,
-                Row {
-                    target: Target::Setting(17),
-                    rect: Rect::new(640., 950. - s, 1120., 72.),
-                    title: language.t("myImages"),
-                    icon: Some("grid"),
-                    value: None,
-                    description: None,
-                    selected: false,
-                    chevron: true,
-                },
-            );
-            row(
-                out,
-                state,
-                assets,
-                Row {
-                    target: Target::Setting(18),
-                    rect: Rect::new(640., 1034. - s, 1120., 72.),
-                    title: language.t("wallpaperRotation"),
-                    icon: Some("refresh"),
-                    value: None,
-                    description: None,
-                    selected: false,
-                    chevron: true,
-                },
-            );
-        }
+        1 => settings_ui::gallery(out, state, assets),
         WEATHER_SECTION => weather_settings(out, state, assets),
         SYSTEM_SECTION => {
             for (position, (index, title, icon, value, chevron)) in [
@@ -3212,13 +2894,6 @@ fn photo_settings(out: &mut Scene, state: &State, assets: &Assets) {
                 chevron: false,
             },
         );
-        if let Some(image) = &photo.preview {
-            out.draw.push(Draw::AppImage(
-                image.clone(),
-                Rect::new(1480., y + 8., 132., 74.25),
-                WHITE,
-            ));
-        }
         y += 102.7;
     }
 }
@@ -3226,8 +2901,7 @@ fn photo_settings(out: &mut Scene, state: &State, assets: &Assets) {
 fn control_dialog(out: &mut Scene, state: &State, command: crate::features::controls::Command) {
     let language = state.preferences.language;
     let panel = Rect::new(550., 280., 820., 520.);
-    out.modal = Some(panel);
-    out.shape(panel, 24., c(0x24282d, 1.));
+    out.modal_panel(panel, 44.);
     let mut title = language.t(command.key()).to_owned();
     if let crate::features::controls::Command::PrivacySet { index, value, .. } = command {
         title = format!(
@@ -4049,104 +3723,89 @@ fn options(
     id: &str,
     removal: Option<&crate::features::apps::management::RemovalTarget>,
 ) {
-    let language = state.preferences.language;
-    let app = state.inventory.apps.iter().find(|app| app.id == id);
-    let title = app.map_or(id, |app| app.title.as_str());
-    let extra = assets
-        .lines(title, text(37.6, 500, -0.055).leading(1.1), 432.)
-        .saturating_sub(1) as f32
-        * 41.4;
-    let added = if removal.is_some() { 76.8 } else { 0. };
-    let panel = Rect::new(
-        680.,
-        362.9 - extra / 2. - added / 2.,
-        560.,
-        354.2 + extra + added,
-    );
-    out.modal_panel(panel, 32.);
-    out.text(
-        title,
-        Rect::new(717.8, panel.y + 36.2, 432., 42. + extra),
-        text(37.6, 500, -0.055).leading(1.1),
-        WHITE,
-        false,
-    );
-    out.text(
-        language.category(app.map_or("Utilities", |app| app.category.as_str())),
-        Rect::new(717.8, panel.y + 87.9 + extra, 440., 23.),
-        text(15.2, 400, 0.).leading(1.5),
-        c(0xf5f5f5, 0.56),
-        false,
-    );
-    let close = Rect::new(1168.6, panel.y + 39.4, 33.6, 33.6);
-    let close_color = out.chrome(
-        close,
-        16.8,
-        state.focus == Target::CloseDialog,
-        false,
-        state.pressed.as_ref() == Some(&Target::CloseDialog),
-    );
-    out.icon(assets, "close", close.inset(7.6), close_color);
-    out.control(Target::CloseDialog, close, false);
+    let l = state.preferences.language;
+    let app = state.inventory.apps.iter().find(|a| a.id == id);
+    let title = app.map_or(id, |a| a.title.as_str());
     let favorite = state
         .preferences
         .favorites(&state.inventory.apps)
         .iter()
-        .any(|item| item == id);
-    let hidden = state.preferences.hidden.iter().any(|item| item == id);
-    let mut labels = vec![
-        if favorite {
-            language.t("removeFavorite")
-        } else {
-            language.t("addFavorite")
-        },
-        language.t(if hidden {
-            "showInLumaglass"
-        } else {
-            "hideInLumaglass"
-        }),
+        .any(|v| v == id);
+    let hidden = state.preferences.hidden.iter().any(|v| v == id);
+    let mut entries = vec![
+        (
+            0,
+            if favorite {
+                "removeFavorite"
+            } else {
+                "addFavorite"
+            },
+            if favorite { "heart-filled" } else { "heart" },
+        ),
+        (
+            1,
+            if hidden {
+                "showInLumaglass"
+            } else {
+                "hideInLumaglass"
+            },
+            if hidden { "eye" } else { "eye-off" },
+        ),
     ];
     if removal.is_some() {
-        labels.push(
-            language.t(
-                if state.management.active()
-                    && state
-                        .management
-                        .target
-                        .as_ref()
-                        .is_some_and(|target| target.id == id)
-                {
-                    "uninstallStatus"
-                } else {
-                    "uninstallApp"
-                },
-            ),
-        );
+        entries.push((
+            2,
+            if state.management.active()
+                && state.management.target.as_ref().is_some_and(|t| t.id == id)
+            {
+                "uninstallStatus"
+            } else {
+                "uninstallApp"
+            },
+            "close",
+        ));
     }
-    for (index, label) in labels.into_iter().enumerate() {
-        let rect = Rect::new(
-            717.8,
-            panel.y + 137.9 + extra + index as f32 * 76.8,
-            484.4,
-            67.2,
-        );
+    let panel = Rect::new(1228., 230., 608., 184. + entries.len() as f32 * 84.);
+    out.modal_panel(panel, 44.);
+    out.text(
+        title,
+        Rect::new(panel.x + 30., panel.y + 30., 480., 76.),
+        assets.fit_line(title, text(32., 550, -0.025), 480.),
+        WHITE,
+        false,
+    );
+    out.text(
+        l.category(app.map_or("Utilities", |a| a.category.as_str())),
+        Rect::new(panel.x + 30., panel.y + 90., 480., 28.),
+        text(18., 400, 0.),
+        c(0xffffff, 0.65),
+        false,
+    );
+    let close = Rect::new(panel.x + panel.w - 66., panel.y + 24., 40., 40.);
+    let color = out.chrome(
+        close,
+        20.,
+        state.focus == Target::CloseDialog,
+        false,
+        state.pressed.as_ref() == Some(&Target::CloseDialog),
+    );
+    out.icon(assets, "close", close.inset(13.), color);
+    out.control(Target::CloseDialog, close, false);
+    for (index, key, icon) in entries {
         row(
             out,
             state,
             assets,
             Row {
                 target: Target::Option(index),
-                rect,
-                title: label,
-                icon: Some(if index == 0 {
-                    if favorite { "heart-filled" } else { "heart" }
-                } else if index == 2 {
-                    "close"
-                } else if hidden {
-                    "eye"
-                } else {
-                    "eye-off"
-                }),
+                rect: Rect::new(
+                    panel.x + 24.,
+                    panel.y + 136. + index as f32 * 84.,
+                    panel.w - 48.,
+                    72.,
+                ),
+                title: l.t(key),
+                icon: Some(icon),
                 value: None,
                 description: None,
                 selected: false,
@@ -4154,29 +3813,6 @@ fn options(
             },
         );
     }
-    let line_y = panel.y + panel.h - 53.2;
-    out.shape(Rect::new(717.8, line_y, 484.4, 1.), 0., c(0xffffff, 0.04));
-    let shortcut = text(10.4, 400, 0.);
-    let select_width = assets.width(language.t("selectClose"), shortcut);
-    let close_width = assets.width(language.t("close"), shortcut);
-    let start = 960. - (23. + 6.4 + select_width + 15. + 29. + 6.4 + close_width) / 2.;
-    let back = start + 29.4 + select_width + 15.;
-    keycap(out, "OK", start, line_y + 15., 23., true);
-    out.text(
-        language.t("selectClose"),
-        Rect::new(start + 29.4, line_y + 18., select_width + 1., 13.),
-        text(10.4, 400, 0.),
-        c(0xe0e0e0, 0.35),
-        false,
-    );
-    keycap(out, "Back", back, line_y + 15., 29., true);
-    out.text(
-        language.t("close"),
-        Rect::new(back + 35.4, line_y + 18., close_width + 1., 13.),
-        text(10.4, 400, 0.),
-        c(0xe0e0e0, 0.35),
-        false,
-    );
 }
 
 fn removal_dialog(out: &mut Scene, state: &State, id: &str, title: &str, confirmation: bool) {
@@ -4184,14 +3820,7 @@ fn removal_dialog(out: &mut Scene, state: &State, id: &str, title: &str, confirm
     let language = state.preferences.language;
     let panel = Rect::new(600., 235., 720., 610.);
     out.modal = Some(panel);
-    out.shadow(panel, 27.2, 120., 25., 0.47);
-    out.draw.push(Draw::RoundedGradient(
-        panel,
-        27.2,
-        c(0x34383b, 0.96),
-        c(0x24282d, 0.988),
-    ));
-    out.border(panel, 27.2, 1., c(0xffffff, 0.12));
+    out.modal_panel(panel, 44.);
     out.text(
         title,
         Rect::new(638., 270., 644., 150.),
@@ -4248,22 +3877,18 @@ fn removal_dialog(out: &mut Scene, state: &State, id: &str, title: &str, confirm
     for (index, (target, label, enabled)) in buttons.into_iter().enumerate() {
         let rect = Rect::new(638. + index as f32 * 338., 735., 306., 60.);
         let focused = state.focus == target;
-        out.shape(rect, 12., c(0xffffff, if focused { 0.12 } else { 0.025 }));
-        out.border(
-            rect,
-            12.,
-            if focused { 2. } else { 1. },
-            if focused {
-                out.accent_color(c(0xffffff, 0.9))
-            } else {
-                c(0xffffff, 0.1)
-            },
+        let color = out.chrome(
+            state.feedback_rect(&target, rect, false),
+            30.,
+            focused && enabled,
+            false,
+            state.pressed.as_ref() == Some(&target),
         );
         out.text(
             language.t(label),
             Rect::new(rect.x + 14., rect.y + 19., rect.w - 28., 26.),
             text(18.4, 500, 0.),
-            c(0xffffff, if enabled { 1. } else { 0.35 }),
+            if enabled { color } else { c(0xffffff, 0.35) },
             true,
         );
         out.control(target, rect, false);

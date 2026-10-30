@@ -60,27 +60,21 @@ pub fn render(out: &mut Scene, state: &State, assets: &Assets) {
             base + assets.lines(d, text(15.2, 400, 0.), 1020.) as f32 * 22.8
         });
         let rect = Rect::new(640., y, 1120., height);
-        if rect.y + rect.h < state.content_viewport().y
-            || rect.y > state.content_viewport().y + state.content_viewport().h
-        {
-            out.control(target, rect, true);
-        } else {
-            row(
-                out,
-                state,
-                assets,
-                Row {
-                    target,
-                    rect,
-                    title: &title,
-                    icon: None,
-                    value: value.as_deref(),
-                    description: desc,
-                    selected,
-                    chevron: false,
-                },
-            );
-        }
+        row(
+            out,
+            state,
+            assets,
+            Row {
+                target,
+                rect,
+                title: &title,
+                icon: None,
+                value: value.as_deref(),
+                description: desc,
+                selected,
+                chevron: false,
+            },
+        );
         y += height + 12.;
     }
 }

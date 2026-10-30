@@ -7,6 +7,7 @@ use crate::{
 use serde_json::json;
 use std::{collections::BTreeMap, path::PathBuf};
 
+mod design_tests;
 mod milestone_tests;
 mod quick_controls_tests;
 mod recent_tests;
@@ -85,7 +86,7 @@ fn accent_palette_recolors_selection_surfaces_and_keeps_contrasting_labels() {
                 .unwrap()
         };
         assert_ne!(surface(&neutral), surface(&blue));
-        assert!(blue.draw.iter().any(|draw| matches!(draw, Draw::Text(value, _, _, color, _) if value == "Home" && if mode.enabled() {color[..3].iter().all(|c| *c > 0.9)} else {color[..3].iter().all(|c| *c < 0.3)})));
+        assert!(blue.draw.iter().any(|draw| matches!(draw, Draw::Text(value, _, _, color, _) if value == "Home" && color[..3].iter().all(|c| *c < 0.3))));
     }
     let loaded: Preferences =
         serde_json::from_value(json!({"appearance":{"accent":"unknown","density":"compact"}}))
@@ -1006,15 +1007,16 @@ fn input_name_actions_only_highlight_the_focused_row_and_keep_the_saved_mode() {
             .filter_map(|draw| match draw {
                 crate::renderer::Draw::RoundedGradient(rect, _, top, _)
                 | crate::renderer::Draw::Glass(rect, _, top, _, _)
-                    if rect.x == 640. && rect.w == 1120. && top[3] > 0.8 =>
+                    if rect.x > 1000. && rect.w > 780. && top[3] > 0.8 =>
                 {
-                    Some(rect.y)
+                    Some(rect.center().1)
                 }
                 _ => None,
             })
             .collect();
         let focused = scene.controls.iter().find(|c| c.target == target).unwrap();
-        assert_eq!(highlighted, vec![focused.rect.y]);
+        assert_eq!(highlighted.len(), 1);
+        assert!((highlighted[0] - focused.rect.center().1).abs() < 0.01);
         assert!(scene.draw.iter().any(|draw| matches!(draw, crate::renderer::Draw::TintedImage(path, ..) if path.ends_with("check.lvec"))));
         assert_eq!(
             state
@@ -1049,9 +1051,9 @@ fn clock_choices_only_highlight_focus_while_preserving_saved_checkmarks() {
             .filter_map(|draw| match draw {
                 crate::renderer::Draw::RoundedGradient(rect, _, top, _)
                 | crate::renderer::Draw::Glass(rect, _, top, _, _)
-                    if rect.x == 640. && rect.w == 1120. && top[3] > 0.8 =>
+                    if rect.x > 1000. && rect.w > 780. && top[3] > 0.8 =>
                 {
-                    Some(rect.y)
+                    Some(rect.center().1)
                 }
                 _ => None,
             })
@@ -1061,7 +1063,8 @@ fn clock_choices_only_highlight_focus_while_preserving_saved_checkmarks() {
             .iter()
             .find(|c| c.target == Target::Choice(index))
             .unwrap();
-        assert_eq!(highlighted, vec![focused.rect.y]);
+        assert_eq!(highlighted.len(), 1);
+        assert!((highlighted[0] - focused.rect.center().1).abs() < 0.01);
         let checks = scene.draw.iter().filter(|draw| matches!(draw, crate::renderer::Draw::TintedImage(path, ..) if path.ends_with("check.lvec"))).count();
         assert_eq!(checks, 1);
         assert!(!state.preferences.hour_24);

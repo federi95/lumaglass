@@ -4882,5 +4882,71 @@
     "ru": "Демо-альбомы; подключение и импорт отключены",
     "pl": "Albumy demonstracyjne; połączenie i import wyłączone",
     "fr": "Albums de démonstration ; connexion et importation désactivées"
+  },
+  "designGeneralHint": {
+    "en": "Personalize your Home, clock, appearance and remote controls.",
+    "de": "Home, Uhr, Darstellung und Fernbedienung anpassen.",
+    "zh": "个性化主屏幕、时钟、外观和遥控器。",
+    "es": "Personaliza la pantalla de inicio, el reloj, el aspecto y el mando.",
+    "pt": "Personalize a tela inicial, o relógio, a aparência e o controle remoto.",
+    "it": "Personalizza Home, orologio, aspetto e telecomando.",
+    "ru": "Настройте главный экран, часы, оформление и пульт.",
+    "pl": "Dostosuj ekran główny, zegar, wygląd i pilota.",
+    "fr": "Personnalisez l’accueil, l’horloge, l’apparence et la télécommande."
+  },
+  "designBackgroundHint": {
+    "en": "Choose your background, personal photos and wallpaper rotation.",
+    "de": "Hintergrund, persönliche Fotos und Bildwechsel auswählen.",
+    "zh": "选择背景、个人照片和壁纸轮换。",
+    "es": "Elige el fondo, las fotos personales y la rotación de imágenes.",
+    "pt": "Escolha o fundo, as fotos pessoais e a rotação de imagens.",
+    "it": "Scegli sfondo, foto personali e rotazione delle immagini.",
+    "ru": "Выберите фон, личные фото и смену обоев.",
+    "pl": "Wybierz tło, własne zdjęcia i rotację tapet.",
+    "fr": "Choisissez le fond, vos photos et la rotation des images."
+  },
+  "designWeatherHint": {
+    "en": "Choose a location and how weather is shown on Home.",
+    "de": "Ort und Wetteranzeige auf Home auswählen.",
+    "zh": "选择地点和主屏幕上的天气显示方式。",
+    "es": "Elige una ubicación y cómo mostrar el tiempo en Inicio.",
+    "pt": "Escolha um local e a exibição do clima na tela inicial.",
+    "it": "Scegli località e visualizzazione del meteo sulla Home.",
+    "ru": "Выберите город и отображение погоды на главном экране.",
+    "pl": "Wybierz lokalizację i sposób wyświetlania pogody.",
+    "fr": "Choisissez un lieu et l’affichage de la météo sur l’accueil."
+  },
+  "designInputsHint": {
+    "en": "Manage your TV inputs, names and connected devices.",
+    "de": "TV-Eingänge, Namen und verbundene Geräte verwalten.",
+    "zh": "管理电视输入、名称和已连接设备。",
+    "es": "Gestiona las entradas, los nombres y los dispositivos conectados.",
+    "pt": "Gerencie as entradas, os nomes e os dispositivos conectados.",
+    "it": "Gestisci ingressi TV, nomi e dispositivi collegati.",
+    "ru": "Настройте входы ТВ, названия и подключённые устройства.",
+    "pl": "Zarządzaj wejściami TV, nazwami i podłączonymi urządzeniami.",
+    "fr": "Gérez les entrées TV, leurs noms et les appareils connectés."
+  },
+  "designSystemHint": {
+    "en": "Review TV information, app management, privacy and recovery controls.",
+    "de": "TV-Informationen, Apps, Datenschutz und Wiederherstellung prüfen.",
+    "zh": "查看电视信息、应用管理、隐私和恢复控制。",
+    "es": "Consulta la información de la TV, las apps, la privacidad y la recuperación.",
+    "pt": "Veja informações da TV, apps, privacidade e recuperação.",
+    "it": "Consulta informazioni TV, gestione app, privacy e ripristino.",
+    "ru": "Просмотрите сведения о ТВ, приложения, конфиденциальность и восстановление.",
+    "pl": "Sprawdź informacje o TV, aplikacje, prywatność i odzyskiwanie.",
+    "fr": "Consultez les informations TV, les apps, la confidentialité et la restauration."
+  },
+  "designSearch": {
+    "en": "Search",
+    "de": "Suchen",
+    "zh": "搜索",
+    "es": "Buscar",
+    "pt": "Buscar",
+    "it": "Cerca",
+    "ru": "Найти",
+    "pl": "Szukaj",
+    "fr": "Rechercher"
   }
 }

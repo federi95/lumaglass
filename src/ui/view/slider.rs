@@ -13,10 +13,20 @@ pub(super) fn draw(
     if labels.is_empty() {
         return;
     }
+    let rect = if let Some(form) = &mut out.form {
+        let rect = form.rect(crate::features::sliders::HEIGHT, false, false);
+        form.painting = true;
+        rect
+    } else {
+        rect
+    };
     let available = labels.len() > 1;
     let focused = state.focus == target;
+    if focused && let Some(form) = &mut out.form {
+        form.detail(title, labels.get(index).map(String::as_str));
+    }
     let quick = matches!(state.overlay, Some(Overlay::ControlCenter { .. }));
-    let bright = focused && available && !(quick && out.liquid_glass);
+    let bright = focused && available;
     let color = if bright { c(0x20242a, 1.) } else { WHITE };
     let muted = if bright {
         c(0x20242a, 0.72)
@@ -40,7 +50,7 @@ pub(super) fn draw(
     }
     // The title/value share the same generous inset as the surrounding settings rows.
     let padding = 32.;
-    let compact = rect.w < 800.;
+    let compact = rect.w < 900.;
     let value_width = if compact { 180. } else { 224. };
     out.text(
         title,
@@ -50,7 +60,7 @@ pub(super) fn draw(
             rect.w - value_width - padding * 2. - 16.,
             30.,
         ),
-        text(if compact { 17.5 } else { 20.8 }, 550, -0.02),
+        text(if quick { 19. } else { 24. }, 500, -0.02),
         color,
         false,
     );
@@ -62,7 +72,7 @@ pub(super) fn draw(
             value_width,
             28.,
         ),
-        text(if compact { 16. } else { 18.4 }, 450, 0.).right(),
+        text(if quick { 17. } else { 22. }, 450, 0.).right(),
         muted,
         false,
     );
@@ -139,4 +149,7 @@ pub(super) fn draw(
         );
     }
     out.control(target, rect, state.overlay.is_none());
+    if let Some(form) = &mut out.form {
+        form.painting = false;
+    }
 }

@@ -1779,7 +1779,23 @@ fn run() -> Result<(), String> {
             })
             && let Some(action) = options.script.pop_front()
         {
-            if let Some(position) = action.strip_prefix("click:") {
+            if let Some(serialized) = action.strip_prefix("tap:") {
+                let target: serde_json::Value = serde_json::from_str(serialized)
+                    .map_err(|_| "tap: expects a serialized native target")?;
+                let control = scene
+                    .controls
+                    .iter()
+                    .find(|c| serde_json::to_value(&c.target).ok().as_ref() == Some(&target))
+                    .ok_or("Native tap target is not on this page")?;
+                let (x, y) = control.rect.center();
+                if control.scrollable && !state.content_viewport().contains(x, y) {
+                    return Err(
+                        "Native tap target is outside the viewport; navigate to reveal it first"
+                            .into(),
+                    );
+                }
+                scripted_click(&sdl, &window, &format!("{x}:{y}"))?;
+            } else if let Some(position) = action.strip_prefix("click:") {
                 scripted_click(&sdl, &window, position)?;
             } else if action == "prewarm" {
                 prewarm_now = true;
@@ -2050,6 +2066,7 @@ fn run() -> Result<(), String> {
                 .iter()
                 .any(|c| matches!(c.target, Target::Immich(_) | Target::ImmichAlbum(_)));
         let state = serde_json::json!({ "page": state.page, "focus": if matches!(state.focus,Target::ImmichAlbum(_)){serde_json::json!("ImmichAlbum")}else{serde_json::to_value(&state.focus).map_err(|e|e.to_string())?}, "query": state.query,
+            "settings_category":state.settings_category, "controls":scene.controls.iter().map(|c|serde_json::json!({"target":if matches!(c.target,Target::ImmichAlbum(_)){serde_json::json!("ImmichAlbum")}else{serde_json::to_value(&c.target).unwrap_or(serde_json::Value::Null)},"rect":[c.rect.x,c.rect.y,c.rect.w,c.rect.h],"enabled":state.target_enabled(&c.target)})).collect::<Vec<_>>(),
             "filter": state.filter, "preferences": state.preferences, "apps": state.apps().iter().map(|a| &a.id).collect::<Vec<_>>(),
             "error": state.error, "scroll": state.scroll, "home_scroll": state.home_scroll, "subpage": state.subpage, "modal": state.overlay.is_some(), "weather": state.weather,
             "inventory": state.inventory.apps, "system_saver": state.system_saver,

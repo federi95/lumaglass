@@ -31,27 +31,21 @@ fn item(out: &mut Scene, state: &State, assets: &Assets, y: &mut f32, item: Item
         72.
     };
     let rect = Rect::new(640., *y, 1120., height);
-    if rect.y + rect.h < state.content_viewport().y
-        || rect.y > state.content_viewport().y + state.content_viewport().h
-    {
-        out.control(target, rect, true);
-    } else {
-        row(
-            out,
-            state,
-            assets,
-            Row {
-                target,
-                rect,
-                title,
-                icon: None,
-                value,
-                description,
-                selected: false,
-                chevron,
-            },
-        );
-    }
+    row(
+        out,
+        state,
+        assets,
+        Row {
+            target,
+            rect,
+            title,
+            icon: None,
+            value,
+            description,
+            selected: false,
+            chevron,
+        },
+    );
     *y += height + 12.;
 }
 fn kind(state: &State, system: Option<bool>) -> &'static str {

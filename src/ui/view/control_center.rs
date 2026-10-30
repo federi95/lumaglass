@@ -1,45 +1,35 @@
-//! Floating optical lenses and a timer detail view, navigable with the TV remote.
+//! Independent translucent lenses, compact quick controls and native timer detail.
 use super::*;
 use crate::features::{appearance::Setting, control_center::Action};
-
 pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
-    let language = state.preferences.language;
-    let panel = Rect::new(1188., 136., 648., 780.);
-    out.modal = Some(panel);
-    // Capture the actual parent once, before any quick-control icon or label.
-    // Each tile is an independent lens: no opaque card covering the whole group.
+    let l = state.preferences.language;
+    out.modal = Some(Rect::new(1264., 136., 584., 724.));
     out.draw
         .push(Draw::Backdrop(crate::render::backdrop::Layer::Panel));
     out.glass_layer = Some(crate::render::backdrop::Layer::Panel);
     out.text(
-        language.t("controlCenter"),
-        Rect::new(1220., 150., 480., 32.),
-        text(24., 550, -0.02),
+        l.t("controlCenter"),
+        Rect::new(1300., 146., 436., 36.),
+        text(25., 550, -0.02),
         WHITE,
         false,
     );
-    let close = Rect::new(1762., 144., 42., 42.);
-    let color = surface(
-        out,
-        close,
-        21.,
-        state.focus == Target::CloseControlCenter,
-        state.pressed.as_ref() == Some(&Target::CloseControlCenter),
-        true,
-    );
-    out.icon(assets, "close", close.inset(12.), color);
-    out.control(Target::CloseControlCenter, close, false);
+    let close = Rect::new(1784., 140., 44., 44.);
+    let target = Target::CloseControlCenter;
+    let color = surface(out, state, &target, close, 22., true);
+    out.icon(assets, "close", close.inset(14.), color);
+    out.control(target, close, false);
     let report = &state.controls.report;
-    let unavailable = language.t(if state.webos {
+    let unavailable = l.t(if state.webos {
         "infoUnavailable"
     } else {
         "infoNotApplicable"
     });
-    let loading = language.t("loading");
+    let loading = l.t("loading");
     let network = if state.controls.loading {
         loading
     } else {
-        language.t(match report.network.as_str() {
+        l.t(match report.network.as_str() {
             "wifi" => "ccWifi",
             "wired" => "ccEthernet",
             "offline" => "ccOffline",
@@ -53,14 +43,14 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         })
     };
     let audio = if state.controls.loading {
-        loading.to_owned()
+        loading.into()
     } else if let Some(muted) = report.muted {
         if muted {
-            language.t("ccMuted").to_owned()
+            l.t("ccMuted").into()
         } else if let Some(volume) = report.volume {
-            format!("{} · {volume}%", language.t("ccUnmuted"))
+            format!("{} · {volume}%", l.t("ccUnmuted"))
         } else {
-            language.t("ccUnmuted").to_owned()
+            l.t("ccUnmuted").into()
         }
     } else {
         unavailable.to_owned()
@@ -70,12 +60,12 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Standby,
-        Rect::new(1220., 204., 220., 220.),
+        Rect::new(1300., 204., 200., 200.),
         "power",
         if state.controls.loading {
             loading
         } else if report.power_active {
-            language.t("ccStandbyReady")
+            l.t("ccStandbyReady")
         } else {
             unavailable
         },
@@ -85,7 +75,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Network,
-        Rect::new(1456., 204., 348., 102.),
+        Rect::new(1516., 204., 312., 92.),
         if report.network == "wired" {
             "tv"
         } else {
@@ -98,7 +88,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Audio,
-        Rect::new(1456., 322., 348., 102.),
+        Rect::new(1516., 312., 312., 92.),
         "volume",
         &audio,
     );
@@ -107,23 +97,23 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Screensaver,
-        Rect::new(1220., 440., 284., 96.),
+        Rect::new(1300., 420., 256., 88.),
         "grid",
-        language.t("ccStartNow"),
+        l.t("ccStartNow"),
     );
     let sleep = if state.controls.loading {
         loading.to_owned()
     } else {
         report
             .sleep_index
-            .map(|index| {
-                if index == 0 {
-                    language.t("stateOff").to_owned()
+            .map(|i| {
+                if i == 0 {
+                    l.t("stateOff").to_owned()
                 } else {
                     format!(
                         "{} {}",
-                        crate::features::control_center::SLEEP_MINUTES[index.min(5)],
-                        language.t("minutesShort")
+                        crate::features::control_center::SLEEP_MINUTES[i.min(5)],
+                        l.t("minutesShort")
                     )
                 }
             })
@@ -134,10 +124,11 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Sleep,
-        Rect::new(1520., 440., 284., 96.),
+        Rect::new(1572., 420., 256., 88.),
         "clock",
         &sleep,
     );
+    let mut focus_label = None;
     for (index, (action, icon)) in [
         (Action::Search, "search"),
         (Action::Inputs, "tv"),
@@ -147,32 +138,23 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     .into_iter()
     .enumerate()
     {
-        let rect = Rect::new(1220. + index as f32 * 160., 552., 104., 104.);
+        let rect = Rect::new(1300. + index as f32 * 144., 528., 96., 96.);
         let target = Target::Quick(action);
-        let color = surface(
-            out,
-            rect,
-            52.,
-            state.focus == target,
-            state.pressed.as_ref() == Some(&target),
-            true,
-        );
-        out.icon(
-            assets,
-            icon,
-            Rect::new(rect.x + 32., rect.y + 22., 40., 40.),
-            color,
-        );
-        let label = language.t(action.key());
-        let size = (13. * 114. / assets.width(label, text(13., 500, 0.)).max(114.)).max(10.5);
+        let color = surface(out, state, &target, rect, 48., true);
+        out.icon(assets, icon, rect.inset(29.), color);
+        if state.focus == target {
+            focus_label = Some(l.t(action.key()));
+        }
+        out.control(target, rect, false);
+    }
+    if let Some(label) = focus_label {
         out.text(
             label,
-            Rect::new(rect.x - 12., rect.y + 74., 128., 24.),
-            text(size, 500, 0.),
-            color,
+            Rect::new(1300., 635., 528., 28.),
+            text(17., 500, 0.),
+            WHITE,
             true,
         );
-        out.control(target, rect, false);
     }
     let (target, title) = if state.cc_timer {
         (Target::SleepSlider, "ccSleepTimer")
@@ -187,37 +169,46 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
             out,
             state,
             target,
-            Rect::new(1220., 678., 584., crate::features::sliders::HEIGHT),
-            language.t(title),
+            Rect::new(1300., 680., 528., crate::features::sliders::HEIGHT),
+            l.t(title),
             &labels,
             step,
         );
     }
     out.text(
-        language.t(if state.cc_timer {
+        l.t(if state.cc_timer {
             "ccSliderHint"
         } else {
             "ccDimmingHint"
         }),
-        Rect::new(1220., 850., 584., 42.),
+        Rect::new(1300., 850., 528., 38.),
         text(13., 400, 0.),
-        c(0xffffff, if out.liquid_glass { 0.95 } else { 0.64 }),
+        c(0xffffff, 0.72),
         false,
     );
 }
-
-/// Light content and a clear focus ring on glass; solid accessible fallback.
 fn surface(
     out: &mut Scene,
+    state: &State,
+    target: &Target,
     rect: Rect,
     radius: f32,
-    focused: bool,
-    pressed: bool,
     enabled: bool,
 ) -> Color {
-    let mut color = out.chrome(rect, radius, focused, false, pressed);
+    let focused = state.focus == *target;
+    let visual = state.feedback_rect(target, rect, false);
+    let mut color = out.chrome(
+        visual,
+        radius,
+        focused && enabled,
+        false,
+        state.pressed.as_ref() == Some(target),
+    );
     if !enabled {
-        color[3] *= 0.78;
+        color[3] *= 0.52;
+        if focused {
+            out.border(visual, radius, 1.5, c(0xffffff, 0.55));
+        }
     }
     color
 }
@@ -242,14 +233,18 @@ fn tile(
     let target = Target::Quick(action);
     let color = surface(
         out,
+        state,
+        &target,
         rect,
-        if rect.h > 150. { 44. } else { rect.h / 2. },
-        state.focus == target,
-        state.pressed.as_ref() == Some(&target),
+        if rect.h > 150. { 48. } else { rect.h / 2. },
         enabled,
     );
     let large = rect.h > 150.;
-    let size = if large { 76. } else { 34. };
+    let size = if large { 78. } else { 34. };
+    let mut icon_color = color;
+    if state.focus != target && enabled && matches!(action, Action::Network) {
+        icon_color = c(0x4bd7ff, 1.);
+    }
     out.icon(
         assets,
         icon,
@@ -259,29 +254,32 @@ fn tile(
             } else {
                 rect.x + 22.
             },
-            rect.y + if large { 26. } else { (rect.h - size) / 2. },
+            rect.y + if large { 24. } else { (rect.h - size) / 2. },
             size,
             size,
         ),
-        color,
+        icon_color,
     );
-    let x = rect.x + if large { 20. } else { 66. };
-    let width = rect.w - if large { 40. } else { 84. };
+    let x = rect.x + if large { 18. } else { 70. };
+    let width = rect.w - if large { 36. } else { 88. };
     let label = state.preferences.language.t(action.key());
-    let font = (17. * width / assets.width(label, text(17., 550, 0.)).max(width)).max(14.);
     out.text(
         label,
-        Rect::new(x, rect.y + if large { 128. } else { 23. }, width, 30.),
-        text(font, 550, 0.),
+        Rect::new(x, rect.y + if large { 122. } else { 19. }, width, 32.),
+        assets.fit_line(
+            label,
+            text(if large { 22. } else { 20. }, 500, -0.025),
+            width,
+        ),
         color,
         large,
     );
     let mut secondary = color;
-    secondary[3] *= if out.liquid_glass { 0.95 } else { 0.74 };
+    secondary[3] *= 0.74;
     out.text(
         subtitle,
-        Rect::new(x, rect.y + if large { 170. } else { 57. }, width, 36.),
-        text(13., 400, 0.),
+        Rect::new(x, rect.y + if large { 162. } else { 52. }, width, 28.),
+        assets.fit_line(subtitle, text(15., 400, 0.), width),
         secondary,
         large,
     );

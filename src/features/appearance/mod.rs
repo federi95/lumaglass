@@ -1,4 +1,5 @@
 //! Typed local appearance settings and shared card geometry.
+pub(crate) mod focus;
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]

@@ -37,6 +37,7 @@ pub enum Page {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum Target {
+    SettingsBack,
     PhotoImmich,
     Immich(usize),
     ImmichAlbum(String),
@@ -312,6 +313,8 @@ pub struct State {
     pub query: String,
     pub filter: usize,
     pub section: usize,
+    pub settings_category: bool,
+    pub focus_motion: crate::features::appearance::focus::Motion,
     pub subpage: Option<Subpage>,
     pub scroll: f32,
     pub home_scroll: f32,
@@ -369,6 +372,8 @@ impl State {
             query: String::new(),
             filter: 0,
             section: 0,
+            settings_category: false,
+            focus_motion: crate::features::appearance::focus::Motion::default(),
             subpage: None,
             scroll: 0.,
             home_scroll: 0.,
@@ -408,6 +413,9 @@ impl State {
     }
 
     pub fn tick(&mut self) {
+        self.dirty |=
+            self.focus_motion
+                .update(&self.focus, self.preferences.reduced_motion, Instant::now());
         let recents_open = self.recents_open();
         if recents_open || self.recents.visibility > 0. {
             self.dirty |= self.recents.animate(
@@ -458,9 +466,10 @@ impl State {
     }
 
     pub fn animating(&self) -> bool {
-        ((self.recents_open() || self.recents.visibility > 0.)
-            && (self.recents.visibility != if self.recents_open() { 1. } else { 0. }
-                || self.recents.cards_animating(self.pointer)))
+        self.focus_motion.active()
+            || ((self.recents_open() || self.recents.visibility > 0.)
+                && (self.recents.visibility != if self.recents_open() { 1. } else { 0. }
+                    || self.recents.cards_animating(self.pointer)))
             || self.previous_background.is_some()
             || self.panel_started.is_some()
             || (!self.preferences.reduced_motion
@@ -471,6 +480,7 @@ impl State {
     }
 
     pub fn open(&mut self, index: usize) {
+        self.settings_category = false;
         self.weather.cancel_search();
         self.page = match index {
             1 => Page::Apps,
@@ -535,6 +545,18 @@ impl State {
         Rect::new(64., 108.8, 1792., bottom - 108.8)
     }
 
+    pub fn feedback_rect(&self, target: &Target, rect: Rect, card: bool) -> Rect {
+        crate::features::appearance::focus::lift(
+            rect,
+            if self.preferences.reduced_motion {
+                if self.focus == *target { 1. } else { 0. }
+            } else {
+                self.focus_motion.amount(target)
+            },
+            self.pressed.as_ref() == Some(target),
+            card,
+        )
+    }
     pub fn home_names_visible(&self) -> bool {
         self.preferences.show_home_names && !self.dock_enabled()
     }
@@ -1474,6 +1496,7 @@ impl State {
         self.focus = target;
         self.reveal_focus(controls);
         if let Target::Sidebar(section) = self.focus {
+            self.settings_category = false;
             if self.subpage == Some(Subpage::WeatherLocation) {
                 self.weather.cancel_search();
             }
@@ -1545,6 +1568,7 @@ impl State {
             return;
         }
         if let Target::Sidebar(section) = target {
+            self.settings_category = false;
             if self.subpage == Some(Subpage::WeatherLocation) {
                 self.weather.cancel_search();
             }
@@ -1584,6 +1608,7 @@ impl State {
     }
 
     fn close_subpage(&mut self) {
+        self.settings_category = true;
         if self.subpage == Some(Subpage::Immich) {
             if self.immich.confirming {
                 self.immich.confirming = false;
@@ -1699,12 +1724,16 @@ impl State {
             }
             let header_focus = matches!(
                 self.focus,
-                Target::Nav(_) | Target::ControlCenter | Target::Profile | Target::TvSettings
+                Target::Nav(_)
+                    | Target::SettingsBack
+                    | Target::ControlCenter
+                    | Target::Profile
+                    | Target::TvSettings
             );
             if header_focus && matches!(direction, Direction::Left | Direction::Right) {
                 let left_profile = self.preferences.header.combined
                     && self.preferences.header.side == crate::features::header::Side::Left;
-                let order = if left_profile {
+                let mut order = if left_profile {
                     [
                         Target::Profile,
                         Target::Nav(0),
@@ -1722,7 +1751,11 @@ impl State {
                         Target::ControlCenter,
                         Target::TvSettings,
                     ]
-                };
+                }
+                .to_vec();
+                if self.page == Page::Settings {
+                    order.insert(if left_profile { 1 } else { 0 }, Target::SettingsBack);
+                }
                 if let Some(index) = order.iter().position(|target| *target == self.focus) {
                     let next = if matches!(direction, Direction::Left) {
                         index.saturating_sub(1)
@@ -1746,7 +1779,7 @@ impl State {
             }
             if matches!(
                 self.focus,
-                Target::ControlCenter | Target::Profile | Target::TvSettings
+                Target::ControlCenter | Target::Profile | Target::TvSettings | Target::SettingsBack
             ) {
                 if matches!(direction, Direction::Down) {
                     self.focus(Target::Nav(self.page_index()), controls);
@@ -2238,6 +2271,7 @@ impl State {
             if let Target::Sidebar(index) = self.focus {
                 match direction {
                     Direction::Right => {
+                        self.settings_category = true;
                         let entry = self.section_entry();
                         self.focus(entry, controls);
                     }
@@ -2428,7 +2462,7 @@ impl State {
                 && matches!(direction, Direction::Left)
                 && !matches!(
                     self.focus,
-                    Target::Nav(_) | Target::Sidebar(_) | Target::TvSettings
+                    Target::Nav(_) | Target::Sidebar(_) | Target::SettingsBack | Target::TvSettings
                 )
             {
                 if let Target::Background(index) = self.focus {
@@ -3373,7 +3407,15 @@ impl State {
                     return vec![Effect::Save];
                 }
             }
+            Target::SettingsBack => {
+                if !self.settings_category && self.subpage.is_none() {
+                    self.open(0);
+                    return vec![];
+                }
+                return self.back();
+            }
             Target::Sidebar(index) => {
+                self.settings_category = true;
                 self.section = index;
                 self.scroll = 0.;
                 self.subpage = None;
@@ -3837,6 +3879,7 @@ impl State {
             return vec![];
         }
         if self.page == Page::Settings && !matches!(self.focus, Target::Nav(_)) {
+            self.settings_category = false;
             if matches!(self.focus, Target::Sidebar(_)) {
                 self.focus = Target::Nav(2);
             } else {

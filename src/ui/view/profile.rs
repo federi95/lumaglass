@@ -5,19 +5,19 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     let language = state.preferences.language;
     // The group owns a modal hit area, without drawing an enclosing container.
     // Each row is its own clear optical lens, like the Control Center capsules.
-    out.modal = Some(Rect::new(596., 192., 728., 688.));
+    out.modal = Some(Rect::new(1196., 144., 640., 708.));
     out.draw
         .push(Draw::Backdrop(crate::render::backdrop::Layer::Panel));
     out.glass_layer = Some(crate::render::backdrop::Layer::Panel);
-    let avatar = Rect::new(916., 240., 88., 88.);
-    out.shape(avatar, 44., out.accent_color(c(0xc9b6ff, 1.)));
+    let avatar = Rect::new(1468., 196., 96., 96.);
+    out.shape(avatar, 48., out.accent_color(c(0xc9b6ff, 1.)));
     let initials = crate::features::header::initials(&state.preferences.greeting_name);
     if state.preferences.header.avatar == crate::features::header::Avatar::Initials
         && !initials.is_empty()
     {
         out.text(
             initials,
-            Rect::new(avatar.x, avatar.y + 27., 88., 42.),
+            Rect::new(avatar.x, avatar.y + 29., 96., 42.),
             text(30., 600, 0.),
             c(0x20242a, 1.),
             true,
@@ -34,14 +34,14 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     let size = (30. * 548. / assets.width(title, text(30., 550, 0.)).max(548.)).max(16.);
     out.text(
         title,
-        Rect::new(686., 351., 548., 42.),
+        Rect::new(1240., 320., 552., 48.),
         text(size, 550, 0.),
         WHITE,
         true,
     );
     out.text(
         language.t("profileLocalHint"),
-        Rect::new(686., 407., 548., 62.),
+        Rect::new(1240., 384., 552., 76.),
         text(16., 400, 0.).leading(1.4),
         c(0xffffff, 0.82),
         true,
@@ -69,7 +69,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
             assets,
             Row {
                 target: target.clone(),
-                rect: Rect::new(628., 496. + index as f32 * 96., 664., 76.),
+                rect: Rect::new(1220., 484. + index as f32 * 100., 592., 80.),
                 title: language.t(key),
                 icon: Some(icon),
                 value,
@@ -79,7 +79,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
             },
         );
     }
-    let close = Rect::new(1244., 216., 48., 48.);
+    let close = Rect::new(1764., 164., 48., 48.);
     let color = out.chrome(
         close,
         24.,
