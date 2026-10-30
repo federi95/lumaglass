@@ -148,3 +148,20 @@ cache. Test denied permissions, TLS failure, redirects, server/key changes and
 malformed images. An unsuccessful import must retain the old catalog and current
 wallpaper. Confirm Cancel-first removal deletes only the connection file and keeps
 cached images. Neither real-server integration nor these TV checks have been run.
+
+## Updated native design and photo sources
+
+Check Settings category entry, Back/Left return, contextual artwork/help, long
+labels, focus versus saved checkmarks and remote scrolling. Verify Control Center
+has no X and closes from its header button or empty background; Back first leaves
+timer detail. Check the centered profile, empty-background dismissal and keyboard
+return. Compare dock proportions, hidden heading/captions, both row modes and all
+densities. Check slider track clicks, dragging, endpoint stops and remote steps.
+
+Using dedicated disposable credentials and photos, verify WebDAV and Drive folder
+boundaries, download refusal, offline restart and Forget/Cancel retention. For
+Google Photos verify the computer-only explicit export, metadata-stripped local
+files, private owner/modes after transfer and native manifest validation. Confirm
+no Google token is placed on the TV and no network fetch occurs during local photo
+presentation. Test all imports before qualifying their shared cache for the system
+screensaver. These hardware and real-account checks remain pending.

@@ -117,6 +117,7 @@ for (const file of [
   'appearance.md',
   'system-screensaver.md',
   'immich.md',
+  'photo-services.md',
 ]) {
   await fs.copyFile(path.join(root, 'docs', file), path.join(stage, 'docs', file));
 }

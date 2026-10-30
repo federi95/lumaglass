@@ -12,6 +12,7 @@ the current implementation; the project excludes a web dashboard and MQTT bridge
 | [Home personalization](home-personalization.md)   | Greeting, date, section order and initial focus                                 |
 | [Appearance](appearance.md)                       | Card density and native visual preferences                                      |
 | [Personal wallpapers](wallpapers.md)              | Local/HTTPS images, offline cache and rotation                                  |
+| [Photo services](photo-services.md)               | Nextcloud/WebDAV, Drive and explicit Google Photos exports                      |
 | [Immich albums](immich.md)                        | Private connection file, explicit album selection and offline import            |
 | [System screensaver](system-screensaver.md)       | Native candidate, firmware qualification and recovery                           |
 | [Local screensaver](screensaver.md)               | App-local idle presentation and waking input                                    |

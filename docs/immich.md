@@ -130,4 +130,5 @@ Primary API references: [Immich 3.3.5 specification](https://github.com/immich-a
 [Immich 2.5.6 specification](https://github.com/immich-app/immich/blob/v2.5.6/open-api/immich-openapi-specs.json),
 and the [official API documentation](https://api.immich.app/). This original client
 bundles no Immich server, frontend, generated SDK or assets; see [NOTICE](../NOTICE.md).
-Google Photos/Drive and iCloud remain separate future connectors.
+See [Photo services](photo-services.md) for Nextcloud/WebDAV, Google Drive and
+explicit Google Photos exports. iCloud remains a future connector.

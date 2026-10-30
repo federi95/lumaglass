@@ -36,7 +36,7 @@ App options and the management catalog add a confirmed uninstall path for explic
 apps, with protected identities and inventory verification. Hide in Lumaglass
 remains a separate local preference. TV behavior still needs hardware verification.
 Confirmed Live Plus/limit-ad-tracking changes and an optional reversible LG hosts
-blocker are available through System settings. Personal local/HTTPS wallpapers,
+blocker are available through System settings. [Photo services](docs/photo-services.md) add explicit Nextcloud/WebDAV and Drive imports, plus user-selected Google Photos exports. Personal local/HTTPS wallpapers,
 rotation and an app-local clock/photo screensaver are configurable. An optional
 [Immich album connector](docs/immich.md) imports explicitly selected albums into the
 offline image cache, with credentials kept outside preferences. Render

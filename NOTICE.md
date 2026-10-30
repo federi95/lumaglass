@@ -155,3 +155,14 @@ The Xbox input symbol comes from Simple Icons version 11.15.0 (`icons/xbox.svg`)
 CC0 1.0, with a white fill for native tinting. It replaces the earlier original
 console illustration. The full CC0 text is in `assets/licenses/simple-icons-cc0.txt`.
 Microsoft retains the Xbox trademarks.
+
+## Photo service connectors
+
+`src/features/wallpapers/cloud/`, `src/ui/view/cloud.rs` and `tools/photos/` are
+original MIT-licensed Lumaglass implementations. The protocol references are
+Nextcloud's WebDAV documentation, Google Drive v3, Google's Desktop OAuth/PKCE
+flow and Google Photos Picker v1. No provider SDK, frontend, server or branded
+artwork is bundled. Nextcloud/WebDAV and Drive acquire explicitly selected folder
+images; Google Photos uses an explicit computer-side export with authorization
+only in memory, followed by local TV import. No Ambient API integration or Google
+approval is implied. Runtime and dependency notices remain distributed in the IPK.
