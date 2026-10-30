@@ -154,7 +154,7 @@ fn profile_and_quick_controls_have_distinct_actions() {
     assert!(!state.cc_timer);
     assert!(matches!(state.overlay, Some(Overlay::ControlCenter { .. })));
     state.quick_action(Action::Sleep);
-    state.focus = Target::CloseControlCenter;
+    state.focus = Target::ControlCenter;
     state.activate();
     assert!(state.overlay.is_none());
 }

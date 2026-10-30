@@ -76,7 +76,30 @@ try {
   assert.equal(background.state.section, 1);
   assert.equal(control(background.state, { Background: 0 }).rect[0], 1032);
   await scenario('design-apps', 'apps,down');
-  await scenario('design-home-dock', 'home,down', { home: { favorites_dock: true } });
+  const dock = await scenario('design-home-dock', 'home,down', { home: { favorites_dock: true } });
+  assert.equal(dock.state.preferences.home.favorites_dock, true);
+  assert.equal(dock.state.ui_text.includes('Favorites'), false);
+  const centered = await scenario('design-profile-centered', 'tap:"Profile"');
+  const profileRect = control(centered.state, 'ProfileName').rect;
+  assert.equal(profileRect[0] + profileRect[2] / 2, 960);
+  assert.equal(
+    centered.state.controls.some((c) => String(c.target).includes('CloseProfile')),
+    false,
+  );
+  const outside = await scenario('design-profile-outside', 'tap:"Profile",click:100:540');
+  assert.equal(outside.state.modal, false);
+  assert.equal(outside.state.focus, 'Profile');
+  const quickOutside = await scenario('design-center-outside', 'control-center,click:100:540');
+  assert.equal(quickOutside.state.modal, false);
+  const quickToggle = await scenario('design-center-toggle', 'control-center,tap:"ControlCenter"');
+  assert.equal(quickToggle.state.modal, false);
+  const quickProfile = await scenario('design-center-profile', 'control-center,tap:"Profile"');
+  assert.ok(control(quickProfile.state, 'ProfileName'));
+  const quickPanel = await scenario('design-center-targets', 'control-center');
+  assert.equal(
+    quickPanel.state.controls.some((c) => String(c.target).includes('CloseControlCenter')),
+    false,
+  );
   for (const glass of ['off', 'light', 'full']) {
     for (const [name, script] of [
       ['control-center', 'control-center'],

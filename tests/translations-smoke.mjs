@@ -115,14 +115,7 @@ try {
       }),
     );
     const center = await scenario(`${language}-control-center`, 'control-center');
-    for (const key of [
-      'controlCenter',
-      'ccNetwork',
-      'ccAudio',
-      'ccScreensaver',
-      'ccSleepTimer',
-      'ccDimmingHint',
-    ])
+    for (const key of ['ccNetwork', 'ccAudio', 'ccScreensaver', 'ccSleepTimer', 'ccDimmingHint'])
       contains(center, key, language);
     assert.ok(center.ui_text.includes('AL'), 'Initials must use the unchanged local greeting name');
     assert.equal(center.preferences.greeting_name, 'Ada Lovelace');

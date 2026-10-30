@@ -150,3 +150,8 @@ No Apple design-resource files, SF fonts or screenshot assets are imported.
 The additional `assets/ui-icons/home.svg` house outline is original Lumaglass artwork
 under MIT. Existing Luma, Lucide, font, artwork and optical-shader notices remain
 applicable and are distributed unchanged.
+
+The Xbox input symbol comes from Simple Icons version 11.15.0 (`icons/xbox.svg`),
+CC0 1.0, with a white fill for native tinting. It replaces the earlier original
+console illustration. The full CC0 text is in `assets/licenses/simple-icons-cc0.txt`.
+Microsoft retains the Xbox trademarks.

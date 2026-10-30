@@ -45,7 +45,9 @@ measured height. Drawing, hit targets, wheel scrolling and remote navigation use
 the same geometry; Apps Up/Down follows the selected column count. Home's optional
 two-row layout keeps its row-major favorite order and shares horizontal scrolling.
 Changing density resets Home's horizontal scroll to the start. Input cards and
-the background gallery keep their own layouts.
+the background gallery keep their own layouts. The optional dock uses narrower
+landscape cards, a wider inter-card gap, a padded floating tray and no heading
+or captions, following the supplied tvOS Home reference.
 
 Existing preference files use Standard density. Unknown values fall back to
 Standard without discarding unrelated preferences.

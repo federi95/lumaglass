@@ -14,7 +14,7 @@ Select the dedicated control-center button in the header. With a remote, press U
 then OK. In desktop preview, F6 opens or closes the panel. A color button can also
 be assigned to **Control center** in **Settings → General → Remote shortcuts**;
 shortcuts remain disabled by default. Back closes the panel and restores the
-previous focus. Selecting the dedicated button again also closes it. The avatar opens a dedicated local profile; it never opens the control center or changes the current Settings section.
+previous focus. Selecting the dedicated button again or clicking outside the floating group also closes it, including timer detail. There is no X button. Back still leaves timer detail before dismissing the main panel. The avatar opens a dedicated local profile; it never opens the control center or changes the current Settings section.
 
 These entries work while Lumaglass is active. The LG Home key remains under LG's
 control, including while another app is in front. The Apple TV remote's hold-TV
@@ -59,7 +59,7 @@ chrome, like the tab track and active tab pill.
 
 ## Local profile
 
-Selecting the avatar opens **Local profile** over the current page. Edit or clear
+Selecting the avatar opens **Local profile**, centered over the current page, including from Control Center. Click the surrounding background or press Back to dismiss it; there is no X button. Edit or clear
 the name and choose Initials/Symbol. Changes stay on this TV in Lumaglass
 preferences; no LG, Apple or online account is created or accessed. The name is
 also used by timed Home greetings. Editing it leaves a custom static greeting
@@ -94,7 +94,7 @@ does not silently restore the dock.
 ## Xbox Series X input
 
 **Settings → Inputs → [discovered HDMI port] → Use Xbox Series X** assigns the local
-name and original console-tower icon to that port. Clear name restores its reported
+name and classic Xbox symbol to that port. Clear name restores its reported
 label. Recognition also works when the TV reports an Xbox name or it is typed as
 a custom input name. The app ID, HDMI port and observed connection state remain
 unchanged; selecting the preset does not send TV commands or create a virtual port.
@@ -107,8 +107,7 @@ Reduced motion removes the interpolation between focus states. These states do n
 
 ## Sliders
 
-The Rust UI includes a reusable discrete slider with a labelled value, track,
-ticks and focus ring. It is used for screensaver timeout, card density, wallpaper
+The Rust UI includes a reusable discrete slider with an explicit value, filled track, embedded step markers and a broad rounded thumb. Endpoints remain labelled; short ranges also show intermediate labels. Focus highlights the container and enlarges the thumb. It is used for screensaver timeout, card density, wallpaper
 dimming/blur, greeting size and the LG sleep-timer draft. Automatic screensaver
 timeouts are Off, 1, 5, 10, 15, 30, 45 and 60 minutes.
 
@@ -121,6 +120,7 @@ changes. Changing a sleep-timer draft never writes to the TV.
 ## Design and protocol references
 
 - [Apple TV Control Center guide](https://support.apple.com/guide/tv/adjust-general-settings-atvb18c04fc0/tvos): invocation and grouping of power, network, audio and timer controls.
+- Apple’s slider HIG does not specify a native tvOS slider; Lumaglass adapts the cross-platform range guidance to webOS pointer snapping and remote steps.
 - [Apple slider guidance](https://developer.apple.com/design/human-interface-guidelines/sliders): labelled ranges and clear feedback. Lumaglass implements its own Rust/SDL widget.
 - The user-provided tvOS 26 screenshots inform the visual arrangement and combined clock/avatar capsule. No Apple screenshots, icons, fonts or avatars are shipped as new assets.
 - [webOSbrew commands](https://www.webosbrew.org/pages/commands-cheatsheet): power-state observation.

@@ -134,9 +134,11 @@ included in the package.
 
 The optical section of `src/render/shaders/paint.frag` is adapted from ziuus/liquid-glass under MIT, Copyright (c) 2026 ziuus. Its pinned source, changes and complete notice are recorded in [NOTICE](../NOTICE.md) and `assets/licenses/ziuus-liquid-glass.txt`. This is code provenance rather than Apple artwork.
 
-### Xbox input illustration
+### Xbox input symbol
 
-`assets/ui-icons/input-xbox.svg` is an original Lumaglass line illustration of a
-console tower, under the repository's MIT license. It is not a copied Microsoft
-logo or downloaded artwork. The Xbox Series X name identifies the locally chosen
-input device; its trademarks remain with their respective owner.
+`assets/ui-icons/input-xbox.svg` uses the classic Xbox symbol from
+[Simple Icons 11.15.0](https://github.com/simple-icons/simple-icons/blob/11.15.0/icons/xbox.svg),
+under CC0 1.0. The only change sets the path fill to white for runtime tinting.
+The complete dedication is distributed in `assets/licenses/simple-icons-cc0.txt`.
+The symbol and Xbox Series X name identify the locally chosen input device;
+the Xbox trademarks belong to Microsoft.

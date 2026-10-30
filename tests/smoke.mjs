@@ -78,11 +78,11 @@ try {
   assert.equal(quick.modal, true);
   assert.deepEqual(quick.focus, { Quick: 'Screensaver' });
   for (const [name, top] of [
-    ['network', 233],
-    ['audio', 341],
+    ['network', 214],
+    ['audio', 324],
   ]) {
     const icon = await sharp(path.join(out, 'control-center.png'))
-      .extract({ left: 1538, top, width: 34, height: 34 })
+      .extract({ left: 1594, top, width: 34, height: 34 })
       .stats();
     assert.ok(
       icon.channels.slice(0, 3).every((channel) => channel.max > 130 && channel.stdev > 10),
@@ -95,11 +95,11 @@ try {
   const dismissed = await scenario('control-center-dismissed', 'control-center,back');
   assert.equal(dismissed.modal, false);
   assert.deepEqual(dismissed.focus, { Nav: 0 });
-  const dimmed = await scenario('control-center-slider', 'control-center,click:1640:762');
+  const dimmed = await scenario('control-center-slider', 'control-center,click:1640:746');
   assert.equal(dimmed.preferences.appearance.dimming, 'medium');
   const sliderBack = await scenario(
     'control-center-slider-back',
-    'control-center,click:1380:762,back',
+    'control-center,click:1416:746,back',
   );
   assert.equal(sliderBack.preferences.appearance.dimming, 'off');
   await fs.writeFile(preferences, JSON.stringify({ header: { combined: false, side: 'left' } }));
