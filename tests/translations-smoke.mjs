@@ -149,7 +149,7 @@ try {
   ])
     contains(german, key, 'de');
   assert.ok(german.ui_text.includes('Netflix'), 'Installed app names stay intact');
-  const persisted = await scenario('de-settings', 'settings,down');
+  const persisted = await scenario('de-settings', 'settings,down,enter');
   assert.equal(persisted.preferences.language, 'de');
   contains(persisted, 'language', 'de');
 
@@ -167,7 +167,7 @@ try {
     contains(chinese, key, 'zh');
   assert.ok(chinese.ui_text.includes('Netflix'));
   assert.ok(chinese.ui_text.includes('10月21日星期三'));
-  const chineseSettings = await scenario('zh-settings', 'settings,down');
+  const chineseSettings = await scenario('zh-settings', 'settings,down,enter');
   contains(chineseSettings, 'language', 'zh');
   contains(chineseSettings, 'appNames', 'zh');
 
@@ -243,7 +243,7 @@ try {
     portuguese.ui_text.includes('Netflix'),
     'Installed app names stay intact in Portuguese',
   );
-  const portugueseSettings = await scenario('pt-settings', 'settings,down');
+  const portugueseSettings = await scenario('pt-settings', 'settings,down,enter');
   assert.equal(
     portugueseSettings.preferences.language,
     'pt',

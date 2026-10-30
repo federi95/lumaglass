@@ -20,7 +20,7 @@
     "test:release": "node --test tests/release.test.mjs",
     "test:home": "node --test tests/home-splash.test.mjs tests/home-executable.test.mjs tests/home-mounts.test.mjs tests/sync-splash.test.mjs",
     "test:icons": "node --test tests/read-app-icon.test.mjs tests/brand-assets.test.mjs",
-    "test:smoke": "node tests/smoke.mjs && node tests/brands-smoke.mjs && node tests/weather-smoke.mjs && node tests/translations-smoke.mjs && pnpm test:display && node tests/system-apps-smoke.mjs && node tests/screensaver-smoke.mjs && node tests/immich-smoke.mjs",
+    "test:smoke": "node tests/smoke.mjs && node tests/brands-smoke.mjs && node tests/weather-smoke.mjs && node tests/translations-smoke.mjs && pnpm test:display && node tests/system-apps-smoke.mjs && node tests/screensaver-smoke.mjs && node tests/immich-smoke.mjs && node tests/design-smoke.mjs",
     "test:display": "node tests/display-watchdog-smoke.mjs",
     "test:brands": "node tests/brands-smoke.mjs",
     "check": "pnpm version:check && pnpm lint && cargo clippy --locked --workspace --all-targets --all-features -- -D warnings",

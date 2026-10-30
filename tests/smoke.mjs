@@ -78,11 +78,11 @@ try {
   assert.equal(quick.modal, true);
   assert.deepEqual(quick.focus, { Quick: 'Screensaver' });
   for (const [name, top] of [
-    ['network', 238],
-    ['audio', 356],
+    ['network', 233],
+    ['audio', 341],
   ]) {
     const icon = await sharp(path.join(out, 'control-center.png'))
-      .extract({ left: 1478, top, width: 34, height: 34 })
+      .extract({ left: 1538, top, width: 34, height: 34 })
       .stats();
     assert.ok(
       icon.channels.slice(0, 3).every((channel) => channel.max > 130 && channel.stdev > 10),
@@ -95,11 +95,11 @@ try {
   const dismissed = await scenario('control-center-dismissed', 'control-center,back');
   assert.equal(dismissed.modal, false);
   assert.deepEqual(dismissed.focus, { Nav: 0 });
-  const dimmed = await scenario('control-center-slider', 'control-center,click:1600:760');
+  const dimmed = await scenario('control-center-slider', 'control-center,click:1640:762');
   assert.equal(dimmed.preferences.appearance.dimming, 'medium');
   const sliderBack = await scenario(
     'control-center-slider-back',
-    'control-center,click:1300:760,back',
+    'control-center,click:1380:762,back',
   );
   assert.equal(sliderBack.preferences.appearance.dimming, 'off');
   await fs.writeFile(preferences, JSON.stringify({ header: { combined: false, side: 'left' } }));
@@ -196,7 +196,7 @@ try {
   const saved = await scenario('saved', 'down,hold,right,back');
   assert.equal(saved.preferences.background, 'forest');
   assert.deepEqual(saved.preferences.favorites.slice(0, 2), ['youtube.leanback.v4', 'netflix']);
-  const clock = await scenario('clock', 'settings,click:900:284');
+  const clock = await scenario('clock', 'settings,down,enter,tap:{"Setting":1}');
   assert.equal(clock.subpage, 'Clock');
   assert.equal(clock.focus, 'ClockFormat');
   assert.ok(clock.ui_text.includes('Clock format'));
@@ -326,12 +326,16 @@ try {
     `settings,down,down,down,down,down,right,${Array(9).fill('down').join(',')}`,
   );
   assert.deepEqual(system.focus, { Setting: 5 });
-  assert.ok(system.ui_text.includes('Refresh apps & inputs'));
+  const systemTop = await scenario(
+    'system-settings-top',
+    'settings,down,down,down,down,down,right',
+  );
+  assert.ok(systemTop.ui_text.includes('Refresh apps & inputs'));
   assert.ok(system.ui_text.includes('Quit app'));
-  assert.ok(system.ui_text.includes('Text rendering'));
-  assert.ok(system.ui_text.includes('TV information'));
-  assert.ok(system.ui_text.includes('Privacy'));
-  assert.ok(system.ui_text.includes('Render resolution'));
+  assert.ok(systemTop.ui_text.includes('Text rendering'));
+  assert.ok(systemTop.ui_text.includes('TV information'));
+  assert.ok(systemTop.ui_text.includes('Privacy'));
+  assert.ok(systemTop.ui_text.includes('Render resolution'));
   assert.ok(system.ui_text.includes('LG ads & telemetry blocker: refresh status'));
   assert.ok(system.ui_text.includes('Enable LG ads & telemetry blocker'));
   assert.ok(system.ui_text.includes('Disable LG blocker and restore hosts'));
