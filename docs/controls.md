@@ -2,6 +2,11 @@
 
 ## Controls and navigation
 
+Settings opens a right-hand category menu. OK/Right enters a category, with
+contextual artwork and help on the left. Back/Left returns to the parent page;
+the header also has Back, Home and Apps controls. See [Appearance](appearance.md)
+for the shared list, focus and material behavior.
+
 **Settings → General → Home personalization** configures greeting mode/size,
 date format and weekday, section visibility/order and startup focus. Use OK to
 toggle/cycle values, or open an arrow-marked editor. See
@@ -59,8 +64,8 @@ It does not execute the test suites. A desktop display is required; on headless 
 
 Backspace deletes while editing. Native Back uses SDL's webOS-specific keycode. Back dismisses
 the keyboard first; Weather Location then returns to its parent Location row, HDMI choices to
-that HDMI row, and the Background gallery to Background in the sidebar. Back from the sidebar
-focuses the Settings tab, then returns Home. **System** in the sidebar groups
+that HDMI row, and the Background gallery to Background in the sidebar. Back from the category menu
+focuses the Settings title, then returns Home. **System** in the category menu groups
 **Refresh apps & inputs**, **Text rendering**, **TV information**, **Privacy** and the vector
 power-icon **Quit app** action separately from General preferences.
 

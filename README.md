@@ -16,6 +16,7 @@ apps, recent apps, backgrounds, weather and settings. General settings now offer
 optional two-row Home favorites, greeting/date personalization, section ordering
 and initial focus; long Home greetings scale to fit. This fork establishes the
 Lumaglass identity, modular layout, local development setup and license notices.
+Settings now use a two-pane layout with contextual previews, compact lists and clear focus feedback.
 Appearance settings configure card density, accent color and wallpaper dimming/blur.
 Optional clear [Liquid Glass](docs/liquid-glass.md), with Off/Light/Full quality, styles the tab bar, clock/avatar,
 quick controls and favorites dock. The dock is an alternative to two-row favorites.

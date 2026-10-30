@@ -139,3 +139,14 @@ against the official Immich OpenAPI specifications at tags `v3.3.5` and `v2.5.6`
 and the `v3.3.5` album, search and asset-media controllers. No Immich server code,
 generated SDK, artwork or frontend assets are copied or bundled. The connector
 uses only the documented read endpoints and read-only metadata search.
+
+## Native interface restyle
+
+The two-pane settings layout, contextual previews, focus transitions and floating
+control layouts in `src/ui/view/` and `src/features/appearance/focus.rs` are original
+Lumaglass code under MIT. User-provided tvOS screenshots and Apple's public Human
+Interface Guidelines informed their visual arrangement and interaction principles.
+No Apple design-resource files, SF fonts or screenshot assets are imported.
+The additional `assets/ui-icons/home.svg` house outline is original Lumaglass artwork
+under MIT. Existing Luma, Lucide, font, artwork and optical-shader notices remain
+applicable and are distributed unchanged.

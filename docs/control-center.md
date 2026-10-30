@@ -20,6 +20,13 @@ These entries work while Lumaglass is active. The LG Home key remains under LG's
 control, including while another app is in front. The Apple TV remote's hold-TV
 behavior is a design reference, not an LG key binding.
 
+The native cluster uses a tall power lens beside two compact status capsules,
+a pair of action capsules and four circular shortcuts. Only the focused shortcut
+shows its caption below the circle. Local dimming and timer details use the same
+padded slider row as Settings. Focused surfaces brighten with dark labels;
+unfocused glass remains tinted and translucent. Profile actions use the same
+spacing, focus and independent capsules, without an outer backplate.
+
 ## Controls
 
 | Control                               | Behavior                                                                                                                                                                                                                                                                                                               |
@@ -96,7 +103,7 @@ TV inventory continues to come exclusively from the TV services.
 
 Selected/active chrome, hover/remote focus and presses have distinct tint,
 rim and shadow treatments. App artwork lifts on focus inside stable hit areas;
-reduced motion disables that lift. These states do not add an idle animation loop.
+Reduced motion removes the interpolation between focus states. These states do not add an idle animation loop.
 
 ## Sliders
 

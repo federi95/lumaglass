@@ -29,6 +29,7 @@ The build parameters are documented in [Appearance](appearance.md).
 - Noto Sans KR: copyright 2014–2021 Adobe, SIL OFL 1.1 (same license text as Noto Sans SC,
   `assets/fonts/noto-ofl.txt`). Pinned the same way. Google Fonts ships Hangul only in this family,
   not in Noto Sans SC; generated Hangul-only regular/medium subsets are renamed Lumaglass KR.
+- `assets/ui-icons/home.svg`: original Lumaglass house outline, MIT.
 - Lucide interface icons: exported standalone SVG sources in `assets/ui-icons/`, ISC license
   bundled at `assets/licenses/lucide.txt`. PlayStation/Apple TV input paths were supplied by the
   user; the brand marks belong to Sony/Apple. Spotify/Kodi symbol treatments use the original
