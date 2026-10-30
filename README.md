@@ -9,6 +9,22 @@ The interface runs directly on the TV in Rust, SDL2 and OpenGL ES 2, with remote
 and Magic Remote pointer controls. The project scope excludes a web dashboard
 and an MQTT bridge.
 
+## Feature highlights
+
+![Lumaglass Home with its optional clear favorites dock](docs/media/highlights/home-dock.webp)
+
+- Personalize Home with a dock or two favorites rows, custom greetings, clock/avatar placement and input identities.
+- Open quick controls from a dedicated Control Center button, browse apps with remote focus, and configure the interface through contextual settings.
+- Choose Liquid Glass Off/Light/Full and import offline photos explicitly from Immich, Nextcloud/WebDAV, Drive or a computer-side Google Photos export.
+
+| Control center                                                                        | Settings                                                         |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| ![Floating clear control-center shortcuts](docs/media/highlights/control-center.webp) | ![Two-pane native settings](docs/media/highlights/settings.webp) |
+
+[View all 12 screenshots and feature details](docs/media/highlights/README.md).
+These are native desktop CI captures with demo data; TV verification is pending.
+For the resources used by disabled features, see [runtime resources](docs/runtime-resources.md).
+
 ## Current status
 
 The inherited native launcher includes app/input discovery, favorites, hidden
@@ -90,8 +106,8 @@ No Lumaglass release has been published yet; use a locally built package.
 
 Start at the [documentation index](docs/README.md) for setup, controls, TV
 integration, rendering, compatibility, releases and licensing.
-The [screenshots and video](docs/media/README.md) are inherited Luma captures;
-they document the design baseline and retain the upstream branding in their pixels.
+The [media index](docs/media/README.md) separates current Lumaglass feature captures
+from inherited Luma screenshots/video and documents their provenance.
 
 [Control center, clock/avatar and sliders](docs/control-center.md) documents the native quick controls and header personalization.
 

@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "sourceRevision": "7565a7114cfa2db45ecdbb0bc43c6e6ea448d536",
+  "sourceVersion": "2.9.0",
+  "ciRun": "https://github.com/federi95/lumaglass/actions/runs/41109837133",
+  "environment": "Ubuntu 24.04 CI; Xvfb; software OpenGL; native SDL application; demo inventory and photo metadata; no TV or personal services",
+  "conversion": "Lossless WebP from original 1920x1080 CI PNG; no resizing, compositing, retouching or UI changes",
+  "images": [
+    {
+      "file": "home-dock.webp",
+      "artifact": "native-rendering-design",
+      "sourceFile": "design-home-dock.png",
+      "sourceSha256": "d1497e48d9c262049441e3719ebd798cb7ae4db2ce224317d3851be4f0203ded",
+      "sha256": "2452f0141500b9502479fd335312aaf790e88756b3fe953c8511fad69d3d18be",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 783746
+    },
+    {
+      "file": "apps.webp",
+      "artifact": "native-rendering-design",
+      "sourceFile": "design-apps.png",
+      "sourceSha256": "dae2f38bc339082eb120dcbbbbf6f79d6fdbdb6ff287655c92ffd95468b85e44",
+      "sha256": "905e1a21be283cc14e10e926aa8c1130956af67aa33d5e1e28808b8ad5d53163",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 695524
+    },
+    {
+      "file": "control-center.webp",
+      "artifact": "native-rendering-design",
+      "sourceFile": "design-control-center-full.png",
+      "sourceSha256": "aab94dd8a2ce9f0b9cf2b653fa46658a075e8cd687daad43b77f2f8c895cb2fa",
+      "sha256": "fc6ac75933b1ea47e6bd3d003d9a776842981d7dcb951c4594b80495b611610e",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 986916
+    },
+    {
+      "file": "settings.webp",
+      "artifact": "native-rendering-design",
+      "sourceFile": "design-settings-root.png",
+      "sourceSha256": "81a75fc3e134fa6f09a46aedafd9610307f8ecb02e8d96450a29a5ec60a87ea8",
+      "sha256": "bb896550178f79661707b5908b366b06c57c7a99f228f37f283d995e4e82ee53",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 229650
+    },
+    {
+      "file": "wallpapers.webp",
+      "artifact": "native-rendering-design",
+      "sourceFile": "design-background.png",
+      "sourceSha256": "d1ca7b313ea4f33ca3a8f99df1fc257752c7a2c2ce04a9768394f6abbca67c83",
+      "sha256": "62ffa56302d2bf10fa8ac032db3ae34253578e30a8950275599d7c7f27a09fb8",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 670768
+    },
+    {
+      "file": "profile.webp",
+      "artifact": "native-rendering-design",
+      "sourceFile": "design-profile-centered.png",
+      "sourceSha256": "e3befada2a358d75e7a3a45d4fb3cc533580bee6dc8ce3b4632634b6e2ba00d7",
+      "sha256": "7937af99625ec67fb3a677ea857ae7663271f436a18ebd2e5cd15fb9c5b7ab9e",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 957870
+    },
+    {
+      "file": "appearance-full.webp",
+      "artifact": "native-rendering-design",
+      "sourceFile": "design-appearance-full.png",
+      "sourceSha256": "33ad2ce84fee8ca7f99c150c53d7517e0af67e4904bb6b0aee4d7ee6eaf48262",
+      "sha256": "ab97d12742a629ca78db9e114ec55c610bff8fe4a14e61ed8b0ec62f08bde0a7",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 245930
+    },
+    {
+      "file": "appearance-off.webp",
+      "artifact": "native-rendering-design",
+      "sourceFile": "design-appearance-off.png",
+      "sourceSha256": "af7c886f2c9465d92b7ccc6a11a84afc2933ac11278bd4a962a05b4ca6fd3100",
+      "sha256": "c73d6b10807af5e0d8db684b5442d23771c611c49b36bb750be5c4718e9ef3d3",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 185512
+    },
+    {
+      "file": "photos-immich.webp",
+      "artifact": "native-rendering-photos",
+      "sourceFile": "immich-albums.png",
+      "sourceSha256": "a9bd50abc677f132b3ef2ae42280128d82161e3f205503b0f62b7ba584753ad0",
+      "sha256": "613fce72fd50985fea0034ae54e9dd89bdab545127a1d3d09bceb6a5f1a0c373",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 254138
+    },
+    {
+      "file": "photos-webdav.webp",
+      "artifact": "native-rendering-cloud",
+      "sourceFile": "cloud-webdav-demo.png",
+      "sourceSha256": "c9ae44905304ab8bb4c20eb4c7e658b0fdb472282c8ef598c25185fd2098447c",
+      "sha256": "5c00f44b281d75a8f17b384da2a2a60d3f75f58fcc04e8a82094e120d3eaf886",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 252342
+    },
+    {
+      "file": "photos-drive.webp",
+      "artifact": "native-rendering-cloud",
+      "sourceFile": "cloud-drive-demo.png",
+      "sourceSha256": "0fc50522046b825f62d9b079a79d8077abf563d5c2e9a68bf4ce4f50aaaa89d4",
+      "sha256": "8742886e455173dde2301e1340a1252102db0f331c75e7453b24cc4e9f99848a",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 250752
+    },
+    {
+      "file": "photos-google-export.webp",
+      "artifact": "native-rendering-cloud",
+      "sourceFile": "cloud-google-photos-demo.png",
+      "sourceSha256": "7663eadc9ceee68ebd1ef03420eeb3f98b8524a218451fc39453dca40cd6b899",
+      "sha256": "1c756f3de904dd49ac6de562c862bb2867fa89e90b0902408163fae22ec2bb14",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 240532
+    }
+  ]
+}

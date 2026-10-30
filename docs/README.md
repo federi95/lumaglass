@@ -21,6 +21,7 @@ the current implementation; the project excludes a web dashboard and MQTT bridge
 | [Privacy and blocker](privacy-and-blocker.md)     | Confirmed settings, optional hosts blocking and recovery                        |
 | [App management](app-management.md)               | Full reported catalog, reversible local visibility and confirmed uninstallation |
 | [System app visibility](system-app-visibility.md) | Read-only preflight, qualified transactions and scoped recovery                 |
+| [Runtime resources](runtime-resources.md)         | Optional modules, sleeping workers and GPU allocation                           |
 | [Architecture](architecture.md)                   | Native modules, platform workers, storage and project boundaries                |
 | [TV integration](tv-integration.md)               | Installation, Home takeover, diagnostics and recovery                           |
 | [Compatibility](compatibility.md)                 | Clearly attributed upstream reports and fork verification status                |
@@ -28,7 +29,7 @@ the current implementation; the project excludes a web dashboard and MQTT bridge
 | [Releases](releases.md)                           | Changesets, CI gates, packaging and publication                                 |
 | [Licensing](licensing.md)                         | Copyright preservation and distributed notices                                  |
 | [Assets](assets.md)                               | Per-asset provenance, licenses and derived formats                              |
-| [Media](media/README.md)                          | Inherited screenshots and demo attribution                                      |
+| [Media](media/README.md)                          | Current feature gallery and inherited media attribution                         |
 
 Upstream project provenance and complete notice locations are in
 [NOTICE.md](../NOTICE.md).
