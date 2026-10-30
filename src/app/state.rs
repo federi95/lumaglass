@@ -57,12 +57,10 @@ pub enum Target {
     CatalogSystemCancel,
     CatalogRemove,
     ControlCenter,
-    CloseControlCenter,
     Profile,
     ProfileName,
     ProfileClearName,
     ProfileAvatar,
-    CloseProfile,
     Quick(crate::features::control_center::Action),
     SleepSlider,
     ClockAvatar,
@@ -789,11 +787,23 @@ impl State {
     }
 
     pub fn home_cards(&self) -> crate::features::appearance::Cards {
-        self.preferences.appearance.density.home()
+        if self.dock_enabled() {
+            self.preferences.appearance.density.dock()
+        } else {
+            self.preferences.appearance.density.home()
+        }
     }
 
     pub fn apps_cards(&self) -> crate::features::appearance::Cards {
         self.preferences.appearance.density.apps()
+    }
+
+    /// A pointer click outside a floating group dismisses the whole group, including timer detail.
+    pub fn dismiss_overlay(&mut self) -> Vec<Effect> {
+        if matches!(self.overlay, Some(Overlay::ControlCenter { .. })) {
+            self.cc_timer = false;
+        }
+        self.back()
     }
 
     pub fn open_control_center(&mut self) -> Vec<Effect> {
@@ -1702,7 +1712,6 @@ impl State {
         }
         if matches!(self.overlay, Some(Overlay::Profile)) {
             let rows = [
-                Target::CloseProfile,
                 Target::ProfileName,
                 Target::ProfileAvatar,
                 Target::ProfileClearName,
@@ -2885,7 +2894,10 @@ impl State {
                 return self.set_slider(&target, (index + 1) % values.len());
             }
         }
-        if self.focus == Target::Profile && self.overlay.is_none() {
+        if self.focus == Target::Profile
+            && matches!(self.overlay, None | Some(Overlay::ControlCenter { .. }))
+        {
+            self.cc_timer = false;
             self.overlay = Some(Overlay::Profile);
             self.focus = Target::ProfileName;
             self.pointer = false;
@@ -2896,7 +2908,6 @@ impl State {
         }
         if matches!(self.overlay, Some(Overlay::Profile)) {
             match self.focus {
-                Target::CloseProfile => return self.back(),
                 Target::ProfileName => self.open_keyboard(TextField::ProfileName),
                 Target::ProfileClearName => {
                     self.preferences.greeting_name.clear();
@@ -2917,12 +2928,6 @@ impl State {
                 _ => {}
             }
             return vec![];
-        }
-        if self.focus == Target::CloseControlCenter
-            && matches!(self.overlay, Some(Overlay::ControlCenter { .. }))
-        {
-            self.cc_timer = false;
-            return self.back();
         }
         if self.focus == Target::ControlCenter {
             return self.open_control_center();

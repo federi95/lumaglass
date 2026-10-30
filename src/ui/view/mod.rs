@@ -889,14 +889,19 @@ fn tile(
     let start = out.draw.len();
     let focused = state.focus == Target::App(app.id.clone());
     let rect = state.feedback_rect(&Target::App(app.id.clone()), rect, true);
+    let radius = if state.page == Page::Home && state.dock_enabled() {
+        24.
+    } else {
+        19.2
+    };
     out.shadow(
         rect,
-        19.2,
+        radius,
         if focused { 34. } else { 22. },
         if focused { 14. } else { 9. },
         if focused { 0.4 } else { 0.165 },
     );
-    app_face(out, assets, app, rect, state.preferences.language, 19.2);
+    app_face(out, assets, app, rect, state.preferences.language, radius);
     if pinned {
         out.icon(
             assets,
@@ -927,7 +932,11 @@ fn tile(
         );
     }
     if focused {
-        out.ring(rect, 19.2);
+        if state.page == Page::Home && state.dock_enabled() {
+            out.border(rect.inset(-2.), 26., 1.5, c(0xffffff, 0.78));
+        } else {
+            out.ring(rect, 19.2);
+        }
     }
     if state.page == Page::Apps && state.filter == 5 {
         out.fade(start, 0.45, 1.);
@@ -1259,13 +1268,15 @@ fn home_favorites(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> 
     let language = state.preferences.language;
     let cards = state.home_cards();
     let s = state.scroll;
-    out.text(
-        language.t("favorites"),
-        Rect::new(84., top - s, 1000., 31.),
-        text(23.2, 550, -0.035).leading(1.3),
-        WHITE,
-        false,
-    );
+    if !state.dock_enabled() {
+        out.text(
+            language.t("favorites"),
+            Rect::new(84., top - s, 1000., 31.),
+            text(23.2, 550, -0.035).leading(1.3),
+            WHITE,
+            false,
+        );
+    }
     if state.moving.is_some() {
         out.text(
             language.t("moveApps"),
@@ -1336,11 +1347,12 @@ fn home_favorites(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> 
     if dock {
         let tray = Rect::new(
             strip_left - 32.,
-            top + 46.3 - s,
+            top + 34.3 - s,
             strip_right - strip_left + 64.,
-            grid_height + 40.,
+            grid_height + 64.,
         );
-        out.chrome(tray, 46., false, false, false);
+        out.chrome(tray, 52., false, false, false);
+        out.border(tray.inset(1.), 51., 1., c(0xffffff, 0.18));
     }
     // Like Apple TV's rows, the favourites run to the screen edge: the next tile shows cut off
     // at the right (and a scrolled-away one at the left), so it is clear the row continues.
@@ -1388,7 +1400,7 @@ fn home_favorites(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> 
     }
     out.draw.push(Draw::EdgeFadeX(None));
     out.draw.push(Draw::Clip(Some(state.content_viewport())));
-    66.3 + grid_height + if dock { 20. } else { 0. }
+    66.3 + grid_height + if dock { 32. } else { 0. }
 }
 
 fn home_inputs(out: &mut Scene, state: &State, assets: &Assets, top: f32) -> f32 {

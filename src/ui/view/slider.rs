@@ -1,6 +1,6 @@
 use super::*;
 
-/// Shared padded row; track geometry is also used by pointer input.
+/// Native discrete range: labelled value, leading minimum, trailing maximum and a clear thumb.
 pub(super) fn draw(
     out: &mut Scene,
     state: &State,
@@ -20,133 +20,121 @@ pub(super) fn draw(
     } else {
         rect
     };
+    let index = index.min(labels.len() - 1);
     let available = labels.len() > 1;
     let focused = state.focus == target;
     if focused && let Some(form) = &mut out.form {
         form.detail(title, labels.get(index).map(String::as_str));
     }
     let quick = matches!(state.overlay, Some(Overlay::ControlCenter { .. }));
-    let bright = focused && available;
-    let color = if bright { c(0x20242a, 1.) } else { WHITE };
-    let muted = if bright {
-        c(0x20242a, 0.72)
-    } else {
-        c(0xffffff, if out.liquid_glass { 0.86 } else { 0.64 })
-    };
     if quick {
         out.chrome(
             rect,
-            40.,
-            focused,
+            36.,
+            false,
             false,
             state.pressed.as_ref() == Some(&target),
         );
     } else {
-        out.material(rect, 40., bright, false);
-        out.pressed_feedback(state, &target, rect, 40.);
+        out.material(rect, 36., false, false);
     }
-    if focused && !bright {
-        out.border(rect, 40., 2., out.accent_color(c(0xffffff, 0.6)));
+    if focused {
+        out.border(rect, 36., 1.5, c(0xffffff, 0.72));
     }
-    // The title/value share the same generous inset as the surrounding settings rows.
+    out.pressed_feedback(state, &target, rect, 36.);
+    let muted = c(0xf1f5fa, if available { 0.70 } else { 0.40 });
     let padding = 32.;
-    let compact = rect.w < 900.;
-    let value_width = if compact { 180. } else { 224. };
+    let value_width = if quick { 138. } else { 180. };
     out.text(
         title,
         Rect::new(
             rect.x + padding,
-            rect.y + 24.,
+            rect.y + 23.,
             rect.w - value_width - padding * 2. - 16.,
-            30.,
+            32.,
         ),
-        text(if quick { 19. } else { 24. }, 500, -0.02),
-        color,
+        text(if quick { 18. } else { 24. }, 500, -0.02),
+        WHITE,
         false,
     );
     out.text(
-        &labels[index.min(labels.len() - 1)],
+        &labels[index],
         Rect::new(
             rect.x + rect.w - padding - value_width,
-            rect.y + 25.,
+            rect.y + 24.,
             value_width,
-            28.,
+            30.,
         ),
-        text(if quick { 17. } else { 22. }, 450, 0.).right(),
-        muted,
+        text(if quick { 17. } else { 22. }, 500, 0.).right(),
+        WHITE,
         false,
     );
     let left = rect.x + crate::features::sliders::INSET;
     let width = (rect.w - 2. * crate::features::sliders::INSET).max(0.);
     let y = rect.y + crate::features::sliders::TRACK_Y;
+    let track = 10.;
     let fraction = if available {
-        index.min(labels.len() - 1) as f32 / (labels.len() - 1) as f32
+        index as f32 / (labels.len() - 1) as f32
     } else {
         0.
     };
     out.shape(
-        Rect::new(left, y, width, 6.),
-        3.,
-        if bright {
-            c(0x20242a, 0.22)
-        } else {
-            c(0xffffff, 0.16)
-        },
+        Rect::new(left, y, width, track),
+        track / 2.,
+        c(0xe7eff8, 0.18),
     );
     if available {
+        let fill = out.accent_color(c(0xf3f7fc, if focused { 1. } else { 0.82 }));
         out.shape(
-            Rect::new(left, y, width * fraction, 6.),
-            3.,
-            if bright {
-                c(0x20242a, 0.84)
-            } else {
-                out.accent_color(c(0xffffff, 0.88))
-            },
+            Rect::new(left, y, width * fraction, track),
+            track / 2.,
+            fill,
         );
-        let gap = width / (labels.len() - 1) as f32;
-        let label_width = (gap - 8.).clamp(60., 136.);
+        for step in 0..labels.len() {
+            let x = left + step as f32 * width / (labels.len() - 1) as f32;
+            if step != index && step > 0 && step + 1 < labels.len() {
+                out.shape(
+                    Rect::new(x - 1.5, y + 3.5, 3., 3.),
+                    1.5,
+                    if step < index {
+                        c(0x243447, 0.32)
+                    } else {
+                        c(0xffffff, 0.52)
+                    },
+                );
+            }
+        }
+        // Broad, rounded glass thumb; its centre uses exactly the pointer-snapping geometry.
+        let x = left + width * fraction;
+        let w = if focused { 46. } else { 40. };
+        let h = if focused { 30. } else { 26. };
+        let thumb = Rect::new(x - w / 2., y + track / 2. - h / 2., w, h);
+        out.shadow(thumb, h / 2., 12., 3., 0.24);
+        if out.liquid_glass {
+            out.glass(thumb, h / 2., c(0xffffff, 0.97), c(0xdce9f5, 0.92));
+        } else {
+            out.shape(thumb, h / 2., WHITE);
+        }
+        out.border(thumb, h / 2., 1., c(0xffffff, 0.88));
+        // Endpoints stay visible. Short ranges also name their middle choices.
         for (step, label) in labels.iter().enumerate() {
-            let x = left + step as f32 * gap;
-            out.shape(Rect::new(x - 1., y + 15., 2., 5.), 1., muted);
-            // Long intermediate labels yield to the selected value and endpoints.
-            if compact && labels.len() > 4 && step != 0 && step != labels.len() - 1 && step != index
-            {
+            if labels.len() > 4 && step != 0 && step + 1 != labels.len() {
                 continue;
             }
-            let width = if step == 0 || step + 1 == labels.len() {
+            let x = left + step as f32 * width / (labels.len() - 1) as f32;
+            let label_width = if step == 0 || step + 1 == labels.len() {
                 116.
             } else {
-                label_width
+                (width / (labels.len() - 1) as f32 - 8.).clamp(60., 136.)
             };
             out.text(
                 label,
-                Rect::new(x - width / 2., rect.y + 112., width, 24.),
-                text(13., 450, 0.),
+                Rect::new(x - label_width / 2., rect.y + 115., label_width, 24.),
+                text(if quick { 12. } else { 14. }, 450, 0.),
                 muted,
                 true,
             );
         }
-        let x = left + width * fraction;
-        let radius = if focused { 15. } else { 12. };
-        let thumb = Rect::new(x - radius, y + 3. - radius, radius * 2., radius * 2.);
-        if out.liquid_glass {
-            out.shadow(thumb, radius, 10., 2., 0.20);
-        }
-        if out.liquid_glass {
-            out.glass(thumb, radius, WHITE, c(0xe5ebf0, 1.));
-        } else {
-            out.shape(thumb, radius, WHITE);
-        }
-        out.border(
-            thumb,
-            radius,
-            1.,
-            if bright {
-                c(0x20242a, 0.25)
-            } else {
-                c(0xffffff, 0.70)
-            },
-        );
     }
     out.control(target, rect, state.overlay.is_none());
     if let Some(form) = &mut out.form {

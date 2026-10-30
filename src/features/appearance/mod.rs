@@ -42,6 +42,9 @@ impl Density {
     pub const fn home(self) -> Cards {
         self.cards(1664., 25.6, 256.)
     }
+    pub const fn dock(self) -> Cards {
+        self.cards(1600., 32., 256.)
+    }
     pub const fn apps(self) -> Cards {
         self.cards(1752., 26.4, 270.)
     }

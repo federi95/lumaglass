@@ -1,5 +1,5 @@
 //! Shared discrete slider geometry for SDL rendering, pointer input and remote steps.
-pub const INSET: f32 = 80.;
+pub const INSET: f32 = 64.;
 pub const HEIGHT: f32 = 156.;
 pub const TRACK_Y: f32 = 82.;
 pub const TRACK_HIT_TOP: f32 = TRACK_Y - 24.;

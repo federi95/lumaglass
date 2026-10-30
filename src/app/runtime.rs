@@ -1690,7 +1690,7 @@ fn run() -> Result<(), String> {
                                     .is_some_and(|(x, y)| !rect.contains(x, y))
                             }) =>
                             {
-                                pending = state.back()
+                                pending = state.dismiss_overlay()
                             }
                             _ => {}
                         }

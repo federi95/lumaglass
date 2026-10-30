@@ -3,22 +3,10 @@ use super::*;
 use crate::features::{appearance::Setting, control_center::Action};
 pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     let l = state.preferences.language;
-    out.modal = Some(Rect::new(1264., 136., 584., 724.));
+    out.modal = Some(Rect::new(1320., 152., 528., 716.));
     out.draw
         .push(Draw::Backdrop(crate::render::backdrop::Layer::Panel));
     out.glass_layer = Some(crate::render::backdrop::Layer::Panel);
-    out.text(
-        l.t("controlCenter"),
-        Rect::new(1300., 146., 436., 36.),
-        text(25., 550, -0.02),
-        WHITE,
-        false,
-    );
-    let close = Rect::new(1784., 140., 44., 44.);
-    let target = Target::CloseControlCenter;
-    let color = surface(out, state, &target, close, 22., true);
-    out.icon(assets, "close", close.inset(14.), color);
-    out.control(target, close, false);
     let report = &state.controls.report;
     let unavailable = l.t(if state.webos {
         "infoUnavailable"
@@ -60,7 +48,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Standby,
-        Rect::new(1300., 204., 200., 200.),
+        Rect::new(1352., 184., 204., 204.),
         "power",
         if state.controls.loading {
             loading
@@ -75,7 +63,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Network,
-        Rect::new(1516., 204., 312., 92.),
+        Rect::new(1572., 184., 260., 94.),
         if report.network == "wired" {
             "tv"
         } else {
@@ -88,7 +76,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Audio,
-        Rect::new(1516., 312., 312., 92.),
+        Rect::new(1572., 294., 260., 94.),
         "volume",
         &audio,
     );
@@ -97,7 +85,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Screensaver,
-        Rect::new(1300., 420., 256., 88.),
+        Rect::new(1352., 404., 232., 88.),
         "grid",
         l.t("ccStartNow"),
     );
@@ -124,7 +112,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Sleep,
-        Rect::new(1572., 420., 256., 88.),
+        Rect::new(1600., 404., 232., 88.),
         "clock",
         &sleep,
     );
@@ -138,7 +126,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     .into_iter()
     .enumerate()
     {
-        let rect = Rect::new(1300. + index as f32 * 144., 528., 96., 96.);
+        let rect = Rect::new(1352. + index as f32 * 128., 508., 96., 96.);
         let target = Target::Quick(action);
         let color = surface(out, state, &target, rect, 48., true);
         out.icon(assets, icon, rect.inset(29.), color);
@@ -150,7 +138,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     if let Some(label) = focus_label {
         out.text(
             label,
-            Rect::new(1300., 635., 528., 28.),
+            Rect::new(1352., 621., 480., 28.),
             text(17., 500, 0.),
             WHITE,
             true,
@@ -169,7 +157,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
             out,
             state,
             target,
-            Rect::new(1300., 680., 528., crate::features::sliders::HEIGHT),
+            Rect::new(1352., 664., 480., crate::features::sliders::HEIGHT),
             l.t(title),
             &labels,
             step,
@@ -181,7 +169,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         } else {
             "ccDimmingHint"
         }),
-        Rect::new(1300., 850., 528., 38.),
+        Rect::new(1352., 838., 480., 38.),
         text(13., 400, 0.),
         c(0xffffff, 0.72),
         false,
