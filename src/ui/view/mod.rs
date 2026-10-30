@@ -761,7 +761,7 @@ fn header_identity(out: &mut Scene, state: &State, assets: &Assets, now: OffsetD
         out.icon(assets, "user", avatar.inset(9.), c(0x20242a, 1.));
     }
     // Profile owns only its own avatar hit area; it never opens quick controls.
-    if state.overlay.is_none() {
+    if matches!(state.overlay, None | Some(Overlay::ControlCenter { .. })) {
         out.control(Target::Profile, avatar.inset(-5.), false);
     }
 }

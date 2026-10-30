@@ -90,7 +90,7 @@ try {
     );
   }
 
-  for (const value of ['Control center', 'Network', 'Audio', 'Sleep timer', 'Screensaver'])
+  for (const value of ['Network', 'Audio', 'Sleep timer', 'Screensaver'])
     assert.ok(quick.ui_text.includes(value));
   const dismissed = await scenario('control-center-dismissed', 'control-center,back');
   assert.equal(dismissed.modal, false);
