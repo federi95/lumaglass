@@ -65,7 +65,7 @@ impl Connection {
         .map_err(|_| "immichCredentials")
     }
 }
-fn private_file(path: &Path) -> Result<fs::File> {
+pub(super) fn private_file(path: &Path) -> Result<fs::File> {
     let meta = fs::symlink_metadata(path).map_err(|_| "immichCredentials")?;
     let parent = fs::symlink_metadata(path.parent().ok_or("immichCredentials")?)
         .map_err(|_| "immichCredentials")?;

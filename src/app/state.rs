@@ -38,6 +38,9 @@ pub enum Page {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum Target {
     SettingsBack,
+    PhotoCloud(crate::features::wallpapers::cloud::Provider),
+    Cloud(usize),
+    CloudCollection(usize),
     PhotoImmich,
     Immich(usize),
     ImmichAlbum(String),
@@ -197,6 +200,7 @@ pub enum Overlay {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum Subpage {
+    Cloud(crate::features::wallpapers::cloud::Provider),
     Immich,
     SystemScreensaver,
     AppManagement,
@@ -302,6 +306,7 @@ pub struct State {
     pub rotation: crate::features::wallpapers::rotation::Session,
     pub wallpapers: crate::features::wallpapers::Session,
     pub photo_draft: String,
+    pub cloud: crate::features::wallpapers::cloud::Session,
     pub immich: crate::features::wallpapers::immich::Session,
     pub controls: crate::features::controls::Controls,
     pub page: Page,
@@ -353,6 +358,7 @@ impl State {
             controls: crate::features::controls::Controls::default(),
             wallpapers: crate::features::wallpapers::Session::default(),
             photo_draft: String::new(),
+            cloud: crate::features::wallpapers::cloud::Session::default(),
             immich: crate::features::wallpapers::immich::Session::default(),
             sleep_draft: 0,
             cc_timer: false,
@@ -562,13 +568,14 @@ impl State {
     /// Disabled rows remain focusable so the reason can be read, but cannot mutate.
     pub fn target_enabled(&self, target: &Target) -> bool {
         if self.immich.importing
-            && matches!(
-                target,
-                Target::Photo(_)
-                    | Target::PhotoStock
-                    | Target::Background(_)
-                    | Target::RotationNext
-            )
+            || self.cloud.importing
+                && matches!(
+                    target,
+                    Target::Photo(_)
+                        | Target::PhotoStock
+                        | Target::Background(_)
+                        | Target::RotationNext
+                )
         {
             return false;
         }
@@ -585,6 +592,10 @@ impl State {
             return false;
         }
         match target {
+            Target::Cloud(index) => self.cloud_enabled(*index),
+            Target::CloudCollection(index) => {
+                self.cloud_enabled(0) && *index < self.cloud.collections.len()
+            }
             Target::Immich(index) => self.immich_enabled(*index),
             Target::ImmichAlbum(id) => {
                 self.subpage == Some(Subpage::Immich)
@@ -1107,7 +1118,7 @@ impl State {
         pool
     }
     pub fn rotate_background(&mut self) -> Vec<Effect> {
-        if self.immich.importing {
+        if self.immich.importing || self.cloud.importing {
             return vec![];
         }
         let pool = self.rotation_pool();
@@ -1172,6 +1183,7 @@ impl State {
             Target::PhotoClearSources,
         ];
         rows.push(Target::PhotoImmich);
+        rows.extend(crate::features::wallpapers::cloud::Provider::ALL.map(Target::PhotoCloud));
         rows.extend((0..self.wallpapers.photos.len()).map(Target::Photo));
         rows
     }
@@ -1619,6 +1631,19 @@ impl State {
 
     fn close_subpage(&mut self) {
         self.settings_category = true;
+        if let Some(Subpage::Cloud(provider)) = self.subpage {
+            if self.cloud.confirming {
+                self.cloud.confirming = false;
+                self.focus = Target::Cloud(2);
+                self.dirty = true;
+                return;
+            }
+            self.subpage = Some(Subpage::Wallpapers);
+            self.focus = Target::PhotoCloud(provider);
+            self.scroll = self.cloud.return_scroll;
+            self.dirty = true;
+            return;
+        }
         if self.subpage == Some(Subpage::Immich) {
             if self.immich.confirming {
                 self.immich.confirming = false;
@@ -1645,6 +1670,7 @@ impl State {
         self.panel_started = None;
         self.pointer = false;
         self.focus = match self.subpage.take() {
+            Some(Subpage::Cloud(_)) => unreachable!(),
             Some(Subpage::Immich) => unreachable!(),
             Some(Subpage::SystemScreensaver) => Target::Setting(23),
             Some(Subpage::AppNames) => Target::Setting(0),
@@ -1799,10 +1825,18 @@ impl State {
         if self.overlay.is_none()
             && matches!(
                 self.subpage,
-                Some(Subpage::Immich | Subpage::Wallpapers | Subpage::Rotation | Subpage::Display)
+                Some(
+                    Subpage::Cloud(_)
+                        | Subpage::Immich
+                        | Subpage::Wallpapers
+                        | Subpage::Rotation
+                        | Subpage::Display
+                )
             )
         {
-            let rows = if self.subpage == Some(Subpage::Immich) {
+            let rows = if matches!(self.subpage, Some(Subpage::Cloud(_))) {
+                self.cloud_rows()
+            } else if self.subpage == Some(Subpage::Immich) {
                 self.immich_rows()
             } else if self.subpage == Some(Subpage::Display) {
                 if self.display_trial {
@@ -3024,6 +3058,10 @@ impl State {
         }
         if self.subpage == Some(Subpage::Wallpapers) && self.overlay.is_none() {
             match self.focus {
+                Target::PhotoCloud(provider) => {
+                    self.cloud_open(provider);
+                    return vec![];
+                }
                 Target::PhotoImmich => {
                     self.immich.return_scroll = self.scroll;
                     self.subpage = Some(Subpage::Immich);
@@ -3428,6 +3466,8 @@ impl State {
                 self.subpage = None;
                 self.focus = self.section_entry();
             }
+            Target::Cloud(index) => self.cloud_action(index),
+            Target::CloudCollection(index) => self.cloud_toggle(index),
             Target::Immich(index) => self.immich_action(index),
             Target::ImmichAlbum(id) => self.immich_toggle(&id),
             Target::SystemSaver(index) => return self.system_saver_action(index),
@@ -3683,6 +3723,7 @@ impl State {
                     ) => {
                         return vec![];
                     }
+                    Some(Subpage::Cloud(_)) => return vec![],
                     None => return vec![],
                 }
                 self.close_subpage();

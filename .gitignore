@@ -20,3 +20,9 @@ target/
 
 # Private Immich connection files never belong in source control.
 *.immich.json
+
+# Private photo service credentials and Google OAuth client downloads.
+*.webdav.json
+*.google-drive.json
+*.google-photos.json
+client_secret_*.json

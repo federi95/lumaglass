@@ -17,6 +17,8 @@ default = []
 webos = []
 
 [dependencies]
+base64 = "0.23"
+roxmltree = "0.21"
 gl = "0.14"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 libc = "0.2"

@@ -37,6 +37,7 @@ struct Options {
     weather_test_server: Option<String>,
     test_extra_apps: usize,
     immich_preview: bool,
+    cloud_preview: bool,
 }
 
 impl Options {
@@ -77,6 +78,13 @@ impl Options {
                     "\n  Press Back / Escape on Home, or hold for 600 ms, to open Recent apps.\n  --script recents,await-recents  Open the desktop recent-app preview."
                 );
                 std::process::exit(0);
+            }
+            if arg == "--cloud-preview" {
+                if cfg!(feature = "webos") {
+                    return Err("Cloud demo is desktop-only".into());
+                }
+                result.cloud_preview = true;
+                continue;
             }
             if arg == "--immich-preview" {
                 if cfg!(feature = "webos") {
@@ -148,6 +156,9 @@ impl Options {
         if result.screenshot.is_some() && result.frames.is_none() && result.profile_frames.is_none()
         {
             result.frames = Some(90);
+        }
+        if result.cloud_preview && result.preferences.is_none() {
+            return Err("Cloud demo requires isolated --preferences".into());
         }
         Ok(result)
     }
@@ -393,6 +404,7 @@ fn script(
         "await-search" => vec![],
         "await-weather" => vec![],
         "await-recents" => vec![],
+        "await-cloud" => vec![],
         "await-immich" => vec![],
         _ => return Err(format!("Unknown scripted action: {action}")),
     })
@@ -618,6 +630,11 @@ fn run() -> Result<(), String> {
     };
     let mut state = State::new(initial_preferences);
     state.webos = webos;
+    if options.cloud_preview {
+        state
+            .cloud
+            .demo(crate::features::wallpapers::cloud::Provider::Webdav);
+    }
     if options.immich_preview {
         state.immich.demo();
     }
@@ -637,7 +654,7 @@ fn run() -> Result<(), String> {
     state.wallpapers.loading = true;
     let wallpaper_service = crate::features::wallpapers::Service::new(
         state.wallpapers.root.clone(),
-        crate::features::wallpapers::immich::credentials_path(&preferences_path),
+        preferences_path.clone(),
     );
     let wallpaper_decoder =
         crate::features::wallpapers::Decoder::new(state.wallpapers.root.clone());
@@ -1243,13 +1260,21 @@ fn run() -> Result<(), String> {
         {
             state.immich_accept(generation, Err("immichUnavailable"));
         }
+        if let Some((generation, provider, command)) = state.cloud.pending.take()
+            && !wallpaper_service.cloud(generation, provider, command)
+        {
+            state.cloud_accept(generation, provider, Err("cloudUnavailable"));
+        }
         while let Ok(reply) = wallpaper_service.receiver.try_recv() {
             use crate::features::wallpapers::Reply;
             match reply {
+                Reply::Cloud(generation, provider, result) => {
+                    state.cloud_accept(generation, provider, result)
+                }
                 Reply::Immich(generation, result) => state.immich_accept(generation, result),
                 Reply::Initial(result) | Reply::Local(result) => {
                     // The initial cache response cannot clear an explicitly queued import.
-                    state.wallpapers.loading = state.immich.importing;
+                    state.wallpapers.loading = state.immich.importing || state.cloud.importing;
                     match result {
                         Ok(photos) => {
                             state.wallpapers.photos = photos;
@@ -1782,6 +1807,7 @@ fn run() -> Result<(), String> {
                 (action == "await-search" && state.weather.searching)
                     || (action == "await-weather" && state.weather.fetching())
                     || (action == "await-recents" && state.recents.pending.is_some())
+                    || (action == "await-cloud" && state.cloud.loading)
                     || (action == "await-immich" && state.immich.loading)
             })
             && let Some(action) = options.script.pop_front()
@@ -2067,16 +2093,23 @@ fn run() -> Result<(), String> {
     if let Some(path) = options.dump {
         // A stale scene can outlive a page transition. Suppress connector text
         // based on both state and scene controls, including after local removal.
-        let private_scene = state.subpage == Some(state::Subpage::Immich)
-            || scene
-                .controls
-                .iter()
-                .any(|c| matches!(c.target, Target::Immich(_) | Target::ImmichAlbum(_)));
+        let private_scene = matches!(state.subpage, Some(state::Subpage::Cloud(_)))
+            || state.subpage == Some(state::Subpage::Immich)
+            || scene.controls.iter().any(|c| {
+                matches!(
+                    c.target,
+                    Target::Cloud(_)
+                        | Target::CloudCollection(_)
+                        | Target::Immich(_)
+                        | Target::ImmichAlbum(_)
+                )
+            });
         let state = serde_json::json!({ "page": state.page, "focus": if matches!(state.focus,Target::ImmichAlbum(_)){serde_json::json!("ImmichAlbum")}else{serde_json::to_value(&state.focus).map_err(|e|e.to_string())?}, "query": state.query,
             "section":state.section, "settings_category":state.settings_category, "controls":scene.controls.iter().map(|c|serde_json::json!({"target":if matches!(c.target,Target::ImmichAlbum(_)){serde_json::json!("ImmichAlbum")}else{serde_json::to_value(&c.target).unwrap_or(serde_json::Value::Null)},"rect":[c.rect.x,c.rect.y,c.rect.w,c.rect.h],"enabled":state.target_enabled(&c.target)})).collect::<Vec<_>>(),
             "filter": state.filter, "preferences": state.preferences, "apps": state.apps().iter().map(|a| &a.id).collect::<Vec<_>>(),
             "error": state.error, "scroll": state.scroll, "home_scroll": state.home_scroll, "subpage": state.subpage, "modal": state.overlay.is_some(), "weather": state.weather,
             "inventory": state.inventory.apps, "system_saver": state.system_saver,
+            "cloud":{"provider":state.cloud.provider,"loading":state.cloud.loading,"configured":state.cloud.connection.is_some(),"status":state.cloud.status,"collection_count":state.cloud.collections.len(),"selection_count":state.cloud.selected.len(),"offline_export":state.cloud.provider==crate::features::wallpapers::cloud::Provider::GooglePhotos},
             "immich": {"loading":state.immich.loading,"configured":state.immich.connected(),"status":state.immich.status,"album_count":state.immich.albums.len(),"page":state.immich.page,"selection_count":state.immich.selected.len()},
             "app_catalog": { "report": state.catalog.report, "system_visibility": state.catalog.system_visibility },
             "webos": state.webos, "system_info": state.system,

@@ -13,6 +13,7 @@ use std::{
 const MAX_SOURCE: u64 = 8 * 1024 * 1024;
 const MAX_CACHE: u64 = 64 * 1024 * 1024;
 const MAX_IMAGES: usize = 12;
+pub(crate) mod cloud;
 pub(crate) mod immich;
 pub(crate) mod rotation;
 
@@ -57,21 +58,24 @@ impl Session {
 enum Job {
     Local(Preferences),
     Immich(u64, immich::Command),
+    Cloud(u64, cloud::Provider, cloud::Command),
 }
 pub enum Reply {
     Initial(Result<Vec<Photo>, String>),
     Local(Result<Vec<Photo>, String>),
     Immich(u64, Result<immich::Outcome, &'static str>),
+    Cloud(u64, cloud::Provider, Result<cloud::Outcome, &'static str>),
 }
 pub struct Service {
     sender: mpsc::SyncSender<Job>,
     pub receiver: mpsc::Receiver<Reply>,
 }
 impl Service {
-    pub fn new(root: PathBuf, credentials: PathBuf) -> Self {
+    pub fn new(root: PathBuf, preferences: PathBuf) -> Self {
         let (sender, jobs) = mpsc::sync_channel(1);
         let (results, receiver) = mpsc::channel();
         thread::spawn(move || {
+            let credentials = immich::credentials_path(&preferences);
             if results
                 .send(Reply::Initial(load(&root).map(|p| previews(&root, p))))
                 .is_err()
@@ -84,6 +88,11 @@ impl Service {
                         import(&root, &preferences)
                             .map(|p| previews(&root, p))
                             .map_err(|_| "Image import failed".into()),
+                    ),
+                    Job::Cloud(generation, provider, command) => Reply::Cloud(
+                        generation,
+                        provider,
+                        cloud::run(&preferences, &root, provider, command),
                     ),
                     Job::Immich(generation, command) => {
                         Reply::Immich(generation, immich::run(&credentials, &root, command))
@@ -98,6 +107,16 @@ impl Service {
     }
     pub fn import(&self, preferences: Preferences) -> bool {
         self.sender.try_send(Job::Local(preferences)).is_ok()
+    }
+    pub fn cloud(
+        &self,
+        generation: u64,
+        provider: cloud::Provider,
+        command: cloud::Command,
+    ) -> bool {
+        self.sender
+            .try_send(Job::Cloud(generation, provider, command))
+            .is_ok()
     }
     pub fn immich(&self, generation: u64, command: immich::Command) -> bool {
         self.sender

@@ -195,6 +195,7 @@ fn category_icon(section: usize) -> &'static str {
 fn title(state: &State) -> String {
     let l = state.preferences.language;
     let key = match &state.subpage {
+        Some(Subpage::Cloud(provider)) => provider.key(),
         Some(Subpage::Immich) => "immichTitle",
         Some(Subpage::SystemScreensaver) => "systemSaver",
         Some(Subpage::AppManagement | Subpage::ManagedApp(_)) => "catalogTitle",

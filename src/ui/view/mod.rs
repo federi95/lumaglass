@@ -20,6 +20,7 @@ const FACE_HEIGHT: f32 = 154.4;
 const RECENTS_BACKDROP_OPACITY: f32 = 0.86;
 
 mod app_management;
+mod cloud;
 mod control_center;
 mod immich;
 mod profile;
@@ -2160,7 +2161,8 @@ fn settings_content(out: &mut Scene, state: &State, assets: &Assets) {
         let start = out.draw.len();
         if matches!(
             subpage,
-            Subpage::WeatherLocation
+            Subpage::Cloud(_)
+                | Subpage::WeatherLocation
                 | Subpage::Home
                 | Subpage::Appearance
                 | Subpage::Wallpapers
@@ -2179,6 +2181,7 @@ fn settings_content(out: &mut Scene, state: &State, assets: &Assets) {
                 | Subpage::ManagedApp(_)
         ) {
             match subpage {
+                Subpage::Cloud(_) => cloud::render(out, state, assets),
                 Subpage::Immich => immich::render(out, state, assets),
                 Subpage::SystemScreensaver => system_saver::render(out, state, assets),
                 Subpage::WeatherLocation => location_settings(out, state, assets),
@@ -2250,7 +2253,8 @@ fn settings_content(out: &mut Scene, state: &State, assets: &Assets) {
                     state.preferences.temperature_unit == Unit::Fahrenheit,
                 ),
             ],
-            Subpage::WeatherLocation
+            Subpage::Cloud(_)
+            | Subpage::WeatherLocation
             | Subpage::Home
             | Subpage::Appearance
             | Subpage::Wallpapers
@@ -2867,6 +2871,24 @@ fn photo_settings(out: &mut Scene, state: &State, assets: &Assets) {
         },
     );
     y += 84.;
+    for provider in crate::features::wallpapers::cloud::Provider::ALL {
+        row(
+            out,
+            state,
+            assets,
+            Row {
+                target: Target::PhotoCloud(provider),
+                rect: Rect::new(640., y, 1120., 72.),
+                title: language.t(provider.key()),
+                icon: Some("grid"),
+                value: None,
+                description: None,
+                selected: false,
+                chevron: true,
+            },
+        );
+        y += 84.;
+    }
     for (index, photo) in state.wallpapers.photos.iter().enumerate() {
         row(
             out,
