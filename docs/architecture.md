@@ -2,6 +2,9 @@
 
 Lumaglass is a native Rust/SDL2/OpenGL ES 2 application for rooted LG webOS TVs, derived from Luma. It combines a Home replacement with planned TV-management features inspired by Glasshouse. There is no web dashboard, WebView or MQTT bridge. See [NOTICE.md](../NOTICE.md) for provenance.
 
+For the lifecycle and idle cost of optional modules, see
+[runtime resources](runtime-resources.md).
+
 ## Source boundaries
 
 ```text
