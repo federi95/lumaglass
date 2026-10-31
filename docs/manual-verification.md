@@ -1,7 +1,9 @@
 # Pending TV verification
 
 Target supplied by the maintainer: LG QNED756RA, webOS 25, firmware 33.31.75,
-rooted installation through Homebrew Channel. No hardware result is recorded yet.
+rooted installation through Homebrew Channel. The [first hardware session](compatibility.md#lumaglass-observations--31-october-2026)
+confirmed installation, basic remote navigation and the Home-button route; the
+remaining checks below are not implied by that result.
 CI covers host checks/rendering and ARM packaging, not firmware compatibility.
 
 For the planned weekend session, record the exact commit and package checksum:

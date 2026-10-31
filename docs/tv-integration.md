@@ -1,6 +1,6 @@
 # TV installation and Home integration
 
-> These procedures derive from Luma. Lumaglass has a separate app ID and has not yet been verified on TV hardware. Disable any Luma/Glasshouse Home takeover using its own restore command before enabling Lumaglass. Existing preferences and boot hooks are not migrated.
+> These procedures derive from Luma. Lumaglass has a separate app ID. Initial installation, basic remote navigation and Home-button takeover were observed on one QNED configuration; see [compatibility](compatibility.md) for the exact scope. Disable any Luma/Glasshouse Home takeover using its own restore command before enabling Lumaglass. Existing preferences and boot hooks are not migrated.
 
 ## Read-only TV information
 

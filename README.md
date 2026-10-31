@@ -67,8 +67,9 @@ See the [architecture](docs/architecture.md) for the current implementation.
 The source version remains 2.9.0 until the automated Changesets version PR.
 The new app ID is **`org.lumaglass.app`**, with executable **`lumaglass`**.
 It installs separately from upstream Luma and does not import its preferences.
-Lumaglass has not yet been verified on TV hardware. The
-[compatibility reports](docs/compatibility.md) are explicitly inherited Luma results.
+Initial installation, remote navigation and Home-button takeover have been observed
+on one QNED756RA/webOS 25 configuration. The [compatibility notes](docs/compatibility.md)
+separate this limited session from inherited Luma reports; full hardware qualification remains pending.
 
 ## Develop on macOS without global dependencies
 

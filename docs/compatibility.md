@@ -1,8 +1,34 @@
 # TV compatibility
 
-> These reports describe upstream Luma, not Lumaglass hardware verification. They are preserved from the fork baseline. Lumaglass requires separate TV verification before Home takeover.
+> Lumaglass observations below are separate from the inherited upstream Luma reports. A successful first session does not qualify every feature or firmware.
 
-## Compatibility
+## Lumaglass observations — 31 October 2026
+
+Target observed over root SSH: **LG 65QNED756RA**, firmware **33.31.75**,
+webOS 25 / SDK **10.3.2**, internal release **10.3.2-33**.
+Lumaglass **2.9.0** was installed as a separate app. The owner confirmed the visible
+interface and remote navigation, then confirmed that Home returns to Lumaglass
+from an app or HDMI after enabling the manifest takeover.
+
+The session exposed a mount-ownership diagnostic bug: this TV covers an overlay
+at `/var` with an ext4 mount at the same path. The reader now uses parent mount
+IDs to identify the covering filesystem, independently of mountinfo line order,
+and refuses ambiguous candidates. Foreign/child/stacked Home mounts remain
+conflicts. After the correction, the active mount reported `ownership: lumaglass`
+and `conflict: false`. Disabling takeover restored `ownership: stock`, removed the
+mount and disabled the boot hook before the corrected package was installed.
+
+Corrected local ARM IPK SHA-256:
+`a033222849193b4a35da6c2b467211a6c26393f2f6c9b4da29050bea8ecd1a01`.
+The updated detector is included in both packaged scripts and the native TV-info
+helper. Regression cases are assigned to CI; no local test suite was executed.
+
+Cold-boot persistence, standby/wake, recovery after interruption, Magic Remote
+pointer details, glass performance, privacy/blocker, cloud accounts, global app
+visibility and system screensaver qualification remain pending. No new release
+or broad model/firmware support claim follows from these observations.
+
+## Inherited Luma reports
 
 The following TV configurations have been reported working with Luma:
 
@@ -25,7 +51,7 @@ The following TV configurations have been reported working with Luma:
 > unconfirmed regional suffix. `—` indicates information that has not been reported. `❌` means
 > Luma runs on the TV, but Home takeover was reported not to work.
 
-## Compatibility
+## Upstream implementation notes
 
 Luma's native startup, rendering and app/input discovery have been verified on rooted webOS 26.
 External testing confirms compatibility with webOS 6 and newer. On webOS 26 use elevated Homebrew Channel
