@@ -165,7 +165,7 @@ function quickFixture({
       calls.filter(({ uri }) => /\/(setMuted|setSystemSettings|powerOff)$/.test(uri)),
   };
 }
-test('quick status is read-only, bounded and exposes no network identity', () => {
+test('quick status is read-only, bounded and never invents an SSID or exposes addresses', () => {
   const f = quickFixture();
   const report = f.run({ kind: 'quickStatus' });
   assert.equal(report.network, 'wifi');
@@ -176,9 +176,10 @@ test('quick status is read-only, bounded and exposes no network identity', () =>
   assert.equal(f.creates(), 0);
   assert.equal(f.mutations().length, 0);
   assert.deepEqual(
-    Object.keys(report).filter((k) => /ssid|address|ip$/.test(k)),
+    Object.keys(report).filter((k) => /address|ip$/.test(k)),
     [],
   );
+  assert.equal(report.ssid, null);
   const unknown = quickFixture({ unavailable: true }).run({ kind: 'quickStatus' });
   assert.equal(unknown.muted, null);
   assert.equal(unknown.sleep_index, null);
