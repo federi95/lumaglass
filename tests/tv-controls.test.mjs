@@ -225,3 +225,25 @@ test('standby is a single acknowledged request and never claims verified complet
   assert.equal(unavailable.run({ kind: 'standby' }).verified, false);
   assert.equal(unavailable.mutations().length, 0);
 });
+
+test('quick Wi-Fi status exposes only a bounded cleaned SSID and performs no writes', () => {
+  const f = fixture({
+    respond(uri) {
+      if (uri.endsWith('/getStatus'))
+        return {
+          returnValue: true,
+          wifi: { state: 'connected', ssid: 'Demo\u0000 Wi-Fi' },
+          isInternetConnectionAvailable: true,
+        };
+      if (uri.endsWith('/getVolume'))
+        return { returnValue: true, volumeStatus: { volume: 25, mute: false } };
+      if (uri.endsWith('/getPowerState')) return { returnValue: true, state: 'Active' };
+      return { returnValue: true, settings: { sleepTimer: 'off' } };
+    },
+  });
+  const result = f.run({ kind: 'quickStatus' });
+  assert.equal(result.network, 'wifi');
+  assert.equal(result.ssid, 'Demo Wi-Fi');
+  assert.equal(f.writes.length, 0);
+  assert.equal(f.creates(), 0);
+});

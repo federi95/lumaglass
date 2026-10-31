@@ -52,6 +52,7 @@ fn tv_path() -> Result<PathBuf, String> {
     // Keep a previously used destination even if another candidate becomes
     // writable after a reboot; do not accidentally restart with fresh settings.
     candidates.sort_by_key(|path| !path.exists());
+    let language_sources = candidates.clone();
     let mut failures = Vec::new();
     for path in candidates {
         let directory = path.parent().ok_or("Invalid TV storage directory")?;
@@ -118,7 +119,24 @@ fn tv_path() -> Result<PathBuf, String> {
                         path.display()
                     );
                 }
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    if unsafe { libc::geteuid() } == 0 {
+                        for source in &language_sources {
+                            if source != &path
+                                && let Some(language) = migration_language(source)
+                            {
+                                // Only this non-sensitive enum is imported. No URLs,
+                                // credentials, image paths or other preferences cross UIDs.
+                                let preferences = Preferences {
+                                    language,
+                                    ..Default::default()
+                                };
+                                save(&path, &preferences)?;
+                                break;
+                            }
+                        }
+                    }
+                }
                 Err(error) => {
                     return Err(format!(
                         "Existing preferences {} could not be read: {error}",
@@ -142,6 +160,44 @@ fn tv_path() -> Result<PathBuf, String> {
         "No writable persistent TV storage found: {}",
         failures.join("; ")
     ))
+}
+
+#[cfg(all(feature = "webos", unix))]
+fn migration_language(path: &Path) -> Option<crate::i18n::Language> {
+    use std::{
+        io::Read,
+        os::unix::fs::{MetadataExt, OpenOptionsExt},
+    };
+    #[derive(serde::Deserialize)]
+    struct LanguageOnly {
+        language: crate::i18n::Language,
+    }
+    let parent = path.parent()?;
+    let directory = fs::symlink_metadata(parent).ok()?;
+    if !directory.is_dir() || directory.mode() & 0o022 != 0 {
+        return None;
+    }
+    let file = fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(path)
+        .ok()?;
+    let metadata = file.metadata().ok()?;
+    if !metadata.is_file()
+        || metadata.uid() != directory.uid()
+        || metadata.mode() & 0o077 != 0
+        || metadata.len() > 128 * 1024
+    {
+        return None;
+    }
+    let mut bytes = Vec::new();
+    file.take(128 * 1024 + 1).read_to_end(&mut bytes).ok()?;
+    if bytes.len() > 128 * 1024 {
+        return None;
+    }
+    serde_json::from_slice::<LanguageOnly>(&bytes)
+        .ok()
+        .map(|value| value.language)
 }
 
 pub fn load(path: &Path) -> Result<Preferences, String> {
@@ -215,4 +271,27 @@ pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
         let _ = fs::remove_file(&temporary);
     }
     result.map_err(|e| format!("Could not persist {}: {e}", path.display()))
+}
+
+#[cfg(all(test, feature = "webos", unix))]
+mod language_migration_tests {
+    use super::*;
+    use std::os::unix::fs::{DirBuilderExt, PermissionsExt, symlink};
+    #[test]
+    fn language_import_ignores_other_fields_and_refuses_public_or_symlink_sources() {
+        let base = std::env::temp_dir().join(format!("lumaglass-language-{}", std::process::id()));
+        fs::DirBuilder::new().mode(0o700).create(&base).unwrap();
+        let file = base.join("preferences.json");
+        fs::write(&file, br#"{"language":"it","wallpapers":{"url":"https://example.invalid/private"},"token":"fixture-only"}"#).unwrap();
+        fs::set_permissions(&file, fs::Permissions::from_mode(0o600)).unwrap();
+        assert_eq!(migration_language(&file), Some(crate::i18n::Language::It));
+        let link = base.join("linked.json");
+        symlink(&file, &link).unwrap();
+        assert_eq!(migration_language(&link), None);
+        fs::set_permissions(&file, fs::Permissions::from_mode(0o644)).unwrap();
+        assert_eq!(migration_language(&file), None);
+        fs::remove_file(link).unwrap();
+        fs::remove_file(file).unwrap();
+        fs::remove_dir(base).unwrap();
+    }
 }

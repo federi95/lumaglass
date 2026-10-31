@@ -16,6 +16,8 @@ use std::{
 };
 
 pub(crate) mod clock;
+#[cfg(all(feature = "webos", unix))]
+mod helper;
 mod install;
 pub(crate) mod sdl_events;
 pub(crate) mod webos;
@@ -635,6 +637,12 @@ fn control_command(
             "/* BLOCKER_SOURCE */",
             &format!("var blockerSource = {};", json!(blocker)),
         );
+    #[cfg(all(feature = "webos", unix))]
+    if unsafe { libc::geteuid() } == 0 {
+        let output = helper::node(&script, Some(&payload.to_string()))?;
+        return serde_json::from_value(command_reply(&json!({"stdoutString": output}))?)
+            .map_err(|_| "Invalid control response".into());
+    }
     let command = format!(
         "/usr/bin/node -e {} {}",
         quote(&script),
@@ -773,6 +781,13 @@ fn manage_app(command: &ManagementCommand) -> Result<ManagementOutcome, String> 
 
 /// Callers supply only bundled fixed read-only scripts, never UI or saved input.
 fn fixed_observation_helper(script: &str) -> Result<Value, String> {
+    // A root Home needs no second privilege broker or native LS2 round trip.
+    // Keep jailed ordinary launches on Homebrew Channel's existing root service.
+    #[cfg(all(feature = "webos", unix))]
+    if unsafe { libc::geteuid() } == 0 {
+        let output = helper::node(script, None)?;
+        return command_reply(&json!({"stdoutString": output}));
+    }
     let command = format!("/usr/bin/node -e '{}'", script.replace('\'', "'\\''"));
     let envelope = call(
         "luna://org.webosbrew.hbchannel.service/exec",

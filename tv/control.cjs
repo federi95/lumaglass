@@ -129,6 +129,17 @@ function quickStatus() {
         : network && network.isInternetConnectionAvailable === false
           ? 'offline'
           : 'unknown';
+  var ssid = network && network.wifi && network.wifi.ssid;
+  result.ssid =
+    result.network === 'wifi' && typeof ssid === 'string'
+      ? Array.from(ssid)
+          .filter(function (c) {
+            var n = c.charCodeAt(0);
+            return n >= 32 && n !== 127;
+          })
+          .slice(0, 32)
+          .join('')
+      : null;
   var sound = audio();
   result.volume = sound.volume;
   result.muted = sound.muted;

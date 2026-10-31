@@ -50,6 +50,7 @@ impl Command {
 pub struct Report {
     pub accepted: bool,
     pub network: String,
+    pub ssid: Option<String>,
     pub volume: Option<u8>,
     pub muted: Option<bool>,
     pub power_active: bool,
@@ -80,15 +81,23 @@ impl Controls {
         }
         self.loading = false;
         match result {
-            Ok(report) if report.schema == 1 => {
+            Ok(mut report) if report.schema == 1 => {
                 let verified = report.verified;
+                if report.network.is_empty() {
+                    report.network = std::mem::take(&mut self.report.network);
+                    report.ssid = self.report.ssid.take();
+                    report.power_active = self.report.power_active;
+                    report.sleep_index = report.sleep_index.or(self.report.sleep_index);
+                    report.volume = report.volume.or(self.report.volume);
+                    report.muted = report.muted.or(self.report.muted);
+                }
+                if report.blocker.is_empty() || report.blocker == "unknown" {
+                    report.blocker = std::mem::take(&mut self.report.blocker);
+                }
                 self.report = report;
                 verified
             }
-            _ => {
-                self.report = Report::default();
-                false
-            }
+            _ => false,
         }
     }
 }
