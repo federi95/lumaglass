@@ -41,7 +41,7 @@
     "version:release": "changeset version && pnpm version:sync && oxfmt --write CHANGELOG.md",
     "version:sync": "node tools/release/sync-version.mjs",
     "version:check": "node tools/release/sync-version.mjs --check",
-    "test:controls": "node --test tests/tv-controls.test.mjs tests/blocker.test.mjs",
+    "test:controls": "node --test tests/tv-controls.test.mjs tests/read-privacy.test.mjs tests/blocker.test.mjs",
     "test:screensaver": "node --test tests/screensaver.test.mjs",
     "test:photo-auth": "node --test tests/google-auth.test.mjs tests/google-photos-export.test.mjs"
   },

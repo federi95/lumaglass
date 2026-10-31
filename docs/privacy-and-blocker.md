@@ -4,7 +4,9 @@
 
 Settings → System → Privacy retains the nine fixed observations. OK on Live Plus
 or Limit ad tracking opens a confirmation when a boolean value was read from
-the TV. Other consent records remain read-only. The adapter does not activate
+the TV. Other consent records remain read-only. The QNED/webOS 25 adapter reads
+those seven booleans from `eulaStatus`; legacy root-level records are retained.
+Malformed or absent fields remain unknown rather than being treated as off. The adapter does not activate
 ACR/ad services, accept agreements, edit consent files or kill processes.
 
 Cancel is selected first. Apply rereads the exact category/key, refuses a changed

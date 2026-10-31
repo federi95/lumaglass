@@ -55,7 +55,15 @@ function consentFile() {
     var parsed = JSON.parse(bytes.slice(0, size).toString('utf8'));
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
       return { status: 'unknown' };
-    return { status: 'available', values: parsed };
+    // QNED/webOS 25 stores current consent booleans in eulaStatus.
+    // Older files expose them at the root. A present malformed status must
+    // remain unknown; do not substitute potentially stale root values.
+    var values = Object.prototype.hasOwnProperty.call(parsed, 'eulaStatus')
+      ? parsed.eulaStatus
+      : parsed;
+    if (!values || typeof values !== 'object' || Array.isArray(values))
+      return { status: 'unknown' };
+    return { status: 'available', values: values };
   } catch (error) {
     return {
       status:
