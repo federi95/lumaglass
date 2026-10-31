@@ -794,6 +794,9 @@ fn header(
 ) {
     let language = state.preferences.language;
     header_identity(out, state, assets, now);
+    if state.page == Page::Settings {
+        settings_ui::back_button(out, state, assets);
+    }
     let layout = navigation(assets, language);
     let nav = layout.surface;
     out.chrome(nav, nav.h / 2., false, false, false);
@@ -2686,7 +2689,7 @@ fn system_information(out: &mut Scene, state: &State, assets: &Assets) {
                 title: language.t(title),
                 icon: None,
                 value: Some(value),
-                description: Some(value),
+                description: Some(language.t("infoReadOnly")),
                 selected: false,
                 chevron: false,
             },
@@ -3777,6 +3780,9 @@ fn options(
             if hidden { "eye" } else { "eye-off" },
         ),
     ];
+    if state.page == Page::Home && favorite {
+        entries.push((3, "move", "arrow"));
+    }
     entries.push((
         2,
         if removal.is_none() {
@@ -3790,9 +3796,6 @@ fn options(
         },
         "trash",
     ));
-    if state.page == Page::Home && favorite {
-        entries.push((3, "move", "arrow"));
-    }
     let height = 132. + entries.len() as f32 * 80.;
     let anchor = anchor.unwrap_or(Rect::new(736., 420., 300., 170.));
     let width = 456.;

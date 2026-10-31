@@ -59,6 +59,13 @@ try {
     assert.equal(rect[0], 1032);
     assert.equal(rect[2], 800);
   }
+  const backIcon = await sharp(rootPage.screenshot)
+    .extract({ left: 100, top: 60, width: 24, height: 32 })
+    .stats();
+  assert.ok(
+    backIcon.channels.slice(0, 3).some((channel) => channel.max > 190 && channel.stdev > 18),
+    'Settings Back must be painted outside the content clip, not merely registered as a hit target',
+  );
   const general = await scenario('design-settings-general', 'settings,down,enter');
   assert.equal(general.state.settings_category, true);
   assert.equal(control(general.state, { Setting: 0 }).rect[0], 1032);

@@ -251,22 +251,6 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         WHITE,
         false,
     );
-    let x = if state.preferences.header.side == crate::features::header::Side::Left {
-        430.
-    } else {
-        84.
-    };
-    let target = Target::SettingsBack;
-    let back = Rect::new(x, 48., 56., 56.);
-    let color = out.chrome(
-        state.feedback_rect(&target, back, false),
-        28.,
-        state.focus == target,
-        false,
-        state.pressed.as_ref() == Some(&target),
-    );
-    out.icon(assets, "left", back.inset(17.), color);
-    out.control(target, back, false);
     out.form = Some(Form::new(if opened(state) { state.scroll } else { 0. }));
     if !opened(state) {
         out.form.as_mut().unwrap().next = 276.;
@@ -401,6 +385,25 @@ fn hero(out: &mut Scene, state: &State, assets: &Assets, form: &Form) {
     );
     out.draw.push(Draw::Clip(Some(state.content_viewport())));
 }
+pub(super) fn back_button(out: &mut Scene, state: &State, assets: &Assets) {
+    let x = if state.preferences.header.side == crate::features::header::Side::Left {
+        430.
+    } else {
+        84.
+    };
+    let target = Target::SettingsBack;
+    let back = Rect::new(x, 48., 56., 56.);
+    let color = out.chrome(
+        state.feedback_rect(&target, back, false),
+        28.,
+        state.focus == target,
+        false,
+        state.pressed.as_ref() == Some(&target),
+    );
+    out.icon(assets, "left", back.inset(17.), color);
+    out.control(target, back, false);
+}
+
 pub(super) fn gallery(out: &mut Scene, state: &State, assets: &Assets) {
     let form = out.form.as_mut().unwrap();
     form.painting = true;
