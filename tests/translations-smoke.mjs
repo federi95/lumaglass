@@ -115,10 +115,15 @@ try {
       }),
     );
     const center = await scenario(`${language}-control-center`, 'control-center');
-    for (const key of ['ccNetwork', 'ccAudio', 'ccScreensaver', 'ccSleepTimer', 'ccDimmingHint'])
+    for (const key of ['ccNetwork', 'ccAudio', 'ccScreensaver', 'ccSleepTimer', 'ccStandby'])
       contains(center, key, language);
     assert.ok(center.ui_text.includes('AL'), 'Initials must use the unchanged local greeting name');
     assert.equal(center.preferences.greeting_name, 'Ada Lovelace');
+    const timer = await scenario(
+      `${language}-control-center-timer`,
+      'control-center,tap:{"Quick":"Sleep"}',
+    );
+    contains(timer, 'ccSliderHint', language);
   }
 
   await fs.writeFile(

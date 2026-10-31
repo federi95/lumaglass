@@ -1176,7 +1176,7 @@ fn system_category_owns_refresh_and_quit_and_restores_sidebar_focus() {
     state.direction(Direction::Right, &controls(&state));
     assert_eq!(state.focus, Target::Setting(3));
     assert_eq!(state.activate(), vec![Effect::Reload]);
-    for setting in [7, 8, 21, 9, 22, 14, 15, 16, 5] {
+    for setting in [7, 8, 21, 9, 22, 15, 5] {
         state.direction(Direction::Down, &controls(&state));
         assert_eq!(state.focus, Target::Setting(setting));
     }
@@ -1321,7 +1321,10 @@ fn a_notice_does_not_escape_modal_focus_and_closing_restores_the_app() {
     );
     state.focus = Target::Option(1);
     state.direction(Direction::Down, &controls(&state));
-    assert_eq!(state.focus, Target::Option(1));
+    assert_eq!(state.focus, Target::Option(2));
+    assert!(!state.target_enabled(&Target::Option(2)));
+    assert!(state.activate().is_empty());
+    assert!(matches!(state.overlay, Some(Overlay::Options { .. })));
     state.back();
     assert_eq!(state.focus, Target::App("netflix".into()));
 }
