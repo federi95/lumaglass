@@ -78,11 +78,11 @@ try {
   assert.equal(quick.modal, true);
   assert.deepEqual(quick.focus, { Quick: 'Screensaver' });
   for (const [name, top] of [
-    ['network', 214],
-    ['audio', 324],
+    ['network', 218],
+    ['audio', 338],
   ]) {
     const icon = await sharp(path.join(out, 'control-center.png'))
-      .extract({ left: 1594, top, width: 34, height: 34 })
+      .extract({ left: 1614, top, width: 34, height: 34 })
       .stats();
     assert.ok(
       icon.channels.slice(0, 3).every((channel) => channel.max > 130 && channel.stdev > 10),
@@ -95,11 +95,14 @@ try {
   const dismissed = await scenario('control-center-dismissed', 'control-center,back');
   assert.equal(dismissed.modal, false);
   assert.deepEqual(dismissed.focus, { Nav: 0 });
-  const dimmed = await scenario('control-center-slider', 'control-center,click:1640:746');
+  const dimmed = await scenario(
+    'appearance-slider',
+    'settings,tap:{"Sidebar":0},tap:{"Setting":12},click:1544:586',
+  );
   assert.equal(dimmed.preferences.appearance.dimming, 'medium');
   const sliderBack = await scenario(
-    'control-center-slider-back',
-    'control-center,click:1416:746,back',
+    'appearance-slider-back',
+    'settings,tap:{"Sidebar":0},tap:{"Setting":12},click:1096:586,back',
   );
   assert.equal(sliderBack.preferences.appearance.dimming, 'off');
   await fs.writeFile(preferences, JSON.stringify({ header: { combined: false, side: 'left' } }));
@@ -193,7 +196,7 @@ try {
   }
   const settings = await scenario('settings', 'settings,down,down,enter,down,enter');
   assert.equal(settings.preferences.background, 'forest');
-  const saved = await scenario('saved', 'down,hold,right,back');
+  const saved = await scenario('saved', 'down,hold,tap:{"Option":3},right,back');
   assert.equal(saved.preferences.background, 'forest');
   assert.deepEqual(saved.preferences.favorites.slice(0, 2), ['youtube.leanback.v4', 'netflix']);
   const clock = await scenario('clock', 'settings,down,enter,tap:{"Setting":1}');
@@ -323,7 +326,7 @@ try {
   assert.deepEqual(clockFocus.focus, { Choice: 1 });
   const system = await scenario(
     'system-settings',
-    `settings,down,down,down,down,down,right,${Array(9).fill('down').join(',')}`,
+    `settings,down,down,down,down,down,right,${Array(7).fill('down').join(',')}`,
   );
   assert.deepEqual(system.focus, { Setting: 5 });
   const systemTop = await scenario(
@@ -336,15 +339,18 @@ try {
   assert.ok(systemTop.ui_text.includes('TV information'));
   assert.ok(systemTop.ui_text.includes('Privacy'));
   assert.ok(systemTop.ui_text.includes('Render resolution'));
-  assert.ok(system.controls.some((c) => c.target.Setting === 14));
+  assert.ok(system.controls.some((c) => c.target.Setting === 15));
   const blockerFocus = await scenario(
     'system-blocker-focus',
     `settings,down,down,down,down,down,right,${Array(6).fill('down').join(',')}`,
   );
-  assert.deepEqual(blockerFocus.focus, { Setting: 14 });
-  assert.ok(blockerFocus.ui_text.includes('LG ads & telemetry blocker: refresh status'));
-  assert.ok(system.ui_text.includes('Enable LG ads & telemetry blocker'));
-  assert.ok(system.ui_text.includes('Disable LG blocker and restore hosts'));
+  assert.deepEqual(blockerFocus.focus, { Setting: 15 });
+  assert.ok(blockerFocus.ui_text.includes('LG ads and telemetry blocker'));
+  assert.equal(blockerFocus.controls.filter((c) => c.target.Setting === 15).length, 1);
+  assert.equal(
+    blockerFocus.controls.some((c) => c.target.Setting === 16),
+    false,
+  );
   const textOptions = 'settings,down,down,down,down,down,right,down,enter';
   const textRendering = await scenario('text-rendering-options', textOptions);
   assert.equal(textRendering.subpage, 'TextRendering');

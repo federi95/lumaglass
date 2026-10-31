@@ -105,3 +105,103 @@ fn weather_remote_follows_the_vertical_query_search_result_order() {
     state.direction(Direction::Up, &controls(&state));
     assert_eq!(state.focus, Target::WeatherSearch);
 }
+
+#[test]
+fn holding_home_favorite_opens_actions_before_explicit_move() {
+    let mut state = ready();
+    let id = state.inventory.apps[0].id.clone();
+    state.focus = Target::App(id.clone());
+    state.hold();
+    assert!(matches!(state.overlay, Some(Overlay::Options { .. })));
+    assert!(state.moving.is_none());
+    let current = scene(&state);
+    assert!(
+        current
+            .controls
+            .iter()
+            .any(|c| c.target == Target::Option(0))
+    );
+    assert!(
+        current
+            .controls
+            .iter()
+            .any(|c| c.target == Target::Option(3))
+    );
+    assert!(
+        !current
+            .controls
+            .iter()
+            .any(|c| c.target == Target::CloseDialog)
+    );
+    state.focus = Target::Option(3);
+    state.activate();
+    assert_eq!(state.moving, Some(id));
+    assert!(state.overlay.is_none());
+}
+
+#[test]
+fn information_values_are_visible_and_read_only_activation_never_exits() {
+    let mut state = ready();
+    state.open(2);
+    state.section = crate::state::SYSTEM_SECTION;
+    state.subpage = Some(crate::state::Subpage::SystemInfo);
+    state.system.report = Some(crate::features::system::Report::from_reply(&serde_json::json!({
+        "schema":1,"model":"65QNED756RA","firmware":"33.31.75","sdk":"10.3.2","systemAccess":"available"
+    }), crate::features::system::Installation::Developer).unwrap());
+    for index in 0..7 {
+        state.focus = Target::SystemField(index);
+        assert!(state.activate().is_empty());
+        assert_eq!(state.subpage, Some(crate::state::Subpage::SystemInfo));
+    }
+    let current = scene(&state);
+    for value in ["65QNED756RA", "33.31.75", "10.3.2"] {
+        assert!(
+            current
+                .draw
+                .iter()
+                .any(|d| matches!(d, crate::renderer::Draw::Text(text, ..) if text == value))
+        );
+    }
+    for index in 0..3 {
+        assert!(
+            current
+                .controls
+                .iter()
+                .any(|c| c.target == Target::Nav(index))
+        );
+    }
+}
+
+#[test]
+fn control_center_keeps_cached_wifi_and_blocker_observations_separate() {
+    use crate::features::controls::{Command, Controls, Report};
+    let mut controls = Controls::default();
+    let (generation, _) = controls.request(Command::QuickStatus).unwrap();
+    controls.accept(
+        generation,
+        Ok(Report {
+            schema: 1,
+            network: "wifi".into(),
+            ssid: Some("Demo Wi-Fi".into()),
+            muted: Some(false),
+            volume: Some(25),
+            power_active: true,
+            ..Default::default()
+        }),
+    );
+    let (generation, _) = controls.request(Command::BlockerStatus).unwrap();
+    controls.accept(
+        generation,
+        Ok(Report {
+            schema: 1,
+            blocker: "off".into(),
+            ..Default::default()
+        }),
+    );
+    assert_eq!(controls.report.ssid.as_deref(), Some("Demo Wi-Fi"));
+    assert_eq!(controls.report.muted, Some(false));
+    let (generation, _) = controls.request(Command::QuickStatus).unwrap();
+    controls.accept(generation, Err("offline".into()));
+    assert_eq!(controls.report.ssid.as_deref(), Some("Demo Wi-Fi"));
+    assert_eq!(controls.report.blocker, "off");
+}

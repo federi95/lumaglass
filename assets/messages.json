@@ -5234,5 +5234,203 @@
     "ru": "Папка экспорта или манифест недоступны",
     "zh": "导出文件夹或清单不可用",
     "fr": "Dossier d’export ou manifeste indisponible"
+  },
+  "blockerToggle": {
+    "en": "LG ads and telemetry blocker",
+    "de": "LG-Werbung und Telemetrie blockieren",
+    "zh": "LG 广告和遥测拦截",
+    "es": "Bloqueador de anuncios y telemetría LG",
+    "pt": "Bloqueador de anúncios e telemetria LG",
+    "it": "Blocco pubblicità e telemetria LG",
+    "ru": "Блокировка рекламы и телеметрии LG",
+    "pl": "Blokowanie reklam i telemetrii LG",
+    "fr": "Blocage des publicités et télémétrie LG"
+  },
+  "avatarSun": {
+    "en": "Sun",
+    "de": "Sonne",
+    "zh": "太阳",
+    "es": "Sol",
+    "pt": "Sol",
+    "it": "Sole",
+    "ru": "Солнце",
+    "pl": "Słońce",
+    "fr": "Soleil"
+  },
+  "avatarMoon": {
+    "en": "Moon",
+    "de": "Mond",
+    "zh": "月亮",
+    "es": "Luna",
+    "pt": "Lua",
+    "it": "Luna",
+    "ru": "Луна",
+    "pl": "Księżyc",
+    "fr": "Lune"
+  },
+  "avatarGaming": {
+    "en": "Gaming",
+    "de": "Gaming",
+    "zh": "游戏",
+    "es": "Juegos",
+    "pt": "Jogos",
+    "it": "Gaming",
+    "ru": "Игры",
+    "pl": "Gry",
+    "fr": "Jeux"
+  },
+  "avatarSparkles": {
+    "en": "Sparkles",
+    "de": "Funkeln",
+    "zh": "星光",
+    "es": "Destellos",
+    "pt": "Brilhos",
+    "it": "Scintille",
+    "ru": "Искры",
+    "pl": "Iskry",
+    "fr": "Étincelles"
+  },
+  "avatarCat": {
+    "en": "Cat",
+    "de": "Katze",
+    "zh": "猫",
+    "es": "Gato",
+    "pt": "Gato",
+    "it": "Gatto",
+    "ru": "Кот",
+    "pl": "Kot",
+    "fr": "Chat"
+  },
+  "avatarRobot": {
+    "en": "Robot",
+    "de": "Roboter",
+    "zh": "机器人",
+    "es": "Robot",
+    "pt": "Robô",
+    "it": "Robot",
+    "ru": "Робот",
+    "pl": "Robot",
+    "fr": "Robot"
+  },
+  "avatarLeaf": {
+    "en": "Leaf",
+    "de": "Blatt",
+    "zh": "叶子",
+    "es": "Hoja",
+    "pt": "Folha",
+    "it": "Foglia",
+    "ru": "Лист",
+    "pl": "Liść",
+    "fr": "Feuille"
+  },
+  "saverLocalHint": {
+    "en": "Off disables only the Lumaglass idle screensaver. LG screen protection stays active.",
+    "de": "Aus deaktiviert nur den Lumaglass-Bildschirmschoner. Der LG-Bildschirmschutz bleibt aktiv.",
+    "zh": "关闭仅停用 Lumaglass 本地屏幕保护。LG 屏幕保护仍然有效。",
+    "es": "Desactivado solo deshabilita el salvapantallas de Lumaglass. La protección LG sigue activa.",
+    "pt": "Desativado desliga apenas o protetor de tela do Lumaglass. A proteção LG permanece ativa.",
+    "it": "Disattivato riguarda solo lo screensaver locale di Lumaglass. La protezione dello schermo LG resta attiva.",
+    "ru": "Выключение касается только заставки Lumaglass. Защита экрана LG остаётся активной.",
+    "pl": "Wyłączenie dotyczy tylko wygaszacza Lumaglass. Ochrona ekranu LG pozostaje aktywna.",
+    "fr": "Désactivé concerne uniquement l’économiseur Lumaglass. La protection LG reste active."
+  },
+  "inputFireTv": {
+    "en": "Amazon Fire TV Stick",
+    "de": "Amazon Fire TV Stick",
+    "zh": "Amazon Fire TV Stick",
+    "es": "Amazon Fire TV Stick",
+    "pt": "Amazon Fire TV Stick",
+    "it": "Amazon Fire TV Stick",
+    "ru": "Amazon Fire TV Stick",
+    "pl": "Amazon Fire TV Stick",
+    "fr": "Amazon Fire TV Stick"
+  },
+  "inputPc": {
+    "en": "PC",
+    "de": "PC",
+    "zh": "PC",
+    "es": "PC",
+    "pt": "PC",
+    "it": "PC",
+    "ru": "PC",
+    "pl": "PC",
+    "fr": "PC"
+  },
+  "inputLaptop": {
+    "en": "Laptop",
+    "de": "Laptop",
+    "zh": "笔记本电脑",
+    "es": "Portátil",
+    "pt": "Notebook",
+    "it": "Portatile",
+    "ru": "Ноутбук",
+    "pl": "Laptop",
+    "fr": "Ordinateur portable"
+  },
+  "inputChromecast": {
+    "en": "Chromecast",
+    "de": "Chromecast",
+    "zh": "Chromecast",
+    "es": "Chromecast",
+    "pt": "Chromecast",
+    "it": "Chromecast",
+    "ru": "Chromecast",
+    "pl": "Chromecast",
+    "fr": "Chromecast"
+  },
+  "inputShield": {
+    "en": "NVIDIA Shield",
+    "de": "NVIDIA Shield",
+    "zh": "NVIDIA Shield",
+    "es": "NVIDIA Shield",
+    "pt": "NVIDIA Shield",
+    "it": "NVIDIA Shield",
+    "ru": "NVIDIA Shield",
+    "pl": "NVIDIA Shield",
+    "fr": "NVIDIA Shield"
+  },
+  "inputRoku": {
+    "en": "Roku",
+    "de": "Roku",
+    "zh": "Roku",
+    "es": "Roku",
+    "pt": "Roku",
+    "it": "Roku",
+    "ru": "Roku",
+    "pl": "Roku",
+    "fr": "Roku"
+  },
+  "inputSwitch": {
+    "en": "Nintendo Switch",
+    "de": "Nintendo Switch",
+    "zh": "Nintendo Switch",
+    "es": "Nintendo Switch",
+    "pt": "Nintendo Switch",
+    "it": "Nintendo Switch",
+    "ru": "Nintendo Switch",
+    "pl": "Nintendo Switch",
+    "fr": "Nintendo Switch"
+  },
+  "inputPlayStation": {
+    "en": "PlayStation 5",
+    "de": "PlayStation 5",
+    "zh": "PlayStation 5",
+    "es": "PlayStation 5",
+    "pt": "PlayStation 5",
+    "it": "PlayStation 5",
+    "ru": "PlayStation 5",
+    "pl": "PlayStation 5",
+    "fr": "PlayStation 5"
+  },
+  "uninstallUnavailable": {
+    "en": "Uninstall unavailable",
+    "de": "Deinstallation nicht verfügbar",
+    "zh": "无法卸载",
+    "es": "Desinstalación no disponible",
+    "pt": "Desinstalação indisponível",
+    "it": "Disinstallazione non disponibile",
+    "ru": "Удаление недоступно",
+    "pl": "Odinstalowanie niedostępne",
+    "fr": "Désinstallation indisponible"
   }
 }

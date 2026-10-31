@@ -1,9 +1,14 @@
 //! Independent translucent lenses, compact quick controls and native timer detail.
 use super::*;
-use crate::features::{appearance::Setting, control_center::Action};
+use crate::features::control_center::Action;
 pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     let l = state.preferences.language;
-    out.modal = Some(Rect::new(1320., 152., 528., 716.));
+    out.modal = Some(Rect::new(
+        1320.,
+        152.,
+        528.,
+        if state.cc_timer { 768. } else { 528. },
+    ));
     out.draw
         .push(Draw::Backdrop(crate::render::backdrop::Layer::Panel));
     out.glass_layer = Some(crate::render::backdrop::Layer::Panel);
@@ -13,9 +18,8 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     } else {
         "infoNotApplicable"
     });
-    let loading = l.t("loading");
-    let network = if state.controls.loading {
-        loading
+    let network = if state.controls.loading && report.network.is_empty() {
+        ""
     } else {
         l.t(match report.network.as_str() {
             "wifi" => "ccWifi",
@@ -30,8 +34,8 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
             }
         })
     };
-    let audio = if state.controls.loading {
-        loading.into()
+    let audio = if state.controls.loading && report.muted.is_none() {
+        String::new()
     } else if let Some(muted) = report.muted {
         if muted {
             l.t("ccMuted").into()
@@ -48,10 +52,10 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Standby,
-        Rect::new(1352., 184., 204., 204.),
+        Rect::new(1352., 184., 224., 224.),
         "power",
-        if state.controls.loading {
-            loading
+        if state.controls.loading && report.network.is_empty() {
+            ""
         } else if report.power_active {
             l.t("ccStandbyReady")
         } else {
@@ -63,20 +67,24 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Network,
-        Rect::new(1572., 184., 260., 94.),
+        Rect::new(1592., 184., 240., 104.),
         if report.network == "wired" {
             "tv"
         } else {
             "wifi"
         },
-        network,
+        report
+            .ssid
+            .as_deref()
+            .filter(|_| report.network == "wifi")
+            .unwrap_or(network),
     );
     tile(
         out,
         state,
         assets,
         Action::Audio,
-        Rect::new(1572., 294., 260., 94.),
+        Rect::new(1592., 304., 240., 104.),
         "volume",
         &audio,
     );
@@ -85,12 +93,12 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Screensaver,
-        Rect::new(1352., 404., 232., 88.),
+        Rect::new(1352., 424., 232., 96.),
         "grid",
         l.t("ccStartNow"),
     );
-    let sleep = if state.controls.loading {
-        loading.to_owned()
+    let sleep = if state.controls.loading && report.sleep_index.is_none() {
+        String::new()
     } else {
         report
             .sleep_index
@@ -112,7 +120,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         state,
         assets,
         Action::Sleep,
-        Rect::new(1600., 404., 232., 88.),
+        Rect::new(1600., 424., 232., 96.),
         "clock",
         &sleep,
     );
@@ -126,7 +134,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     .into_iter()
     .enumerate()
     {
-        let rect = Rect::new(1352. + index as f32 * 128., 508., 96., 96.);
+        let rect = Rect::new(1352. + index as f32 * 128., 544., 96., 96.);
         let target = Target::Quick(action);
         let color = surface(out, state, &target, rect, 48., true);
         out.icon(assets, icon, rect.inset(29.), color);
@@ -138,26 +146,22 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     if let Some(label) = focus_label {
         out.text(
             label,
-            Rect::new(1352., 621., 480., 28.),
+            Rect::new(1352., 652., 480., 28.),
             text(17., 500, 0.),
             WHITE,
             true,
         );
     }
-    let (target, title) = if state.cc_timer {
-        (Target::SleepSlider, "ccSleepTimer")
-    } else {
-        (
-            Target::AppearanceOption(Setting::Dimming),
-            "appearanceDimming",
-        )
-    };
+    if !state.cc_timer {
+        return;
+    }
+    let (target, title) = (Target::SleepSlider, "ccSleepTimer");
     if let Some((step, labels)) = state.slider_values(&target) {
         slider::draw(
             out,
             state,
             target,
-            Rect::new(1352., 664., 480., crate::features::sliders::HEIGHT),
+            Rect::new(1352., 700., 480., crate::features::sliders::HEIGHT),
             l.t(title),
             &labels,
             step,
@@ -169,7 +173,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
         } else {
             "ccDimmingHint"
         }),
-        Rect::new(1352., 838., 480., 38.),
+        Rect::new(1352., 874., 480., 38.),
         text(13., 400, 0.),
         c(0xffffff, 0.72),
         false,

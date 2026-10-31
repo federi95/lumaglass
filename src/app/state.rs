@@ -120,6 +120,7 @@ pub enum Target {
     InputRename,
     InputNameReset,
     InputXboxPreset,
+    InputPreset(usize),
     Choice(usize),
     CloseDialog,
     Retry,
@@ -542,7 +543,7 @@ impl State {
 
     pub fn content_viewport(&self) -> Rect {
         let bottom = if self.page == Page::Home && self.moving.is_none() {
-            1053.6
+            1080.
         } else {
             994.4
         };
@@ -578,6 +579,15 @@ impl State {
                 )
         {
             return false;
+        }
+        if *target == Target::Option(2) {
+            return matches!(
+                self.overlay,
+                Some(Overlay::Options {
+                    removal: Some(_),
+                    ..
+                })
+            );
         }
         if self.catalog.system_visibility.confirming
             && matches!(self.subpage, Some(Subpage::ManagedApp(_)))
@@ -992,11 +1002,7 @@ impl State {
     }
     pub fn slider_allowed(&self, target: &Target) -> bool {
         if matches!(self.overlay, Some(Overlay::ControlCenter { .. })) {
-            return if self.cc_timer {
-                *target == Target::SleepSlider
-            } else {
-                *target == Target::AppearanceOption(AppearanceOption::Dimming)
-            };
+            return self.cc_timer && *target == Target::SleepSlider;
         }
         if self.overlay.is_some() || self.page != Page::Settings {
             return false;
@@ -1067,10 +1073,7 @@ impl State {
                 expected: muted,
                 value: !muted,
             }),
-            Action::Network => {
-                self.launching = true;
-                vec![Effect::Launch("com.palm.app.settings".into())]
-            }
+            Action::Network => vec![Effect::Launch("com.palm.app.settings".into())],
             Action::Screensaver => {
                 self.screensaver.start(Instant::now());
                 self.dirty = true;
@@ -2283,31 +2286,33 @@ impl State {
             }
             if matches!(
                 self.focus,
-                Target::InputRename | Target::InputNameReset | Target::InputXboxPreset
+                Target::InputRename
+                    | Target::InputNameReset
+                    | Target::InputXboxPreset
+                    | Target::InputPreset(_)
             ) {
-                let has_reset = controls.iter().any(|c| c.target == Target::InputNameReset);
-                let next = match (&self.focus, direction) {
-                    (Target::InputRename, Direction::Up) => Some(Target::Choice(2)),
-                    (Target::InputNameReset, Direction::Up) => Some(Target::InputRename),
-                    (Target::InputXboxPreset, Direction::Up) => Some(if has_reset {
-                        Target::InputNameReset
-                    } else {
-                        Target::InputRename
-                    }),
-                    (Target::InputRename, Direction::Down) => Some(if has_reset {
-                        Target::InputNameReset
-                    } else {
-                        Target::InputXboxPreset
-                    }),
-                    (Target::InputNameReset, Direction::Down) => Some(Target::InputXboxPreset),
-                    (_, Direction::Left) => {
-                        self.close_subpage();
-                        None
+                let mut rows = vec![Target::InputRename];
+                if controls.iter().any(|c| c.target == Target::InputNameReset) {
+                    rows.push(Target::InputNameReset);
+                }
+                rows.push(Target::InputXboxPreset);
+                rows.extend((0..crate::model::INPUT_PRESETS.len()).map(Target::InputPreset));
+                if let Some(index) = rows.iter().position(|v| *v == self.focus) {
+                    match direction {
+                        Direction::Up => self.focus(
+                            if index == 0 {
+                                Target::Choice(2)
+                            } else {
+                                rows[index - 1].clone()
+                            },
+                            controls,
+                        ),
+                        Direction::Down => {
+                            self.focus(rows[(index + 1).min(rows.len() - 1)].clone(), controls)
+                        }
+                        Direction::Left => self.close_subpage(),
+                        Direction::Right => {}
                     }
-                    _ => None,
-                };
-                if let Some(next) = next {
-                    self.focus(next, controls);
                 }
                 return vec![];
             }
@@ -2593,12 +2598,17 @@ impl State {
                 .iter()
                 .find(|app| &app.id == id)
                 .and_then(|app| app.removal.clone())
+                .or_else(|| self.menu_removal(id))
                 .filter(|target| {
                     target.id == *id
                         && !management::protected(id)
                         && !crate::scroll_preview::is_placeholder(id)
                         && ((target.route == Route::Preview) != self.webos)
                 });
+            if self.catalog.failed && !self.catalog.loading {
+                self.catalog.failed = false;
+                self.catalog.report = None;
+            }
             self.overlay = Some(Overlay::Options {
                 id: id.clone(),
                 restore: self.focus.clone(),
@@ -2613,15 +2623,7 @@ impl State {
     }
 
     pub fn hold(&mut self) {
-        if self.page == Page::Home && self.overlay.is_none() {
-            if let Target::App(id) = &self.focus {
-                self.moving = Some(id.clone());
-                self.notice = None;
-                self.dirty = true;
-            }
-        } else {
-            self.options();
-        }
+        self.options();
     }
 
     pub fn text(&mut self, text: &str) {
@@ -2949,13 +2951,7 @@ impl State {
                     return vec![Effect::Save];
                 }
                 Target::ProfileAvatar => {
-                    use crate::features::header::Avatar;
-                    self.preferences.header.avatar =
-                        if self.preferences.header.avatar == Avatar::Initials {
-                            Avatar::Symbol
-                        } else {
-                            Avatar::Initials
-                        };
+                    self.preferences.header.avatar = self.preferences.header.avatar.next();
                     self.dirty = true;
                     return vec![Effect::Save];
                 }
@@ -3006,13 +3002,7 @@ impl State {
                     return vec![Effect::Save];
                 }
                 Target::AvatarStyle => {
-                    use crate::features::header::Avatar;
-                    self.preferences.header.avatar =
-                        if self.preferences.header.avatar == Avatar::Initials {
-                            Avatar::Symbol
-                        } else {
-                            Avatar::Initials
-                        };
+                    self.preferences.header.avatar = self.preferences.header.avatar.next();
                     self.dirty = true;
                     return vec![Effect::Save];
                 }
@@ -3132,6 +3122,12 @@ impl State {
                 self.back();
                 return self.control_request(command);
             }
+            return vec![];
+        }
+        if matches!(
+            self.focus,
+            Target::SystemField(_) | Target::PrivacyField(2..)
+        ) {
             return vec![];
         }
         if let Target::PrivacyField(index @ 0..=1) = self.focus {
@@ -3308,11 +3304,11 @@ impl State {
                 else {
                     return vec![];
                 };
-                let unchanged = self
-                    .inventory
-                    .apps
-                    .iter()
-                    .any(|app| app.id == target.id && app.removal.as_ref() == Some(&target));
+                let unchanged = self.inventory.apps.iter().any(|app| {
+                    app.id == target.id
+                        && (app.removal.as_ref() == Some(&target)
+                            || self.menu_removal(&target.id).as_ref() == Some(&target))
+                });
                 if unchanged
                     && let Some((generation, command)) = self.management.begin(target, title)
                 {
@@ -3410,6 +3406,18 @@ impl State {
                     self.panel_started = Some(Instant::now());
                 }
             }
+            Target::InputPreset(index) => {
+                if self.overlay.is_none()
+                    && let Some(Subpage::Input(id)) = &self.subpage
+                    && self.inventory.inputs.iter().any(|input| &input.id == id)
+                    && let Some((name, _, _)) = crate::model::INPUT_PRESETS.get(index)
+                    && self.preferences.set_input_name(id, name)
+                {
+                    self.dirty = true;
+                    return vec![Effect::Save];
+                }
+                return vec![];
+            }
             Target::InputXboxPreset => {
                 if self.overlay.is_none()
                     && let Some(Subpage::Input(id)) = &self.subpage
@@ -3465,6 +3473,9 @@ impl State {
                 self.scroll = 0.;
                 self.subpage = None;
                 self.focus = self.section_entry();
+                if index == SYSTEM_SECTION {
+                    return self.control_request(crate::features::controls::Command::BlockerStatus);
+                }
             }
             Target::Cloud(index) => self.cloud_action(index),
             Target::CloudCollection(index) => self.cloud_toggle(index),
@@ -3530,11 +3541,16 @@ impl State {
                             .control_request(crate::features::controls::Command::BlockerStatus);
                     }
                     15 | 16 => {
-                        self.confirm_control(if index == 15 {
-                            crate::features::controls::Command::BlockerEnable
-                        } else {
-                            crate::features::controls::Command::BlockerDisable
-                        });
+                        let command = match self.controls.report.blocker.as_str() {
+                            "on" => crate::features::controls::Command::BlockerDisable,
+                            "off" => crate::features::controls::Command::BlockerEnable,
+                            _ => {
+                                return self.control_request(
+                                    crate::features::controls::Command::BlockerStatus,
+                                );
+                            }
+                        };
+                        self.confirm_control(command);
                         return vec![];
                     }
                     9 => {
@@ -3738,6 +3754,13 @@ impl State {
                 else {
                     return vec![];
                 };
+                if index == 3 && self.page == Page::Home {
+                    self.panel_started = None;
+                    self.focus = Target::App(id.clone());
+                    self.moving = Some(id);
+                    self.notice = None;
+                    return vec![];
+                }
                 if index == 2 {
                     if let Some(target) = removal {
                         if self.management.active() {

@@ -211,6 +211,15 @@ impl State {
             .catalog
             .page
             .min(self.catalog_pages().saturating_sub(1));
+        if let Some(crate::state::Overlay::Options { id, .. }) = &self.overlay {
+            let removal = self.menu_removal(id);
+            if let Some(crate::state::Overlay::Options {
+                removal: current, ..
+            }) = &mut self.overlay
+            {
+                *current = removal;
+            }
+        }
         self.reconcile_focus();
         self.dirty = true;
     }
@@ -248,6 +257,19 @@ impl State {
             && self.preferences.hidden.len() < 1000
             && self.catalog_entry(id).is_some_and(|app| !app.protected)
             && self.inventory.apps.iter().any(|app| app.id == id)
+    }
+    pub fn menu_removal(&self, id: &str) -> Option<RemovalTarget> {
+        if !self.catalog.current() || management::protected(id) {
+            return None;
+        }
+        let report = self.catalog.report.as_ref()?;
+        if !report.preview && !matches!(report.root, Access::Available) {
+            return None;
+        }
+        self.catalog_entry(id)?
+            .removal
+            .clone()
+            .filter(|target| (target.route == management::Route::Preview) != self.webos)
     }
     pub fn catalog_removal(&self) -> Option<RemovalTarget> {
         let Some(Subpage::ManagedApp(id)) = &self.subpage else {

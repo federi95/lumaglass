@@ -9,22 +9,7 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     out.draw
         .push(Draw::Backdrop(crate::render::backdrop::Layer::Panel));
     out.glass_layer = Some(crate::render::backdrop::Layer::Panel);
-    let avatar = Rect::new(912., 200., 96., 96.);
-    out.shape(avatar, 48., out.accent_color(c(0xc9b6ff, 1.)));
-    let initials = crate::features::header::initials(&state.preferences.greeting_name);
-    if state.preferences.header.avatar == crate::features::header::Avatar::Initials
-        && !initials.is_empty()
-    {
-        out.text(
-            initials,
-            Rect::new(avatar.x, avatar.y + 29., 96., 42.),
-            text(30., 600, 0.),
-            c(0x20242a, 1.),
-            true,
-        );
-    } else {
-        out.icon(assets, "user", avatar.inset(22.), c(0x20242a, 1.));
-    }
+    avatar(out, state, assets, Rect::new(912., 200., 96., 96.));
     let name = state.preferences.greeting_name.trim();
     let title = if name.is_empty() {
         language.t("profileLocal")
@@ -54,15 +39,8 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
     .into_iter()
     .enumerate()
     {
-        let value = (target == Target::ProfileAvatar).then(|| {
-            language.t(
-                if state.preferences.header.avatar == crate::features::header::Avatar::Initials {
-                    "avatarInitials"
-                } else {
-                    "avatarSymbol"
-                },
-            )
-        });
+        let value = (target == Target::ProfileAvatar)
+            .then(|| language.t(state.preferences.header.avatar.key()));
         row(
             out,
             state,
@@ -77,6 +55,34 @@ pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
                 selected: false,
                 chevron: target == Target::ProfileName,
             },
+        );
+    }
+}
+
+pub(super) fn avatar(out: &mut Scene, state: &State, assets: &Assets, rect: Rect) {
+    let style = state.preferences.header.avatar;
+    out.shape(rect, rect.w / 2., out.accent_color(c(style.color(), 1.)));
+    let initials = crate::features::header::initials(&state.preferences.greeting_name);
+    if style == crate::features::header::Avatar::Initials && !initials.is_empty() {
+        let size = rect.w * 0.38;
+        out.text(
+            initials,
+            Rect::new(
+                rect.x,
+                rect.y + (rect.h - size * 1.4) / 2.,
+                rect.w,
+                size * 1.4,
+            ),
+            text(size, 600, 0.),
+            c(0x20242a, 1.),
+            true,
+        );
+    } else {
+        out.icon(
+            assets,
+            style.icon(),
+            rect.inset(rect.w * 0.23),
+            c(0x20242a, 1.),
         );
     }
 }

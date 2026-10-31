@@ -34,6 +34,10 @@ fn sliders_clamp_save_only_changes_and_respect_modal_scope() {
     let target = Target::AppearanceOption(Setting::Dimming);
     assert!(state.set_slider(&target, 2).is_empty());
     state.open_control_center();
+    assert!(state.set_slider(&target, 2).is_empty());
+    state.back();
+    state.open(2);
+    state.subpage = Some(crate::state::Subpage::Appearance);
     assert_eq!(state.set_slider(&target, 2), vec![Effect::Save]);
     assert_eq!(state.preferences.appearance.dimming, Dimming::Medium);
     assert!(state.set_slider(&target, 2).is_empty());
@@ -45,6 +49,7 @@ fn sliders_clamp_save_only_changes_and_respect_modal_scope() {
             .direction(Direction::Right, &controls(&state))
             .is_empty()
     );
+    state.open_control_center();
     state.quick_action(Action::Sleep);
     assert_eq!(state.focus, Target::SleepSlider);
     state.controls.report.sleep_index = Some(0);

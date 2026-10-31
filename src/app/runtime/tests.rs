@@ -564,6 +564,8 @@ fn reorder_persists_order_and_keeps_selected_identity() {
     let mut state = ready();
     state.focus = Target::App("netflix".into());
     state.hold();
+    state.focus = Target::Option(3);
+    state.activate();
     assert_eq!(
         state.direction(Direction::Right, &controls(&state)),
         vec![Effect::Save]
@@ -812,6 +814,8 @@ fn reordering_skips_hidden_and_unavailable_favorite_slots() {
     state.preferences.hidden.push("youtube.leanback.v4".into());
     state.focus = Target::App("netflix".into());
     state.hold();
+    state.focus = Target::Option(3);
+    state.activate();
     state.direction(Direction::Right, &controls(&state));
     assert_eq!(
         state.preferences.favorites.unwrap(),

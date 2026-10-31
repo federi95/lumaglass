@@ -25,6 +25,11 @@ impl Form {
             icon: Some("settings".into()),
         });
     }
+    pub fn hint(&mut self, description: &str) {
+        if let Some(detail) = &mut self.focus {
+            detail.description = Some(description.to_owned());
+        }
+    }
     fn new(scroll: f32) -> Self {
         Self {
             next: TOP - scroll,
@@ -119,7 +124,13 @@ pub(super) fn item(out: &mut Scene, state: &State, assets: &Assets, row: Row<'_>
     };
     let trailing = if row.chevron || row.selected { 30. } else { 0. };
     let value_width = if row.value.is_some() {
-        if half { 112. } else { 230. }
+        if half {
+            112.
+        } else if matches!(row.target, Target::SystemField(_)) {
+            350.
+        } else {
+            230.
+        }
     } else {
         0.
     };
@@ -232,6 +243,30 @@ fn title(state: &State) -> String {
     l.t(key).to_owned()
 }
 pub(super) fn render(out: &mut Scene, state: &State, assets: &Assets) {
+    let heading = title(state);
+    out.text(
+        &heading,
+        Rect::new(170., 140., 668., 48.),
+        assets.fit_line(&heading, text(30., 550, -0.025), 668.),
+        WHITE,
+        false,
+    );
+    let x = if state.preferences.header.side == crate::features::header::Side::Left {
+        430.
+    } else {
+        84.
+    };
+    let target = Target::SettingsBack;
+    let back = Rect::new(x, 48., 56., 56.);
+    let color = out.chrome(
+        state.feedback_rect(&target, back, false),
+        28.,
+        state.focus == target,
+        false,
+        state.pressed.as_ref() == Some(&target),
+    );
+    out.icon(assets, "left", back.inset(17.), color);
+    out.control(target, back, false);
     out.form = Some(Form::new(if opened(state) { state.scroll } else { 0. }));
     if !opened(state) {
         out.form.as_mut().unwrap().next = 276.;
@@ -365,52 +400,6 @@ fn hero(out: &mut Scene, state: &State, assets: &Assets, form: &Form) {
         true,
     );
     out.draw.push(Draw::Clip(Some(state.content_viewport())));
-}
-pub(super) fn header(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
-    super::header_identity(out, state, assets, now);
-    let left_clock = state.preferences.header.side == crate::features::header::Side::Left;
-    let x = if left_clock { 430. } else { 84. };
-    for (target, icon, offset) in [
-        (Target::SettingsBack, "left", 0.),
-        (Target::Nav(0), "home", 74.),
-        (Target::Nav(1), "grid", 148.),
-    ] {
-        let rect = Rect::new(x + offset, 48., 56., 56.);
-        let color = out.chrome(
-            state.feedback_rect(&target, rect, false),
-            28.,
-            state.focus == target,
-            false,
-            state.pressed.as_ref() == Some(&target),
-        );
-        out.icon(assets, icon, rect.inset(17.), color);
-        out.control(target, rect, false);
-    }
-    let heading = title(state);
-    out.text(
-        &heading,
-        Rect::new(650., 49., 620., 64.),
-        assets.fit_line(&heading, text(40., 550, -0.035), 620.),
-        WHITE,
-        true,
-    );
-    let title_rect = Rect::new(650., 40., 620., 76.);
-    if state.focus == Target::Nav(2) {
-        out.shape(Rect::new(928., 109., 64., 3.), 1.5, c(0xffffff, 0.55));
-    }
-    out.control(Target::Nav(2), title_rect, false);
-    super::control_center_button(out, state, assets);
-    let rect = Rect::new(1786.4, 52., 49.6, 49.6);
-    let target = Target::TvSettings;
-    let color = out.chrome(
-        rect,
-        24.8,
-        state.focus == target,
-        false,
-        state.pressed.as_ref() == Some(&target),
-    );
-    out.icon(assets, "settings", rect.inset(13.2), color);
-    out.control(target, rect, false);
 }
 pub(super) fn gallery(out: &mut Scene, state: &State, assets: &Assets) {
     let form = out.form.as_mut().unwrap();

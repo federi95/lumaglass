@@ -125,6 +125,33 @@ try {
       }
     }
   }
+  const tvInfo = await scenario(
+    'design-tv-info',
+    'settings,tap:{"Sidebar":4},tap:{"Setting":8},tap:{"SystemField":0},tap:{"SystemField":2}',
+  );
+  assert.equal(tvInfo.state.subpage, 'SystemInfo');
+  for (let i = 0; i < 3; i++) control(tvInfo.state, { Nav: i });
+  assert.ok(tvInfo.state.ui_text.includes('Model'));
+  const privacy = await scenario('design-privacy', 'settings,tap:{"Sidebar":4},tap:{"Setting":9}');
+  assert.equal(privacy.state.subpage, 'Privacy');
+  for (const avatar of ['cat', 'robot', 'leaf', 'sun', 'moon', 'gaming', 'sparkles']) {
+    const result = await scenario(`design-avatar-${avatar}`, 'tap:"Profile"', {
+      header: { avatar },
+    });
+    assert.equal(result.state.preferences.header.avatar, avatar);
+  }
+  const fire = await scenario(
+    'design-input-fire-tv',
+    'settings,tap:{"Sidebar":3},tap:{"InputMode":"com.webos.app.hdmi1"},tap:{"InputPreset":0},back,home',
+  );
+  assert.equal(fire.state.preferences.input_names['com.webos.app.hdmi1'], 'Amazon Fire TV Stick');
+  const homeMenu = await scenario('design-home-actions', 'home,down,hold');
+  control(homeMenu.state, { Option: 0 });
+  control(homeMenu.state, { Option: 3 });
+  assert.equal(
+    homeMenu.state.controls.some((c) => c.target === 'CloseDialog'),
+    false,
+  );
   const profile = await scenario('design-profile-action', 'tap:"Profile",enter');
   assert.equal(profile.state.modal, true);
   assert.equal(profile.state.subpage, null);

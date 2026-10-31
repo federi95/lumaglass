@@ -315,7 +315,6 @@ fn effects(
                 if !state.launching {
                     if platform.webos {
                         state.launching = true;
-                        state.notify(state.preferences.language.t("opening"));
                         platform.send(Request::Launch(id));
                     } else {
                         let title = state
@@ -333,7 +332,13 @@ fn effects(
                     }
                 }
             }
-            Effect::Quit => return false,
+            Effect::Quit => {
+                eprintln!(
+                    "Lumaglass exit requested from {:?}, focus {:?}",
+                    state.page, state.focus
+                );
+                return false;
+            }
             Effect::Recent {
                 generation,
                 command,
@@ -1334,6 +1339,20 @@ fn run() -> Result<(), String> {
                 state.wallpapers.decoding.insert(key);
             }
         }
+        if matches!(state.overlay, Some(Overlay::Options { .. }))
+            && state.catalog.report.is_none()
+            && !state.catalog.loading
+            && !state.catalog.failed
+        {
+            let pending = state.catalog_request();
+            effects(
+                pending,
+                &mut state,
+                &platform,
+                &preferences_writer,
+                &weather_service,
+            );
+        }
         if state.dirty {
             scene = compose(&mut state, &assets, pill, pill_width, now);
         }
@@ -1407,7 +1426,10 @@ fn run() -> Result<(), String> {
             }
             let mut pending = vec![];
             match event {
-                Event::Quit { .. } => running = false,
+                Event::Quit { .. } => {
+                    eprintln!("Lumaglass exit: SDL quit event");
+                    running = false;
+                }
                 Event::User { type_, code, .. } if Some(type_) == lifecycle_event => {
                     if code == 1 {
                         // A staged Home must come forward itself. If it does not, its
@@ -1425,6 +1447,7 @@ fn run() -> Result<(), String> {
                         state.dirty = true;
                         pending.push(Effect::Refresh);
                     } else if code == 2 {
+                        eprintln!("Lumaglass exit: native lifecycle close");
                         running = false;
                     }
                 }

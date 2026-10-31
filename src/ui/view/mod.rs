@@ -525,7 +525,14 @@ pub fn scene_with_pill(
     let viewport = state.content_viewport();
     let main_bottom = viewport.y + viewport.h;
     out.draw.push(Draw::Clip(Some(viewport)));
-    if state.page == Page::Apps {
+    if state.page == Page::Home {
+        out.draw.push(Draw::EdgeFade(Some([
+            MAIN_TOP,
+            MAIN_TOP + 12.,
+            main_bottom - 24.,
+            main_bottom,
+        ])));
+    } else if state.page == Page::Apps {
         out.draw.push(Draw::EdgeFade(Some([
             MAIN_TOP,
             152.8,
@@ -590,6 +597,14 @@ pub fn scene_with_pill(
         | Overlay::Profile),
     ) = &state.overlay
     {
+        let option_anchor = if let Overlay::Options { id, .. } = overlay {
+            out.controls
+                .iter()
+                .find(|c| c.target == Target::App(id.clone()))
+                .map(|c| c.rect)
+        } else {
+            None
+        };
         out.controls.clear();
         out.glass_layer = None;
         let floating = matches!(
@@ -619,7 +634,7 @@ pub fn scene_with_pill(
         );
         match overlay {
             Overlay::Options { id, removal, .. } => {
-                options(&mut out, state, assets, id, removal.as_ref())
+                options(&mut out, state, assets, id, removal.as_ref(), option_anchor)
             }
             Overlay::RemovalConfirm { target, title, .. } => {
                 removal_dialog(&mut out, state, &target.id, title, true)
@@ -693,7 +708,7 @@ pub(crate) fn wallpaper_blur(state: &State) -> &'static str {
 }
 
 fn header_identity(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
-    use crate::features::header::{Avatar, Side};
+    use crate::features::header::Side;
     let clock = state.preferences.language.clock(
         now,
         state.preferences.hour_24,
@@ -748,19 +763,7 @@ fn header_identity(out: &mut Scene, state: &State, assets: &Assets, now: OffsetD
         );
         avatar.inset(5.)
     };
-    out.shape(avatar, avatar.w / 2., out.accent_color(c(0xc9b6ff, 0.95)));
-    let initials = crate::features::header::initials(&state.preferences.greeting_name);
-    if state.preferences.header.avatar == Avatar::Initials && !initials.is_empty() {
-        out.text(
-            initials,
-            Rect::new(avatar.x, avatar.y + 10., avatar.w, 24.),
-            text(17., 600, 0.),
-            c(0x20242a, 1.),
-            true,
-        );
-    } else {
-        out.icon(assets, "user", avatar.inset(9.), c(0x20242a, 1.));
-    }
+    profile::avatar(out, state, assets, avatar);
     // Profile owns only its own avatar hit area; it never opens quick controls.
     if matches!(state.overlay, None | Some(Overlay::ControlCenter { .. })) {
         out.control(Target::Profile, avatar.inset(-5.), false);
@@ -789,10 +792,6 @@ fn header(
     pill_x: f32,
     pill_width: f32,
 ) {
-    if state.page == Page::Settings {
-        settings_ui::header(out, state, assets, now);
-        return;
-    }
     let language = state.preferences.language;
     header_identity(out, state, assets, now);
     let layout = navigation(assets, language);
@@ -1249,7 +1248,7 @@ fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
         }
         weather_summary(out, state, assets, summary, y);
     }
-    let mut top = 478.5;
+    let mut top = 430.5;
     if home.inputs_first {
         let height = home_inputs(out, state, assets, top);
         if height > 0. {
@@ -1257,7 +1256,7 @@ fn home(out: &mut Scene, state: &State, assets: &Assets, now: OffsetDateTime) {
         }
     }
     if state.dock_enabled() {
-        top = top.max(688.);
+        top = top.max(608.);
     }
     let height = home_favorites(out, state, assets, top);
     if !home.inputs_first {
@@ -1684,7 +1683,7 @@ fn library(out: &mut Scene, state: &State, assets: &Assets) {
             false,
             state.pressed.as_ref() == Some(&Target::ClearFilter),
         );
-        out.icon(assets, "close", rect.inset(8.), color);
+        out.icon(assets, "erase", rect.inset(8.), color);
         out.control(Target::ClearFilter, rect, true);
     }
     let search = Rect::new(1532., 164.8 - s, 304., 56.);
@@ -1722,7 +1721,7 @@ fn library(out: &mut Scene, state: &State, assets: &Assets) {
     if !state.query.is_empty() {
         let clear = Rect::new(search.x + search.w - 45.8, search.y + 14.8, 26.4, 26.4);
         out.shape(clear, 13.2, c(0xffffff, 0.055));
-        out.icon(assets, "close", clear.inset(5.2), search_color);
+        out.icon(assets, "erase", clear.inset(5.2), search_color);
         if state.focus == Target::ClearSearch {
             out.border(clear.inset(-2.), 15.2, 2., search_color);
         }
@@ -2400,7 +2399,7 @@ fn settings_content(out: &mut Scene, state: &State, assets: &Assets) {
                         title: language.t(key),
                         icon: Some(icon),
                         value,
-                        description: None,
+                        description: (index == 19).then(|| language.t("saverLocalHint")),
                         selected: false,
                         chevron,
                     },
@@ -2434,9 +2433,9 @@ fn settings_content(out: &mut Scene, state: &State, assets: &Assets) {
                 (9, language.t("privacy"), "settings", None, true),
                 (22, language.t("catalogTitle"), "grid", None, true),
                 (
-                    14,
-                    language.t("blockerRefresh"),
-                    "refresh",
+                    15,
+                    language.t("blockerToggle"),
+                    "shield",
                     Some(language.t(if state.controls.loading {
                         "infoReading"
                     } else {
@@ -2447,10 +2446,8 @@ fn settings_content(out: &mut Scene, state: &State, assets: &Assets) {
                             _ => "infoUnknown",
                         }
                     })),
-                    false,
+                    true,
                 ),
-                (15, language.t("blockerEnable"), "settings", None, true),
-                (16, language.t("blockerDisable"), "refresh", None, true),
                 (5, language.t("quitApp"), "power", None, false),
             ]
             .into_iter()
@@ -2688,7 +2685,7 @@ fn system_information(out: &mut Scene, state: &State, assets: &Assets) {
                 rect: Rect::new(640., 282. - state.scroll + index as f32 * 94., 1120., 82.),
                 title: language.t(title),
                 icon: None,
-                value: None,
+                value: Some(value),
                 description: Some(value),
                 selected: false,
                 chevron: false,
@@ -3357,13 +3354,7 @@ fn clock_settings(out: &mut Scene, state: &State, assets: &Assets) {
         (
             Target::AvatarStyle,
             "avatarStyle",
-            language.t(
-                if state.preferences.header.avatar == crate::features::header::Avatar::Initials {
-                    "avatarInitials"
-                } else {
-                    "avatarSymbol"
-                },
-            ),
+            language.t(state.preferences.header.avatar.key()),
         ),
     ]
     .into_iter()
@@ -3488,6 +3479,28 @@ fn input_name_rows(out: &mut Scene, state: &State, assets: &Assets, id: &str, y:
             chevron: false,
         },
     );
+    for (index, (name, key, icon)) in crate::model::INPUT_PRESETS.iter().enumerate() {
+        row(
+            out,
+            state,
+            assets,
+            Row {
+                target: Target::InputPreset(index),
+                rect: Rect::new(
+                    640.,
+                    y + 186.7 + if custom.is_some() { 84. } else { 0. } + index as f32 * 84.,
+                    1120.,
+                    72.,
+                ),
+                title: language.t(key),
+                icon: Some(icon),
+                value: None,
+                description: None,
+                selected: custom.is_some_and(|current| current == *name),
+                chevron: false,
+            },
+        );
+    }
 }
 
 /// A custom name such as "PS5" can choose the icon; otherwise the TV's label.
@@ -3505,6 +3518,12 @@ fn device_icon(name: &str) -> &'static str {
         "playstation"
     } else if name.contains("appletv") {
         "apple-tv"
+    } else if name.contains("firetv") || name.contains("firestick") {
+        "fire-tv"
+    } else if name.contains("chromecast") || name.contains("googletv") {
+        "chromecast"
+    } else if name.contains("laptop") || name.contains("macbook") {
+        "laptop"
     } else if name.contains("usb") {
         "usb"
     } else if name.contains("xbox") {
@@ -3727,6 +3746,7 @@ fn options(
     assets: &Assets,
     id: &str,
     removal: Option<&crate::features::apps::management::RemovalTarget>,
+    anchor: Option<Rect>,
 ) {
     let l = state.preferences.language;
     let app = state.inventory.apps.iter().find(|a| a.id == id);
@@ -3757,46 +3777,50 @@ fn options(
             if hidden { "eye" } else { "eye-off" },
         ),
     ];
-    if removal.is_some() {
-        entries.push((
-            2,
-            if state.management.active()
-                && state.management.target.as_ref().is_some_and(|t| t.id == id)
-            {
-                "uninstallStatus"
-            } else {
-                "uninstallApp"
-            },
-            "close",
-        ));
+    entries.push((
+        2,
+        if removal.is_none() {
+            "uninstallUnavailable"
+        } else if state.management.active()
+            && state.management.target.as_ref().is_some_and(|t| t.id == id)
+        {
+            "uninstallStatus"
+        } else {
+            "uninstallApp"
+        },
+        "trash",
+    ));
+    if state.page == Page::Home && favorite {
+        entries.push((3, "move", "arrow"));
     }
-    let panel = Rect::new(1228., 230., 608., 184. + entries.len() as f32 * 84.);
+    let height = 132. + entries.len() as f32 * 80.;
+    let anchor = anchor.unwrap_or(Rect::new(736., 420., 300., 170.));
+    let width = 456.;
+    let x = if anchor.x + anchor.w + width + 24. <= 1840. {
+        anchor.x + anchor.w + 24.
+    } else if anchor.x - width - 24. >= 80. {
+        anchor.x - width - 24.
+    } else {
+        (anchor.x + (anchor.w - width) / 2.).clamp(80., 1840. - width)
+    };
+    let y = (anchor.y + anchor.h / 2. - height / 2.).clamp(144., 1016. - height);
+    let panel = Rect::new(x, y, width, height);
     out.modal_panel(panel, 44.);
     out.text(
         title,
-        Rect::new(panel.x + 30., panel.y + 30., 480., 76.),
-        assets.fit_line(title, text(32., 550, -0.025), 480.),
+        Rect::new(panel.x + 28., panel.y + 24., panel.w - 56., 42.),
+        assets.fit_line(title, text(27., 550, -0.025), panel.w - 56.),
         WHITE,
         false,
     );
     out.text(
         l.category(app.map_or("Utilities", |a| a.category.as_str())),
-        Rect::new(panel.x + 30., panel.y + 90., 480., 28.),
+        Rect::new(panel.x + 28., panel.y + 70., panel.w - 56., 28.),
         text(18., 400, 0.),
         c(0xffffff, 0.65),
         false,
     );
-    let close = Rect::new(panel.x + panel.w - 66., panel.y + 24., 40., 40.);
-    let color = out.chrome(
-        close,
-        20.,
-        state.focus == Target::CloseDialog,
-        false,
-        state.pressed.as_ref() == Some(&Target::CloseDialog),
-    );
-    out.icon(assets, "close", close.inset(13.), color);
-    out.control(Target::CloseDialog, close, false);
-    for (index, key, icon) in entries {
+    for (position, (index, key, icon)) in entries.into_iter().enumerate() {
         row(
             out,
             state,
@@ -3805,7 +3829,7 @@ fn options(
                 target: Target::Option(index),
                 rect: Rect::new(
                     panel.x + 24.,
-                    panel.y + 136. + index as f32 * 84.,
+                    panel.y + 112. + position as f32 * 80.,
                     panel.w - 48.,
                     72.,
                 ),
@@ -3935,12 +3959,6 @@ fn keyboard(out: &mut Scene, state: &State, assets: &Assets) {
         WHITE,
         false,
     );
-    let close = Rect::new(1497., 328., 33.6, 33.6);
-    out.icon(assets, "close", close.inset(7.6), WHITE);
-    out.control(Target::CloseDialog, close, false);
-    if state.focus == Target::CloseDialog {
-        out.border(close, 16.8, 2., out.accent_color(WHITE));
-    }
     out.shape(Rect::new(389., 390., 1142., 56.), 28., c(0x171c20, 0.72));
     out.icon(
         assets,
@@ -4009,13 +4027,8 @@ fn toast(out: &mut Scene, state: &State, assets: &Assets, notice: &str) {
         c(0x303030, 1.),
         false,
     );
-    let close = Rect::new(rect.x + width - 33., rect.y + (height - 20.) / 2., 20., 20.);
-    out.icon(assets, "close", close.inset(1.2), c(0x6b6b6b, 1.));
-    if state.focus == Target::DismissNotice {
-        out.border(close.inset(-2.), 5., 2., c(0x303030, 1.));
-    }
     if state.overlay.is_none() {
-        out.control(Target::DismissNotice, close, false);
+        out.control(Target::DismissNotice, rect, false);
     }
     if !state.preferences.reduced_motion
         && let Some((_, opened)) = &state.notice

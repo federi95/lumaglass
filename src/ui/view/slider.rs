@@ -25,6 +25,9 @@ pub(super) fn draw(
     let focused = state.focus == target;
     if focused && let Some(form) = &mut out.form {
         form.detail(title, labels.get(index).map(String::as_str));
+        if target == Target::Setting(19) {
+            form.hint(state.preferences.language.t("saverLocalHint"));
+        }
     }
     let quick = matches!(state.overlay, Some(Overlay::ControlCenter { .. }));
     if quick {

@@ -251,6 +251,17 @@ impl Preferences {
     }
 }
 
+pub const INPUT_PRESETS: [(&str, &str, &str); 8] = [
+    ("Amazon Fire TV Stick", "inputFireTv", "input-fire-tv"),
+    ("PC", "inputPc", "input-computer"),
+    ("Laptop", "inputLaptop", "input-laptop"),
+    ("Chromecast", "inputChromecast", "input-chromecast"),
+    ("NVIDIA Shield", "inputShield", "input-streamer"),
+    ("Roku", "inputRoku", "input-streamer"),
+    ("Nintendo Switch", "inputSwitch", "input-console"),
+    ("PlayStation 5", "inputPlayStation", "input-playstation"),
+];
+
 pub const INPUT_NAME_LIMIT: usize = 40;
 
 pub fn clean_input_name(name: &str) -> String {
