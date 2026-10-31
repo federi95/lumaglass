@@ -28,6 +28,8 @@ function inspect(text, stagePath) {
     if (separator < 6 || fields.length < separator + 4 || !/^\d+$/.test(fields[0]))
       throw new Error('Invalid Home mount information');
     records.push({
+      id: fields[0],
+      parent: fields[1],
       target: unescapePath(fields[4]),
       source: unescapePath(fields[3]),
       device: fields[2]
@@ -36,13 +38,36 @@ function inspect(text, stagePath) {
   // mountinfo roots are relative to their filesystem, not necessarily to '/'.
   // Resolve the staged app through its deepest containing mount (e.g. /var).
   stagePath = stagePath || STAGE;
-  var container = null;
+  var containers = [];
+  var deepest = 0;
+  var byId = Object.create(null);
   records.forEach(function (record) {
+    byId[record.id] = record;
     var point = record.target;
     if (point === '/' || stagePath === point || stagePath.indexOf(point + '/') === 0) {
-      if (!container || point.length > container.target.length) container = record;
+      if (point.length > deepest) {
+        deepest = point.length;
+        containers = [];
+      }
+      if (point.length === deepest) containers.push(record);
     }
   });
+  // webOS can overmount /var itself: the active ext4 mount is a child of
+  // the covered overlay at the same path. Mountinfo line order is not proof
+  // of visibility. Require one descendant of every same-path candidate.
+  var visible = containers.filter(function (candidate) {
+    return containers.every(function (other) {
+      var current = candidate;
+      for (var steps = 0; current && steps < records.length; steps++) {
+        if (current === other) return true;
+        current = byId[current.parent];
+      }
+      return false;
+    });
+  });
+  if (containers.length && visible.length !== 1)
+    throw new Error('Ambiguous containing mounts for the staged Home app');
+  var container = visible[0] || null;
   var stageRoot = container
     ? container.source.replace(/\/$/, '') +
       stagePath.slice(container.target === '/' ? 0 : container.target.length)

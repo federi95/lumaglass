@@ -36,6 +36,32 @@ test('a staged app on a separate filesystem uses that filesystem root and device
   assert.equal(reader.inspect(mounts + differentDevice).conflict, true);
 });
 
+test('stacked /var containers follow mount ancestry independently of line order', () => {
+  // QNED756RA/webOS 25: ext4 /var covers an overlay at the same mount point.
+  const root = '19 1 179:27 / / ro - squashfs /dev/root ro\n';
+  const overlay = '59 19 0:49 / /var rw - overlay overlay rw\n';
+  const persistent = '74 59 179:57 /var /var rw - ext4 /dev/mmcblk0p57 rw\n';
+  const own = `6364 19 179:57 ${stage} ${target} rw - ext4 /dev/mmcblk0p57 rw\n`;
+  for (const containers of [root + overlay + persistent, persistent + overlay + root]) {
+    assert.equal(reader.inspect(containers).home, 'stock');
+    const report = reader.inspect(containers + own);
+    assert.equal(report.home, 'lumaglass');
+    assert.equal(report.conflict, false);
+    assert.equal(reader.inspect(containers + own.replace('179:57', '0:49')).home, 'other');
+    assert.equal(reader.inspect(containers + own + layer(77, '/foreign', target)).conflict, true);
+    assert.equal(
+      reader.inspect(containers + own + layer(78, '/foreign', `${target}/icon.png`)).conflict,
+      true,
+    );
+  }
+});
+
+test('same-path containers without provable ancestry remain ambiguous', () => {
+  const first = '2 1 0:2 / /var rw - ext4 first rw\n';
+  const unrelated = '3 1 0:3 / /var rw - ext4 second rw\n';
+  assert.throws(() => reader.inspect(base + first + unrelated), /Ambiguous containing mounts/);
+});
+
 test('a lower foreign executable layer is not hidden by a Lumaglass layer on top', () => {
   const report = reader.inspect(
     base + layer(2, '/other/launcher', exe) + layer(3, executable, exe),
