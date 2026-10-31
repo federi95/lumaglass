@@ -22,8 +22,9 @@ behavior is a design reference, not an LG key binding.
 
 The native cluster uses a tall power lens beside two compact status capsules,
 a pair of action capsules and four circular shortcuts. Only the focused shortcut
-shows its caption below the circle. Local dimming and timer details use the same
-padded slider row as Settings. Focused surfaces brighten with dark labels;
+shows its caption below the circle. The sleep-timer detail uses the same padded slider row as Settings.
+Wallpaper dimming remains in Settings → General → Appearance, keeping the
+main quick-controls cluster compact. Focused surfaces brighten with dark labels;
 unfocused glass remains tinted and translucent. Profile actions use the same
 spacing, focus and independent capsules, without an outer backplate.
 
@@ -32,12 +33,11 @@ spacing, focus and independent capsules, without an outer backplate.
 | Control                               | Behavior                                                                                                                                                                                                                                                                                                               |
 | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Standby                               | Requires a known active power state and confirmation, with Cancel selected initially. Sends one fixed LG standby request. An accepted request is not proof that the TV entered standby.                                                                                                                                |
-| Network                               | Reads Wi-Fi/Ethernet connection status without storing SSID or IP addresses. Selecting it opens the existing LG settings app.                                                                                                                                                                                          |
+| Network                               | Reads Wi-Fi/Ethernet status and shows the active Wi-Fi name when reported. The name is held only in memory, not preferences. Selecting it opens LG settings.                                                                                                                                                           |
 | Audio                                 | Reads volume and mute state. OK toggles mute after rereading the expected state, with one write and readback. It does not switch audio outputs.                                                                                                                                                                        |
 | Screensaver                           | Starts the local screensaver immediately, including when its automatic timeout is Off. The first wake gesture is consumed.                                                                                                                                                                                             |
 | Sleep timer                           | Shows the native LG timer. Select the timer tile to open its detail slider, choose a draft value, then press OK and confirm. Back first returns to the main control center. Supported slots are Off, 10, 30, 60, 90 and 120 minutes. Off cancels the LG timer. This timer can turn the TV off after leaving Lumaglass. |
 | Search, inputs, recent apps, settings | Opens the corresponding existing Lumaglass view.                                                                                                                                                                                                                                                                       |
-| Wallpaper dimming                     | Adjusts the saved local wallpaper dimming immediately.                                                                                                                                                                                                                                                                 |
 
 Opening the panel performs a bounded, read-only status refresh on the information
 worker. System services remain off the rendering thread. Unavailable or refused
@@ -48,7 +48,7 @@ commands; hardware-dependent fields report that they do not apply.
 ## Clock and avatar
 
 **Settings → General → Clock** includes **Clock and avatar together**,
-**Clock position** (Left/Right), and **Avatar style** (Initials/Symbol).
+**Clock position** (Left/Right), and **Avatar style**.
 New/default preferences group clock and avatar on the right. Existing saved layout choices remain respected. Moving
 the clock also moves the combined capsule when enabled. Without the capsule the avatar remains a separate profile button. The control-center button has its own icon, target and action.
 
@@ -60,7 +60,7 @@ chrome, like the tab track and active tab pill.
 ## Local profile
 
 Selecting the avatar opens **Local profile**, centered over the current page, including from Control Center. Click the surrounding background or press Back to dismiss it; there is no X button. Edit or clear
-the name and choose Initials/Symbol. Changes stay on this TV in Lumaglass
+the name and choose initials, a user symbol, sun, moon, gaming, sparkles, cat, robot or leaf. Changes stay on this TV in Lumaglass
 preferences; no LG, Apple or online account is created or accessed. The name is
 also used by timed Home greetings. Editing it leaves a custom static greeting
 unchanged. Finishing text entry returns to the profile; Back restores avatar
@@ -129,3 +129,12 @@ changes. Changing a sleep-timer draft never writes to the TV.
 Real standby behavior, audio routing and native sleep-timer availability still
 need validation on each supported TV/firmware. Automated CI uses mocked services
 and desktop rendering; it does not certify webOS 25 hardware behavior.
+
+## Observation lifecycle
+
+An already-root Home executes bundled helpers directly on its observation worker,
+with a seven-second deadline, bounded output and child-process-group cleanup.
+Ordinary jailed app launches retain the Homebrew Channel root-service path.
+No helper runs on SDL's event thread or becomes a permanent service. Status
+refreshes retain cached quick observations without replacing them with loading
+text; blocker-only replies do not erase network/audio observations.

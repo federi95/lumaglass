@@ -114,9 +114,8 @@ Rendering diagnostics include:
 - `glass_background_refreshes`: targets refreshed during this frame.
 - `glass_background_ms`: CPU preparation/submission time, not a GPU timestamp.
 
-No tests, graphical preview or CI were run for this revision, as requested.
-Compilation and packaging do not establish visual correctness, a TV frame-rate
-guarantee or driver compatibility. Those require the pending hardware checks.
+Desktop CI covers rendering, while compilation and packaging do not establish
+a TV frame-rate guarantee or driver compatibility. Those require the pending hardware checks.
 The intended next performance step is a controlled Off/Light/Full comparison on
 the target TV, using actual presentation pacing and input responsiveness during
 navigation and modal transitions. CPU submission time alone cannot establish

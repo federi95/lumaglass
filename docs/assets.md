@@ -142,3 +142,13 @@ under CC0 1.0. The only change sets the path fill to white for runtime tinting.
 The complete dedication is distributed in `assets/licenses/simple-icons-cc0.txt`.
 The symbol and Xbox Series X name identify the locally chosen input device;
 the Xbox trademarks belong to Microsoft.
+
+### Additional native identity and action symbols
+
+`avatar-cat.svg`, `avatar-robot.svg`, `avatar-leaf.svg`, `input-fire-tv.svg`,
+`input-laptop.svg`, `input-chromecast.svg`, `shield.svg`, `trash.svg` and `erase.svg`
+are original Lumaglass geometric SVG drawings under MIT. They add no raster
+avatar downloads, Apple artwork, SF Symbols or new font dependency. Other avatar
+styles reuse the already bundled user, weather, gaming and sparkle symbols.
+Named device presets identify an input locally; device names remain their owners’
+marks and do not imply endorsement.

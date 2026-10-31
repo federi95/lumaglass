@@ -53,7 +53,7 @@ It does not execute the test suites. A desktop display is required; on headless 
 | ----------------------------- | ------------------------------------------------------------- |
 | Arrows                        | Move focus, revealing remote-focused content                  |
 | OK / Enter                    | Activate on release                                           |
-| Hold OK for 600 ms            | Reorder Home favorite or open app options                     |
+| Hold OK for 600 ms            | Open the focused app’s actions; choose Move to reorder        |
 | OK or Back in move mode       | Finish reordering without launching                           |
 | Escape / Back / Backspace     | Parent navigation, overlay dismissal or Recent apps from Home |
 | Hold Back / Escape for 600 ms | Open Recent apps while Lumaglass is focused                   |
@@ -200,3 +200,20 @@ focus. Clock/avatar grouping and left/right placement are configured in
 Numeric and ordered preferences use labelled discrete sliders: Left/Right adjusts,
 Up/Down changes rows, and the pointer can click or drag the track. OK cycles local
 values. The native LG sleep timer instead keeps a draft until OK and confirmation.
+
+## App action popovers
+
+Hold OK on a Home favorite or library tile to open the same contextual actions.
+The compact popover is positioned beside that tile and kept inside the safe area.
+Home favorites include an explicit Move action; removing a favorite, local hiding
+and confirmed eligible-app uninstallation remain separate actions. Capability
+metadata is requested on demand. Uninstall stays disabled without a verified
+removal target, and system/protected identities remain protected. The popover
+keeps stable geometry as metadata arrives. Back or its surrounding background
+closes it; there is no X button. Informational TV fields and consent rows have
+no activation side effects.
+
+Settings retains the same Home/Apps/Settings tab bar as the other pages, with a
+separate Back button and a contextual heading in the content area. Ordinary TV
+launches no longer emit a generic Opening toast; actual launch failures remain
+visible.

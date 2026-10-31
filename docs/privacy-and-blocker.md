@@ -17,8 +17,10 @@ Desktop controls are unavailable rather than simulating successful TV changes.
 
 ## Blocker
 
-Settings → System provides Refresh status, Enable LG ads & telemetry blocker
-and Disable LG blocker and restore hosts. Enable/disable require confirmation.
+Settings → System provides one LG ads and telemetry blocker row. It displays
+the observed state and requests status when unknown. When known, selecting the
+row offers the corresponding enable or disable/restore action with confirmation.
+Entering the System category requests a read-only status snapshot.
 The optional blocker is off until explicitly enabled. Its bundled minimal list
 is revision `2026-10-lg-minimal-1`; the list and generation logic are inspectable
 in [blocker.cjs](../tv/blocker.cjs). There are no downloaded lists or wildcards.

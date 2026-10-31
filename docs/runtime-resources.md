@@ -118,3 +118,13 @@ wallpaper, compare Off/Light/Full, and record resident memory, idle CPU, present
 pacing and input response after settling and during navigation. Separate first-use
 loading from steady-state work. A texture budget or a sleeping-thread count alone
 does not establish a slowdown percentage.
+
+## Subsequent root-Home helper update
+
+Root Home observations and controls can now execute their bundled Node helper
+directly, without asking Homebrew Channel to elevate an already-root process.
+The child has a separate process group, a seven-second deadline and a 2 MiB
+output limit; timeout/error cleanup kills only that job’s group. Ordinary jailed
+app launches keep the elevated service path. This changes on-demand work, not
+the idle worker count. Wi-Fi names stay in memory and additional SVG avatars
+use the ordinary icon cache; neither introduces polling or an online account.
